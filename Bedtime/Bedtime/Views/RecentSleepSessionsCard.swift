@@ -84,12 +84,12 @@ struct RecentSleepSessionsCard: View {
                                 Spacer()
                                 
                                 VStack(alignment: .trailing, spacing: 2) {
-                                    Text(String(format: "%.1f", nightSessions.reduce(0) { $0 + $1.durationInHours }))
+                                    Text(TimeFormatter.formatDuration(nightSessions.reduce(0) { $0 + $1.duration }))
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
                                     
-                                    Text("total hours")
+                                    Text("total")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -125,14 +125,10 @@ struct RecentSleepSessionsCard: View {
                                         
                                         Spacer()
                                         
-                                        Text(String(format: "%.1f", session.durationInHours))
+                                        Text(TimeFormatter.formatDuration(session.duration))
                                             .font(.caption)
                                             .fontWeight(.medium)
                                             .foregroundColor(.primary)
-                                        
-                                        Text("hrs")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
                                     }
                                     .padding(.vertical, 2)
                                     

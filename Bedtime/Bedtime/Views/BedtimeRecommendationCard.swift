@@ -69,7 +69,7 @@ struct BedtimeRecommendationCard: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        Text(String(format: "%.1f hours", recommendation.targetSleepDuration))
+                        Text(TimeFormatter.formatDuration(recommendation.targetSleepDuration * 3600))
                             .font(.title2)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
