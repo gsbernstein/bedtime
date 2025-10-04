@@ -8,7 +8,15 @@
 import SwiftUI
 
 struct RecentSleepSessionsCard: View {
-    let sessions: [SleepSession]
+    
+    init(sessions: [Date: [SleepSession]]) {
+        self.sessions = sessions
+        self.sortedSessions = sessions.sorted { $0.key > $1.key }
+    }
+    
+    let sessions: [Date: [SleepSession]]
+    let sortedSessions: [(Date, [SleepSession])]
+    
     @State private var expandedNights: Set<Date> = []
     
     let formatter: DateFormatter = {
@@ -16,12 +24,6 @@ struct RecentSleepSessionsCard: View {
         formatter.dateStyle = .short
         return formatter
     }()
-    
-    private var groupedSessions: [(Date, [SleepSession])] {
-        let calendar = Calendar.current
-        let grouped = Dictionary(grouping: sessions) { calendar.startOfDay(for: $0.startDate) }
-        return grouped.sorted { $0.key > $1.key }
-    }
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -56,7 +58,7 @@ struct RecentSleepSessionsCard: View {
             
             // Grouped sleep sessions
             VStack(spacing: 8) {
-                ForEach(groupedSessions, id: \.0) { night, nightSessions in
+                ForEach(sortedSessions, id: \.0) { night, nightSessions in
                     VStack(spacing: 0) {
                         // Night header (always visible)
                         Button(action: {
@@ -144,7 +146,7 @@ struct RecentSleepSessionsCard: View {
                         }
                     }
                     
-                    if night != groupedSessions.last?.0 {
+                    if night != sortedSessions.last?.0 {
                         Divider()
                     }
                 }

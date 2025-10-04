@@ -43,7 +43,7 @@ struct HealthKitAuthorizationCard: View {
             
             Button("Grant Access") {
                 Task {
-                    await healthKitManager.requestAuthorization()
+                    try await healthKitManager.requestAuthorization()
                 }
             }
             .buttonStyle(.borderedProminent)

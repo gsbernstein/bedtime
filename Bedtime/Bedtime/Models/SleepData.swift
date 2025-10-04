@@ -8,6 +8,8 @@
 import Foundation
 import HealthKit
 
+let asleepTypes: Set<HKCategoryValueSleepAnalysis> = [.asleepUnspecified, .asleepCore, .asleepDeep, .asleepREM]
+
 struct SleepSession {
     let startDate: Date
     let endDate: Date
@@ -23,6 +25,22 @@ struct SleepSession {
     
     var durationInHours: Double {
         return duration / 3600.0
+    }
+    
+    var dateForGrouping: Date {
+        let midpoint = startDate.addingTimeInterval(duration / 2)
+        let shiftedMidpoint = midpoint.addingTimeInterval(TimeInterval(6 * 60 * 60))
+        return Calendar.current.startOfDay(for: shiftedMidpoint)
+    }
+}
+
+extension SleepSession {
+    init?(sample: HKCategorySample) {
+        guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return nil }
+        guard asleepTypes.contains(sleepType) else { return nil }
+        self.init(startDate: sample.startDate,
+            endDate: sample.endDate,
+            sleepType: sleepType)
     }
 }
 
@@ -68,7 +86,6 @@ extension HKCategoryValueSleepAnalysis {
 struct SleepBank {
     let currentBalance: Double // in hours
     let goalHours: Double
-    let recentSessions: [SleepSession]
     
     var isInDebt: Bool {
         return currentBalance < 0

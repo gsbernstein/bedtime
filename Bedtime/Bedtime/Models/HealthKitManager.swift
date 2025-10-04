@@ -13,27 +13,25 @@ import Combine
 class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
     @Published var isAuthorized = false
-    @Published var sleepSessions: [SleepSession] = []
+    @Published var sleepSessions: [Date: [SleepSession]] = [:]
     @Published var errorMessage: String?
-    
-    let asleepTypes: Set<HKCategoryValueSleepAnalysis> = [.asleepUnspecified, .asleepCore, .asleepDeep, .asleepREM]
-    
+        
     init() {
-        checkHealthKitAvailability()
-    }
-    
-    private func checkHealthKitAvailability() {
-        guard HKHealthStore.isHealthDataAvailable() else {
-            errorMessage = "HealthKit is not available on this device"
-            return
+        do {
+            try checkHealthKitAvailability()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
     
-    func requestAuthorization() async {
+    private func checkHealthKitAvailability() throws {
         guard HKHealthStore.isHealthDataAvailable() else {
-            errorMessage = "HealthKit is not available on this device"
-            return
+            throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "HealthKit is not available on this device"])
         }
+    }
+    
+    func requestAuthorization() async throws {
+        try checkHealthKitAvailability()
         
         let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
         
@@ -42,12 +40,14 @@ class HealthKitManager: ObservableObject {
             isAuthorized = true
             try await fetchSleepData()
         } catch {
-            errorMessage = "Failed to request HealthKit authorization: \(error.localizedDescription)"
+            throw NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to request HealthKit authorization: \(error.localizedDescription)"])
         }
     }
     
     func fetchSleepData() async throws  {
-        guard isAuthorized else { return }
+        if !isAuthorized {
+            try await requestAuthorization()
+        }
         
         let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
         let calendar = Calendar.current
@@ -82,39 +82,31 @@ class HealthKitManager: ObservableObject {
         healthStore.execute(query)
     }
     
-    private func processSleepSamples(_ samples: [HKCategorySample]) {
-        var sessions: [SleepSession] = []
-        
-        for sample in samples {
-            guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { continue }
-            guard asleepTypes.contains(sleepType) else { continue }
-            let session = SleepSession(
-                startDate: sample.startDate,
-                endDate: sample.endDate,
-                sleepType: sleepType
-            )
-            sessions.append(session)
-        }
-        
+    private func processSleepSamples(_ samples: [HKCategorySample]) {        
         // Sort by start date (most recent first)
-        self.sleepSessions = sessions.sorted { $0.startDate > $1.startDate }
+        let sessions = samples
+            .compactMap { SleepSession(sample: $0) }
+        
+        self.sleepSessions = Dictionary(grouping: sessions) { $0.dateForGrouping }
     }
     
-    func calculateSleepBank(goalHours: Double, recentDays: Int = 7) -> SleepBank {
+    func calculateSleepBank(goalHours: Double, recentDays: Int) -> SleepBank {
         let calendar = Calendar.current
         let endDate = Date()
         let startDate = calendar.date(byAdding: .day, value: -recentDays, to: endDate) ?? endDate
         
         // Filter sessions from the last N days
-        let recentSessions = sleepSessions.filter { session in
-            session.startDate >= startDate && session.startDate <= endDate
+        let recentSessions = sleepSessions.filter { day, _ in
+            day >= startDate && day <= endDate
         }
         
+        let daysWithData = recentSessions.count
+        
         // Calculate total sleep hours in the period
-        let totalSleepHours = recentSessions.reduce(0) { $0 + $1.durationInHours }
+        let totalSleepHours = recentSessions.values.flatMap { $0 }.map { $0.durationInHours }.reduce(0, +)
         
         // Calculate expected sleep hours (goal * number of days)
-        let expectedSleepHours = goalHours * Double(recentDays)
+        let expectedSleepHours = goalHours * Double(daysWithData)
         
         // Calculate current balance (actual - expected)
         let currentBalance = totalSleepHours - expectedSleepHours
@@ -122,7 +114,6 @@ class HealthKitManager: ObservableObject {
         return SleepBank(
             currentBalance: currentBalance,
             goalHours: goalHours,
-            recentSessions: recentSessions
         )
     }
     
