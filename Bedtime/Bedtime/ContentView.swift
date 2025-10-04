@@ -43,32 +43,32 @@ struct ContentView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Text("Sleep Bank")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        
-                        Text(sleepBank.statusDescription)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top)
-                    
-                    // Sleep Bank Card
-                    SleepBankCard(sleepBank: sleepBank)
-                    
-                    // Bedtime Recommendation Card
-                    BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
-                    
-                    // Recent Sleep Sessions
-                    if !healthKitManager.sleepSessions.isEmpty {
-                        RecentSleepSessionsCard(sessions: Array(healthKitManager.sleepSessions.prefix(7)))
-                    }
-                    
                     // HealthKit Authorization
                     if !healthKitManager.isAuthorized {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
+                    } else {
+                        // Header
+                        VStack(spacing: 8) {
+                            Text("Sleep Bank")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                            
+                            Text(sleepBank.statusDescription)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top)
+                        
+                        // Sleep Bank Card
+                        SleepBankCard(sleepBank: sleepBank)
+                        
+                        // Bedtime Recommendation Card
+                        BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                        
+                        // Recent Sleep Sessions
+                        if !healthKitManager.sleepSessions.isEmpty {
+                            RecentSleepSessionsCard(sessions: Array(healthKitManager.sleepSessions.prefix(7)))
+                        }
                     }
                 }
                 .padding()
