@@ -7,6 +7,7 @@
 
 import Foundation
 import HealthKit
+import SwiftUI
 
 let asleepTypes: Set<HKCategoryValueSleepAnalysis> = [.asleepUnspecified, .asleepCore, .asleepDeep, .asleepREM]
 
@@ -70,15 +71,15 @@ extension HKCategoryValueSleepAnalysis {
         }
     }
     
-    var color: String {
+    var color: Color {
         switch self {
-        case .asleepDeep:        return "blue"
-        case .asleepREM:         return "purple"
-        case .asleepCore:        return "indigo"
-        case .awake:             return "orange"
-        case .inBed:             return "gray"
-        case .asleepUnspecified: return "secondary"
-        @unknown default:        return "secondary"
+        case .asleepDeep:        return Color.blue
+        case .asleepREM:         return Color.purple
+        case .asleepCore:        return Color.indigo
+        case .awake:             return Color.orange
+        case .inBed:             return Color.gray
+        case .asleepUnspecified: return Color.secondary
+        @unknown default:        return Color.secondary
         }
     }
 }

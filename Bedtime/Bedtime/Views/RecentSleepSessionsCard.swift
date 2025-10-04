@@ -47,10 +47,6 @@ struct RecentSleepSessionsCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Recent Sleep")
                         .font(.headline)
-                    
-                    Text("Last \(sessions.count) sessions")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()
@@ -119,7 +115,7 @@ struct RecentSleepSessionsCard: View {
                                                 
                                                 Text(session.sleepType.displayName)
                                                     .font(.caption2)
-                                                    .foregroundColor(.secondary)
+                                                    .foregroundColor(Color(session.sleepType.color))
                                             }
                                         }
                                         
