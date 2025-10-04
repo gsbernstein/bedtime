@@ -70,29 +70,6 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                
-                Section("Current Settings") {
-                    HStack {
-                        Text("Sleep Goal")
-                        Spacer()
-                        Text(preferences.sleepGoalString)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Wake Time")
-                        Spacer()
-                        Text(preferences.wakeTimeString)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Sleep Bank Period")
-                        Spacer()
-                        Text("\(preferences.sleepBankDays) days")
-                            .foregroundColor(.secondary)
-                    }
-                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
