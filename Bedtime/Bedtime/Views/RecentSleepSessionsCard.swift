@@ -72,7 +72,7 @@ struct RecentSleepSessionsCard: View {
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                     
-                                    Text("\(nightSessions.count) session\(nightSessions.count == 1 ? "" : "s")")
+                                    Text("\(timeFormatter.string(from: nightSessions.last?.startDate ?? Date())) - \(timeFormatter.string(from: nightSessions.first?.endDate ?? Date()))")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
