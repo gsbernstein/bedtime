@@ -7,12 +7,13 @@
 
 import SwiftUI
 import SwiftData
+import HealthKit
 
 @main
 struct BedtimeApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            UserPreferences.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

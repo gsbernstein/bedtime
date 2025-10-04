@@ -10,46 +10,86 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query private var preferences: [UserPreferences]
+    @StateObject private var healthKitManager = HealthKitManager()
+    @State private var showingSettings = false
+    
+    private var userPreferences: UserPreferences {
+        if let existing = preferences.first {
+            return existing
+        } else {
+            let new = UserPreferences()
+            modelContext.insert(new)
+            return new
+        }
+    }
+    
+    private var sleepBank: SleepBank {
+        healthKitManager.calculateSleepBank(
+            goalHours: userPreferences.sleepGoalHours,
+            recentDays: userPreferences.sleepBankDays
+        )
+    }
+    
+    private var bedtimeRecommendation: BedtimeRecommendation {
+        healthKitManager.generateBedtimeRecommendation(
+            wakeTime: userPreferences.wakeTime,
+            sleepGoal: userPreferences.sleepGoalHours,
+            sleepBank: sleepBank
+        )
+    }
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("Sleep Bank")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                        
+                        Text(sleepBank.statusDescription)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top)
+                    
+                    // Sleep Bank Card
+                    SleepBankCard(sleepBank: sleepBank)
+                    
+                    // Bedtime Recommendation Card
+                    BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                    
+                    // Recent Sleep Sessions
+                    if !healthKitManager.sleepSessions.isEmpty {
+                        RecentSleepSessionsCard(sessions: Array(healthKitManager.sleepSessions.prefix(7)))
+                    }
+                    
+                    // HealthKit Authorization
+                    if !healthKitManager.isAuthorized {
+                        HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     }
                 }
-                .onDelete(perform: deleteItems)
+                .padding()
             }
+            .navigationTitle("Bedtime")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                    Button("Settings") {
+                        showingSettings = true
                     }
                 }
             }
-        } detail: {
-            Text("Select an item")
+            .sheet(isPresented: $showingSettings) {
+                SettingsView(preferences: userPreferences)
+            }
         }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+        .onAppear {
+            if healthKitManager.isAuthorized {
+                Task {
+                    await healthKitManager.fetchSleepData()
+                }
             }
         }
     }
@@ -57,5 +97,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: UserPreferences.self, inMemory: true)
 }
+
