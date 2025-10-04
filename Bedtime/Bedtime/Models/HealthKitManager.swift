@@ -16,6 +16,8 @@ class HealthKitManager: ObservableObject {
     @Published var sleepSessions: [SleepSession] = []
     @Published var errorMessage: String?
     
+    let asleepTypes: Set<HKCategoryValueSleepAnalysis> = [.asleepUnspecified, .asleepCore, .asleepDeep, .asleepREM]
+    
     init() {
         checkHealthKitAvailability()
     }
@@ -38,19 +40,21 @@ class HealthKitManager: ObservableObject {
         do {
             try await healthStore.requestAuthorization(toShare: [], read: [sleepType])
             isAuthorized = true
-            await fetchSleepData()
+            try await fetchSleepData()
         } catch {
             errorMessage = "Failed to request HealthKit authorization: \(error.localizedDescription)"
         }
     }
     
-    func fetchSleepData() async {
+    func fetchSleepData() async throws  {
         guard isAuthorized else { return }
         
         let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
         let calendar = Calendar.current
         let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -30, to: endDate) ?? endDate
+        guard let startDate = calendar.date(byAdding: .day, value: -30, to: endDate) else {
+            throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate start date"])
+        }
         
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
         
@@ -82,8 +86,7 @@ class HealthKitManager: ObservableObject {
         var sessions: [SleepSession] = []
         
         for sample in samples {
-            // Only process "inBed" sleep analysis samples for total sleep time
-            if sample.value == HKCategoryValueSleepAnalysis.inBed.rawValue {
+            if asleepTypes.contains(HKCategoryValueSleepAnalysis(rawValue: sample.value)!) {
                 let session = SleepSession(
                     startDate: sample.startDate,
                     endDate: sample.endDate

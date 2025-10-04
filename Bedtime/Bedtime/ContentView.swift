@@ -88,7 +88,7 @@ struct ContentView: View {
         .onAppear {
             if healthKitManager.isAuthorized {
                 Task {
-                    await healthKitManager.fetchSleepData()
+                    try await healthKitManager.fetchSleepData()
                 }
             }
         }
