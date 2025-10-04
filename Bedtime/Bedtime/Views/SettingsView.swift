@@ -30,11 +30,13 @@ struct SettingsView: View {
                         HStack {
                             Text("Target Sleep Duration")
                             Spacer()
-                            Text(String(format: "%.1f hours", tempSleepGoal))
+                            Text(TimeFormatter.formatDuration(tempSleepGoal*60*60))
                                 .foregroundColor(.secondary)
                         }
                         
-                        Slider(value: $tempSleepGoal, in: 6...12, step: 0.5)
+                        Slider(value: $tempSleepGoal, in: 6...12, step: 0.25) {
+                            EmptyView()
+                        }
                             .accentColor(.blue)
                     }
                 }
