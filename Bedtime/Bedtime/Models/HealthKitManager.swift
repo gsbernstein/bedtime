@@ -86,13 +86,14 @@ class HealthKitManager: ObservableObject {
         var sessions: [SleepSession] = []
         
         for sample in samples {
-            if asleepTypes.contains(HKCategoryValueSleepAnalysis(rawValue: sample.value)!) {
-                let session = SleepSession(
-                    startDate: sample.startDate,
-                    endDate: sample.endDate
-                )
-                sessions.append(session)
-            }
+            guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { continue }
+            guard asleepTypes.contains(sleepType) else { continue }
+            let session = SleepSession(
+                startDate: sample.startDate,
+                endDate: sample.endDate,
+                sleepType: sleepType
+            )
+            sessions.append(session)
         }
         
         // Sort by start date (most recent first)

@@ -12,15 +12,56 @@ struct SleepSession {
     let startDate: Date
     let endDate: Date
     let duration: TimeInterval
+    let sleepType: HKCategoryValueSleepAnalysis
     
-    init(startDate: Date, endDate: Date) {
+    init(startDate: Date, endDate: Date, sleepType: HKCategoryValueSleepAnalysis) {
         self.startDate = startDate
         self.endDate = endDate
         self.duration = endDate.timeIntervalSince(startDate)
+        self.sleepType = sleepType
     }
     
     var durationInHours: Double {
         return duration / 3600.0
+    }
+}
+
+extension HKCategoryValueSleepAnalysis {
+    
+    var displayName: String {
+        switch self {
+        case .asleepUnspecified: return "Asleep"
+        case .asleepCore:        return "Core"
+        case .asleepDeep:        return "Deep"
+        case .asleepREM:         return "REM"
+        case .awake:             return "Awake"
+        case .inBed:             return "In Bed"
+        @unknown default:        return "Unknown"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .asleepDeep:        return "moon.zzz.fill"
+        case .asleepREM:         return "brain.head.profile"
+        case .asleepCore:        return "moon.fill"
+        case .awake:             return "eye.fill"
+        case .inBed:             return "bed.double.fill"
+        case .asleepUnspecified: return "moon.stars.fill"
+        @unknown default:        return "questionmark.circle.fill"
+        }
+    }
+    
+    var color: String {
+        switch self {
+        case .asleepDeep:        return "blue"
+        case .asleepREM:         return "purple"
+        case .asleepCore:        return "indigo"
+        case .awake:             return "orange"
+        case .inBed:             return "gray"
+        case .asleepUnspecified: return "secondary"
+        @unknown default:        return "secondary"
+        }
     }
 }
 

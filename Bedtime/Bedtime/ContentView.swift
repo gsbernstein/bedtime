@@ -67,7 +67,7 @@ struct ContentView: View {
                         
                         // Recent Sleep Sessions
                         if !healthKitManager.sleepSessions.isEmpty {
-                            RecentSleepSessionsCard(sessions: Array(healthKitManager.sleepSessions.prefix(7)))
+                            RecentSleepSessionsCard(sessions: healthKitManager.sleepSessions)
                         }
                     }
                 }
