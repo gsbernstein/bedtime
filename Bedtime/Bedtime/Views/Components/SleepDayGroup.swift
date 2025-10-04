@@ -11,6 +11,7 @@ struct SleepDayGroup: View {
     let date: Date
     let sessions: [SleepSession]
     let isExpanded: Bool
+    let sleepGoal: Double
     let onToggle: () -> Void
     
     private var timeFormatter: DateFormatter {
@@ -21,8 +22,15 @@ struct SleepDayGroup: View {
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateStyle = .short
+        formatter.dateFormat = "MMM d"
         return formatter
+    }
+    
+    private var balanceImpact: (value: Double, isPositive: Bool, color: Color) {
+        let totalSleepHours = sessions.reduce(0) { $0 + $1.durationInHours }
+        let difference = totalSleepHours - sleepGoal
+        let color = difference >= 0 ? Color.green : difference < -0.5 ? Color.red : Color.secondary
+        return (abs(difference), difference >= 0, color)
     }
     
     var body: some View {
@@ -48,9 +56,15 @@ struct SleepDayGroup: View {
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
                         
-                        Text("total")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        HStack(spacing: 2) {
+                            Text(balanceImpact.isPositive ? "+" : "-")
+                                .font(.caption)
+                                .foregroundColor(balanceImpact.color)
+                            
+                            Text(String(format: "%.1fh", balanceImpact.value))
+                                .font(.caption)
+                                .foregroundColor(balanceImpact.color)
+                        }
                     }
                     
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
