@@ -32,12 +32,12 @@ struct SleepBankCard: View {
             // Balance visualization
             HStack {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Current Balance")
+                    Text("Average")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    HStack {
-                        Text(String(format: "%.1f", abs(sleepBank.currentBalance)))
+                    HStack(alignment: .bottom) {
+                        Text(String(format: "%.1f", abs(sleepBank.averageHours)))
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(sleepBank.isInDebt ? .red : .green)
@@ -50,19 +50,40 @@ struct SleepBankCard: View {
                 
                 Spacer()
                 
+                VStack(alignment: .center, spacing: 8) {
+                    Text("Status")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(alignment: .bottom) {
+                        Text(String(format: "%.1f", abs(sleepBank.currentBalance)))
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(sleepBank.isInDebt ? .red : .green)
+                            
+                        Text("hours \(sleepBank.isInDebt ? "behind" : "ahead")")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
                 VStack(alignment: .trailing, spacing: 8) {
                     Text("Goal")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    Text(String(format: "%.1f", sleepBank.goalHours))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    
-                    Text("hours/night")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    HStack(alignment: .bottom) {
+                        Text(String(format: "%.1f", sleepBank.goalHours))
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        
+                        Text("hours")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             
@@ -77,7 +98,7 @@ struct SleepBankCard: View {
                     Rectangle()
                         .fill(sleepBank.isInDebt ? Color.red : Color.green)
                         .frame(
-                            width: min(geometry.size.width, geometry.size.width * (abs(sleepBank.currentBalance + sleepBank.goalHours) / (sleepBank.goalHours * 2))),
+                            width: min(geometry.size.width, geometry.size.width * (sleepBank.bankBalance / sleepBank.goalHours)),
                             height: 8
                         )
                         .cornerRadius(4)

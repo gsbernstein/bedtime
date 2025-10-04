@@ -114,6 +114,7 @@ class HealthKitManager: ObservableObject {
         return SleepBank(
             currentBalance: currentBalance,
             goalHours: goalHours,
+            averageHours: totalSleepHours / Double(daysWithData)
         )
     }
     

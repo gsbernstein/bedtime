@@ -85,6 +85,7 @@ extension HKCategoryValueSleepAnalysis {
 struct SleepBank {
     let currentBalance: Double // in hours
     let goalHours: Double
+    let averageHours: Double
     
     var isInDebt: Bool {
         return currentBalance < 0
@@ -104,6 +105,10 @@ struct SleepBank {
         } else {
             return "You're \(String(format: "%.1f", creditHours)) hours ahead of your sleep goal"
         }
+    }
+    
+    var bankBalance: Double {
+        return currentBalance + goalHours
     }
 }
 
