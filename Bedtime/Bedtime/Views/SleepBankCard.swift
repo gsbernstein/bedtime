@@ -77,7 +77,7 @@ struct SleepBankCard: View {
                     Rectangle()
                         .fill(sleepBank.isInDebt ? Color.red : Color.green)
                         .frame(
-                            width: min(geometry.size.width, geometry.size.width * (abs(sleepBank.currentBalance) / (sleepBank.goalHours * 2))),
+                            width: min(geometry.size.width, geometry.size.width * (abs(sleepBank.currentBalance + sleepBank.goalHours) / (sleepBank.goalHours * 2))),
                             height: 8
                         )
                         .cornerRadius(4)
