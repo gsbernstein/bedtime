@@ -9,8 +9,6 @@ import Foundation
 import HealthKit
 import SwiftUI
 
-let asleepTypes: Set<HKCategoryValueSleepAnalysis> = [.asleepUnspecified, .asleepCore, .asleepDeep, .asleepREM]
-
 struct SleepSession {
     let startDate: Date
     let endDate: Date
@@ -38,7 +36,7 @@ struct SleepSession {
 extension SleepSession {
     init?(sample: HKCategorySample) {
         guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return nil }
-        guard asleepTypes.contains(sleepType) else { return nil }
+        guard HKCategoryValueSleepAnalysis.allAsleepValues.contains(sleepType) else { return nil }
         self.init(startDate: sample.startDate,
             endDate: sample.endDate,
             sleepType: sleepType)
