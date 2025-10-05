@@ -47,17 +47,6 @@ struct ContentView: View {
                     if !healthKitManager.isAuthorized {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     } else {
-                        // Header
-                        VStack(spacing: 8) {
-                            Text("Sleep Bank")
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                            
-                            Text(sleepBank.statusDescription)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.top)
                         
                         // Sleep Bank Card
                         SleepBankCard(sleepBank: sleepBank)
