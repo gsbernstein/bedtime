@@ -76,7 +76,7 @@ struct ContentView: View {
             .navigationTitle("Bedtime")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Settings") {
+                    Button("Settings", systemImage: "gear") {
                         showingSettings = true
                     }
                 }
