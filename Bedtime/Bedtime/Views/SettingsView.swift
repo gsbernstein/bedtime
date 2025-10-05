@@ -13,13 +13,13 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var tempSleepGoal: Double
     @State private var tempWakeTime: Date
-    @State private var tempSleepBankDays: Int
+    @State private var tempSleepBankDays: Double
     
     init(preferences: UserPreferences) {
         self.preferences = preferences
         self._tempSleepGoal = State(initialValue: preferences.sleepGoalHours)
         self._tempWakeTime = State(initialValue: preferences.wakeTime)
-        self._tempSleepBankDays = State(initialValue: preferences.sleepBankDays)
+        self._tempSleepBankDays = State(initialValue: Double(preferences.sleepBankDays))
     }
     
     var body: some View {
@@ -55,14 +55,13 @@ struct SettingsView: View {
                         HStack {
                             Text("Days to Consider")
                             Spacer()
-                            Text("\(tempSleepBankDays) days")
+                            Text("\(String(format: "%.0f", tempSleepBankDays)) days")
                                 .foregroundColor(.secondary)
                         }
                         
-                        Slider(value: Binding(
-                            get: { Double(tempSleepBankDays) },
-                            set: { tempSleepBankDays = Int($0) }
-                        ), in: 3...14, step: 1)
+                        Slider(value: $tempSleepBankDays, in: 3...14, step: 1) {
+                            EmptyView()
+                        }
                         .accentColor(.blue)
                         
                         Text("How many recent days to include in your sleep bank calculation")
@@ -94,7 +93,7 @@ struct SettingsView: View {
     private func saveSettings() {
         preferences.sleepGoalHours = tempSleepGoal
         preferences.wakeTime = tempWakeTime
-        preferences.sleepBankDays = tempSleepBankDays
+        preferences.sleepBankDays = Int(tempSleepBankDays)
         preferences.lastUpdated = Date()
     }
 }
