@@ -126,14 +126,12 @@ class HealthKitManager: ObservableObject {
         let calendar = Calendar.current
         
         // Calculate how much sleep we need tonight
-        let baseSleepNeeded = sleepGoal
-        
         // If we're in debt, we need extra sleep to catch up
         let extraSleepNeeded = max(0, -sleepBank.currentBalance)
-        let totalSleepNeeded = baseSleepNeeded + extraSleepNeeded
+        let totalSleepNeeded = sleepGoal + extraSleepNeeded
         
         // Calculate recommended bedtime
-        let recommendedBedtime = calendar.date(byAdding: .hour, value: -Int(totalSleepNeeded), to: wakeTime) ?? wakeTime
+        let recommendedBedtime = calendar.date(byAdding: .minute, value: -Int(totalSleepNeeded * 60), to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
         
         // Generate reason
         let reason: String
