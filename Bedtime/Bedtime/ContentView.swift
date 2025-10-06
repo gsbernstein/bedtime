@@ -13,6 +13,8 @@ struct ContentView: View {
     @Query private var preferences: [UserPreferences]
     @StateObject private var healthKitManager = HealthKitManager()
     @State private var showingSettings = false
+    @State private var showingError = false
+    @State private var error: Error?
     
     private var userPreferences: UserPreferences {
         if let existing = preferences.first {
@@ -69,6 +71,17 @@ struct ContentView: View {
                         showingSettings = true
                     }
                 }
+            }
+            .refreshable {
+                do {
+                    try await healthKitManager.fetchSleepData()
+                } catch {
+                    showingError = true
+                    self.error = error
+                }
+            }
+            .alert(isPresented: $showingError) {
+                Alert(title: Text("Error"), message: Text("Error refreshing sleep data: \(error?.localizedDescription ?? "Unknown error")"), dismissButton: .default(Text("OK")))
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(preferences: userPreferences)
