@@ -19,7 +19,7 @@ struct CardComponent<Content: View>: View {
             .padding()
             .background {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
+                    .fill(Color.cardBackground)
                     .shadow(
                         color: Color.black.opacity(0.1),
                         radius: 2,
