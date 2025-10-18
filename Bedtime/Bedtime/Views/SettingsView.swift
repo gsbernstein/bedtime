@@ -17,6 +17,8 @@ struct SettingsView: View {
     @State private var tempMaxSleepHoursPerNight: Double
     @State private var tempMinSleepHoursPerNight: Double
     
+    @State private var wakeTimeCollapsed: Bool = true
+    
     init(preferences: UserPreferences) {
         self.preferences = preferences
         self._tempSleepGoal = State(initialValue: preferences.sleepGoalHours)
@@ -46,12 +48,24 @@ struct SettingsView: View {
                 }
                 
                 Section("Wake Time") {
-                    DatePicker(
-                        "Wake Time",
-                        selection: $tempWakeTime,
-                        displayedComponents: .hourAndMinute
-                    )
-                    .datePickerStyle(.wheel)
+                    if (wakeTimeCollapsed) {
+                        HStack {
+                            Text("Estimated wake time")
+                            Spacer()
+                            Text(DateFormatter.localizedString(from: tempWakeTime, dateStyle: .none, timeStyle: .short))
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        DatePicker(
+                            "Wake Time",
+                            selection: $tempWakeTime,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .datePickerStyle(.wheel)
+                    }
+                }
+                .onTapGesture {
+                    wakeTimeCollapsed.toggle()
                 }
                 
                 Section("Sleep Bank Calculation") {
