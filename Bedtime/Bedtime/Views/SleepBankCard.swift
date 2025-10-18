@@ -45,11 +45,11 @@ struct SleepBankCard: View {
                                     .font(.title2)
                                     .fontWeight(.bold)
                                     .foregroundColor(sleepBank.isInDebt ? .red : .green)
+                                Text("hours")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
                             
-                            Text("hours")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
                         } else {
                             Text("no recent data")
                                 .font(.subheadline)
