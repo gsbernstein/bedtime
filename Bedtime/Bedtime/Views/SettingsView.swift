@@ -14,12 +14,16 @@ struct SettingsView: View {
     @State private var tempSleepGoal: Double
     @State private var tempWakeTime: Date
     @State private var tempSleepBankDays: Double
+    @State private var tempMaxSleepHoursPerNight: Double
+    @State private var tempMinSleepHoursPerNight: Double
     
     init(preferences: UserPreferences) {
         self.preferences = preferences
         self._tempSleepGoal = State(initialValue: preferences.sleepGoalHours)
         self._tempWakeTime = State(initialValue: preferences.wakeTime)
         self._tempSleepBankDays = State(initialValue: Double(preferences.sleepBankDays))
+        self._tempMaxSleepHoursPerNight = State(initialValue: preferences.maxSleepHoursPerNight)
+        self._tempMinSleepHoursPerNight = State(initialValue: preferences.minSleepHoursPerNight)
     }
     
     var body: some View {
@@ -31,7 +35,7 @@ struct SettingsView: View {
                             Text("Target Sleep Duration")
                             Spacer()
                             Text(TimeFormatter.formatDuration(tempSleepGoal*60*60))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         
                         Slider(value: $tempSleepGoal, in: 6...12, step: 0.25) {
@@ -69,6 +73,35 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                
+                Section("Sleep Limits") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Max sleep hours per night")
+                            Spacer()
+                            Text("\(String(format: "%.0f", tempMaxSleepHoursPerNight)) hours")
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Slider(value: $tempMaxSleepHoursPerNight, in: 8...16, step: 1) {
+                            Text("Max")
+                        }
+                        .accentColor(.blue)
+                        
+                        HStack {
+                            Text("Min sleep hours per night")
+                            Spacer()
+                            Text("\(String(format: "%.0f", tempMinSleepHoursPerNight)) hours")
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Slider(value: $tempMinSleepHoursPerNight, in: 2...10, step: 1) {
+                            Text("Min")
+                        }
+                        .accentColor(.blue)
+                    }
+                }
+                
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -94,6 +127,12 @@ struct SettingsView: View {
         preferences.sleepGoalHours = tempSleepGoal
         preferences.wakeTime = tempWakeTime
         preferences.sleepBankDays = Int(tempSleepBankDays)
+        preferences.maxSleepHoursPerNight = tempMaxSleepHoursPerNight
+        preferences.minSleepHoursPerNight = tempMinSleepHoursPerNight
         preferences.lastUpdated = Date()
     }
+}
+
+#Preview {
+    SettingsView(preferences: UserPreferences())
 }
