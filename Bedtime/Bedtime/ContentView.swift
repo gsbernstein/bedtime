@@ -51,6 +51,9 @@ struct ContentView: View {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     } else {
                         
+                        LastNightCard(sleepSessions: healthKitManager.sleepSessions.first?.value,
+                                      goal: userPreferences.sleepGoalHours)
+                        
                         // Sleep Bank Card
                         SleepBankCard(sleepBank: sleepBank)
                         
