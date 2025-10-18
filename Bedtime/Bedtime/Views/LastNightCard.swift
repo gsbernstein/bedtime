@@ -41,7 +41,7 @@ struct LastNightCard: View {
                         Text("In bed at")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text(timeFormatter.string(from: sleepSessions.first!.startDate))
+                        Text(timeFormatter.string(from: sleepSessions.last!.startDate))
                             .font(.title2)
                             .fontWeight(.bold)
                     }
@@ -50,7 +50,7 @@ struct LastNightCard: View {
                         Text("Woke up at")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text(timeFormatter.string(from: sleepSessions.last!.endDate))
+                        Text(timeFormatter.string(from: sleepSessions.first!.endDate))
                             .font(.title2)
                             .fontWeight(.bold)
                     }

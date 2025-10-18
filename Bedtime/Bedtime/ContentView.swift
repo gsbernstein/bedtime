@@ -16,6 +16,11 @@ struct ContentView: View {
     @State private var showingError = false
     @State private var error: Error?
     
+    var lastNightData: [SleepSession]? {
+        let lastNight = Calendar.current.startOfDay(for: Date())
+        return healthKitManager.sleepSessions[lastNight]
+    }
+    
     private var userPreferences: UserPreferences {
         if let existing = preferences.first {
             return existing
@@ -54,7 +59,7 @@ struct ContentView: View {
                     } else {
                         
                         if Calendar.current.component(.hour, from: Date()) < 18 {
-                            LastNightCard(sleepSessions: healthKitManager.sleepSessions.first?.value,
+                            LastNightCard(sleepSessions: lastNightData,
                                           goal: userPreferences.sleepGoalHours)
                         } else {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
@@ -65,7 +70,7 @@ struct ContentView: View {
                         if Calendar.current.component(.hour, from: Date()) < 18 {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         } else {
-                            LastNightCard(sleepSessions: healthKitManager.sleepSessions.first?.value,
+                            LastNightCard(sleepSessions: lastNightData,
                                           goal: userPreferences.sleepGoalHours)
                         }
                         
