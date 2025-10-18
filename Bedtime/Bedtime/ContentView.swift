@@ -51,14 +51,21 @@ struct ContentView: View {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     } else {
                         
-                        LastNightCard(sleepSessions: healthKitManager.sleepSessions.first?.value,
-                                      goal: userPreferences.sleepGoalHours)
+                        if Calendar.current.component(.hour, from: Date()) > 18 {
+                            LastNightCard(sleepSessions: healthKitManager.sleepSessions.first?.value,
+                                          goal: userPreferences.sleepGoalHours)
+                        } else {
+                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                        }
                         
-                        // Sleep Bank Card
                         SleepBankCard(sleepBank: sleepBank)
                         
-                        // Bedtime Recommendation Card
-                        BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                        if Calendar.current.component(.hour, from: Date()) > 18 {
+                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                        } else {
+                            LastNightCard(sleepSessions: healthKitManager.sleepSessions.first?.value,
+                                          goal: userPreferences.sleepGoalHours)
+                        }
                         
                         // Recent Sleep Sessions
                         if !healthKitManager.sleepSessions.isEmpty {

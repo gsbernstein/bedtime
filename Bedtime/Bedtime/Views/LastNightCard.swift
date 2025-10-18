@@ -11,12 +11,8 @@ struct LastNightCard: View {
     let sleepSessions: [SleepSession]?
     let goal: TimeInterval
     
-    var duration: TimeInterval? {
-        sleepSessions?.map(\.duration).reduce(0, +)
-    }
-    
-    var durationInHours: Double? {
-        duration.map { $0 / (60 * 60) }
+    var durationInHours: TimeInterval? {
+        sleepSessions?.map(\.durationInHours).reduce(0, +)
     }
     
     private var timeFormatter: DateFormatter {
@@ -28,7 +24,7 @@ struct LastNightCard: View {
     var body: some View {
         VStack(spacing: 16) {
             HStack {
-                Image(systemName: "bed.double.fill")
+                Image(systemName: "calendar")
                     .font(.title2)
                     .foregroundColor(.blue)
                 VStack(alignment: .leading, spacing: 4) {

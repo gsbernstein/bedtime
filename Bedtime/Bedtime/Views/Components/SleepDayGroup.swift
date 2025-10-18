@@ -27,7 +27,7 @@ struct SleepDayGroup: View {
     }
     
     private var balanceImpact: (value: Double, isPositive: Bool, color: Color) {
-        let totalSleepHours = sessions.reduce(0) { $0 + $1.durationInHours }
+        let totalSleepHours = sessions.map(\.durationInHours).reduce(0, +)
         let difference = totalSleepHours - sleepGoal
         let color = difference >= 0 ? Color.green : difference < -0.5 ? Color.red : Color.secondary
         return (abs(difference), difference >= 0, color)
