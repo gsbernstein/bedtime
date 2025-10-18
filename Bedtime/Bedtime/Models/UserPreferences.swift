@@ -14,27 +14,21 @@ final class UserPreferences {
     var wakeTime: Date
     var sleepBankDays: Int
     var lastUpdated: Date
+    var maxSleepHoursPerNight: Double
+    var minSleepHoursPerNight: Double
     
     init(
         sleepGoalHours: Double = 8.0,
         wakeTime: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date(),
-        sleepBankDays: Int = 7
+        sleepBankDays: Int = 7,
+        maxSleepHoursPerNight: Double = 12,
+        minSleepHoursPerNight: Double = 5
     ) {
         self.sleepGoalHours = sleepGoalHours
         self.wakeTime = wakeTime
         self.sleepBankDays = sleepBankDays
         self.lastUpdated = Date()
-    }
-    
-    // Helper to get wake time as a formatted string
-    var wakeTimeString: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: wakeTime)
-    }
-    
-    // Helper to get sleep goal as a formatted string
-    var sleepGoalString: String {
-        return String(format: "%.1f hours", sleepGoalHours)
+        self.maxSleepHoursPerNight = maxSleepHoursPerNight
+        self.minSleepHoursPerNight = minSleepHoursPerNight
     }
 }

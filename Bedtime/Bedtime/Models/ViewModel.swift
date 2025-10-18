@@ -45,28 +45,35 @@ class ViewModel {
     static func generateBedtimeRecommendation(
         wakeTime: Date,
         sleepGoal: Double,
-        sleepBank: SleepBank
+        sleepBank: SleepBank,
+        maxSleepHours: Double,
+        minSleepHours: Double
     ) -> BedtimeRecommendation {
         let calendar = Calendar.current
         
         // Calculate how much sleep we need tonight
         // If we're in debt, we need extra sleep to catch up
-        let extraSleepNeeded = max(0, -sleepBank.currentBalance)
-        let totalSleepNeeded = sleepGoal + extraSleepNeeded
-        
-        // Calculate recommended bedtime
-        let recommendedBedtime = calendar.date(byAdding: .minute, value: -Int(totalSleepNeeded * 60), to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
+        var totalSleepNeeded = sleepGoal - sleepBank.currentBalance
         
         // Generate reason
         let reason: String
         if sleepBank.averageHours == nil {
             reason = "No data so far, just aim for your goal"
+        } else if totalSleepNeeded > maxSleepHours {
+            totalSleepNeeded = maxSleepHours
+            reason = "You can't catch up in one night, so just get as much as possible."
+        } else if totalSleepNeeded < minSleepHours {
+            totalSleepNeeded = minSleepHours
+            reason = "You're way ahead!"
         } else if sleepBank.isInDebt {
             let debtHours = sleepBank.debtHours
             reason = "You need \(String(format: "%.1f", totalSleepNeeded)) hours tonight to catch up on your \(String(format: "%.1f", debtHours))-hour sleep debt."
         } else {
-            reason = "You're on track! Aim for \(String(format: "%.1f", sleepGoal)) hours tonight."
+            reason = "You're ahead of the game! Aim for at least \(String(format: "%.1f", sleepGoal)) hours tonight."
         }
+        
+        // Calculate recommended bedtime
+        let recommendedBedtime = calendar.date(byAdding: .minute, value: -Int(totalSleepNeeded * 60), to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
         
         return BedtimeRecommendation(
             recommendedBedtime: recommendedBedtime,

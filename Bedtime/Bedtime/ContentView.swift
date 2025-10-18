@@ -38,7 +38,9 @@ struct ContentView: View {
         ViewModel.generateBedtimeRecommendation(
             wakeTime: userPreferences.wakeTime,
             sleepGoal: userPreferences.sleepGoalHours,
-            sleepBank: sleepBank
+            sleepBank: sleepBank,
+            maxSleepHours: userPreferences.maxSleepHoursPerNight,
+            minSleepHours: userPreferences.minSleepHoursPerNight
         )
     }
 
