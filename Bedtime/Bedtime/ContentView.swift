@@ -51,7 +51,7 @@ struct ContentView: View {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     } else {
                         
-                        if Calendar.current.component(.hour, from: Date()) > 18 {
+                        if Calendar.current.component(.hour, from: Date()) < 18 {
                             LastNightCard(sleepSessions: healthKitManager.sleepSessions.first?.value,
                                           goal: userPreferences.sleepGoalHours)
                         } else {
@@ -60,7 +60,7 @@ struct ContentView: View {
                         
                         SleepBankCard(sleepBank: sleepBank)
                         
-                        if Calendar.current.component(.hour, from: Date()) > 18 {
+                        if Calendar.current.component(.hour, from: Date()) < 18 {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         } else {
                             LastNightCard(sleepSessions: healthKitManager.sleepSessions.first?.value,
