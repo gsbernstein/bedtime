@@ -16,6 +16,7 @@ struct HealthKitAuthorizationCard: View {
                 Image(systemName: "heart.text.square")
                     .font(.title2)
                     .foregroundColor(.red)
+                    .frame(width: Constants.iconWidth)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("HealthKit Access Required")

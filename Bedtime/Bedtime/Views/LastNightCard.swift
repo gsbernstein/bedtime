@@ -27,6 +27,7 @@ struct LastNightCard: View {
                 Image(systemName: "calendar")
                     .font(.title2)
                     .foregroundColor(.blue)
+                    .frame(width: Constants.iconWidth)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Last Night")
                         .font(.headline)

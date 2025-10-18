@@ -22,6 +22,7 @@ struct BedtimeRecommendationCard: View {
                 Image(systemName: "bed.double.fill")
                     .font(.title2)
                     .foregroundColor(.blue)
+                    .frame(width: Constants.iconWidth)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Tonight's Recommendation")

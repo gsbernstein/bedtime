@@ -28,6 +28,7 @@ struct RecentSleepSessionsCard: View {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.title2)
                     .foregroundColor(.purple)
+                    .frame(width: Constants.iconWidth)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Recent Sleep")

@@ -16,6 +16,7 @@ struct SleepBankCard: View {
                 Image(systemName: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill")
                     .font(.title2)
                     .foregroundColor(sleepBank.averageHours == nil ? .secondary : sleepBank.isInDebt ? .red : .green)
+                    .frame(width: Constants.iconWidth)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Sleep Balance")
