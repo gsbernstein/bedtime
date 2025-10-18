@@ -17,79 +17,77 @@ struct BedtimeRecommendationCard: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Image(systemName: "bed.double.fill")
-                    .font(.title2)
-                    .foregroundColor(.blue)
-                    .frame(width: Constants.iconWidth)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Tonight's Recommendation")
-                        .font(.headline)
+        CardComponent {
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: "bed.double.fill")
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                        .frame(width: Constants.iconWidth)
                     
-                    Text("Based on your sleep bank")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Tonight's Recommendation")
+                            .font(.headline)
+                        
+                        Text("Based on your sleep bank")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                }
+                
+                // Recommendation details
+                VStack(spacing: 12) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Recommended Bedtime")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text(timeFormatter.string(from: recommendation.recommendedBedtime))
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .foregroundColor(.blue)
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("Wake Time")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text(timeFormatter.string(from: recommendation.wakeTime))
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                        }
+                    }
+                    
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Target Sleep Duration")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text(TimeFormatter.formatDuration(recommendation.targetSleepDuration * 3600))
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                        }
+                        
+                        Spacer()
+                    }
+                    
+                    // Reason text
+                    Text(recommendation.reason)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .padding(.top, 4)
                 }
-                
-                Spacer()
-            }
-            
-            // Recommendation details
-            VStack(spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Recommended Bedtime")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(timeFormatter.string(from: recommendation.recommendedBedtime))
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(.blue)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("Wake Time")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(timeFormatter.string(from: recommendation.wakeTime))
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                    }
-                }
-                
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Target Sleep Duration")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(TimeFormatter.formatDuration(recommendation.targetSleepDuration * 3600))
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                    }
-                    
-                    Spacer()
-                }
-                
-                // Reason text
-                Text(recommendation.reason)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .padding(.top, 4)
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
 }

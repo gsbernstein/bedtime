@@ -11,48 +11,46 @@ struct HealthKitAuthorizationCard: View {
     @ObservedObject var healthKitManager: HealthKitManager
     
     var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Image(systemName: "heart.text.square")
-                    .font(.title2)
-                    .foregroundColor(.red)
-                    .frame(width: Constants.iconWidth)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("HealthKit Access Required")
-                        .font(.headline)
+        CardComponent {
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: "heart.text.square")
+                        .font(.title2)
+                        .foregroundColor(.red)
+                        .frame(width: Constants.iconWidth)
                     
-                    Text("We need access to your sleep data")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("HealthKit Access Required")
+                            .font(.headline)
+                        
+                        Text("We need access to your sleep data")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
                 }
                 
-                Spacer()
-            }
-            
-            Text("To calculate your sleep bank and provide personalized bedtime recommendations, we need permission to read your sleep data from the Health app.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.leading)
-            
-            if let errorMessage = healthKitManager.errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundColor(.red)
+                Text("To calculate your sleep bank and provide personalized bedtime recommendations, we need permission to read your sleep data from the Health app.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
-            }
-            
-            Button("Grant Access") {
-                Task {
-                    try await healthKitManager.requestAuthorization()
+                
+                if let errorMessage = healthKitManager.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.leading)
                 }
+                
+                Button("Grant Access") {
+                    Task {
+                        try await healthKitManager.requestAuthorization()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
 }
