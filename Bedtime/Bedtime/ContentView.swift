@@ -17,7 +17,8 @@ struct ContentView: View {
     @State private var error: Error?
     
     var lastNightData: [SleepSession]? {
-        let lastNight = Calendar.current.startOfDay(for: Date())
+        let calendar = Calendar.current
+        let lastNight = calendar.startOfDay(for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date())
         return healthKitManager.sleepSessions[lastNight]
     }
     
