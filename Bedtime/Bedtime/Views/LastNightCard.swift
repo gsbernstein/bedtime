@@ -73,23 +73,9 @@ struct LastNightCard: View {
                     }
                     
                     // Progress bar
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(height: 8)
-                                .cornerRadius(4)
-                            
-                            Rectangle()
-                                .fill(durationInHours! > goal ? .green : .red)
-                                .frame(
-                                    width: geometry.size.width * min(durationInHours! / goal, 1),
-                                    height: 8
-                                )
-                                .cornerRadius(4)
-                        }
-                    }
-                    .frame(height: 8)
+                    ProgressBar(value: durationInHours!, total: goal)
+                        .tint(durationInHours! > goal ? .green : .red)
+                    
                 } else {
                     Text("No sleep data available")
                         .font(.body)

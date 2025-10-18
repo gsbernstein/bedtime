@@ -103,25 +103,9 @@ struct SleepBankCard: View {
                 }
                 
                 // Progress bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 8)
-                            .cornerRadius(4)
-                        
-                        if (sleepBank.averageHours != nil) {
-                            Rectangle()
-                                .fill(sleepBank.isInDebt ? .red : .green)
-                                .frame(
-                                    width: geometry.size.width * min(sleepBank.bankBalance / sleepBank.goalHours, 1),
-                                    height: 8
-                                )
-                                .cornerRadius(4)
-                        }
-                    }
-                }
-                .frame(height: 8)
+                ProgressBar(value: sleepBank.bankBalance,
+                             total: sleepBank.goalHours)
+                    .tint(sleepBank.isInDebt ? .red : .green)
             }
         }
     }
