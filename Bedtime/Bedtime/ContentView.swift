@@ -27,14 +27,15 @@ struct ContentView: View {
     }
     
     private var sleepBank: SleepBank {
-        healthKitManager.calculateSleepBank(
+        ViewModel.calculateSleepBank(
+            sleepSessions: healthKitManager.sleepSessions,
             goalHours: userPreferences.sleepGoalHours,
             recentDays: userPreferences.sleepBankDays
         )
     }
     
     private var bedtimeRecommendation: BedtimeRecommendation {
-        healthKitManager.generateBedtimeRecommendation(
+        ViewModel.generateBedtimeRecommendation(
             wakeTime: userPreferences.wakeTime,
             sleepGoal: userPreferences.sleepGoalHours,
             sleepBank: sleepBank
