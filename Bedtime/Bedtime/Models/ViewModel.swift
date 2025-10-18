@@ -33,10 +33,12 @@ class ViewModel {
         // Calculate current balance (actual - expected)
         let currentBalance = totalSleepHours - expectedSleepHours
         
+        let averageHours = daysWithData > 0 ? totalSleepHours / Double(daysWithData) : nil
+        
         return SleepBank(
             currentBalance: currentBalance,
             goalHours: goalHours,
-            averageHours: totalSleepHours / Double(daysWithData)
+            averageHours: averageHours
         )
     }
     
@@ -57,7 +59,9 @@ class ViewModel {
         
         // Generate reason
         let reason: String
-        if sleepBank.isInDebt {
+        if sleepBank.averageHours == nil {
+            reason = "No data so far, just aim for your goal"
+        } else if sleepBank.isInDebt {
             let debtHours = sleepBank.debtHours
             reason = "You need \(String(format: "%.1f", totalSleepNeeded)) hours tonight to catch up on your \(String(format: "%.1f", debtHours))-hour sleep debt."
         } else {

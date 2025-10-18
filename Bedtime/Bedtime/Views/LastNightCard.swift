@@ -85,7 +85,7 @@ struct LastNightCard: View {
                         Rectangle()
                             .fill(durationInHours! > goal ? .green : .red)
                             .frame(
-                                width: min(geometry.size.width, geometry.size.width * (durationInHours! / goal)),
+                                width: geometry.size.width * min(durationInHours! / goal, 1),
                                 height: 8
                             )
                             .cornerRadius(4)
@@ -96,6 +96,7 @@ struct LastNightCard: View {
                 Text("No sleep data available")
                     .font(.body)
                     .foregroundColor(.secondary)
+                    .padding()
             }
             
         }
@@ -115,6 +116,10 @@ import HealthKit
             endDate: DateComponents(calendar: .autoupdatingCurrent, day: 2, hour: 6, minute: 35).date!,
             sleepType: .asleepUnspecified
         )],
+        goal: 8
+    )
+    LastNightCard(
+        sleepSessions: nil,
         goal: 8
     )
 }

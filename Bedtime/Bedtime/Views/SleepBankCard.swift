@@ -15,7 +15,7 @@ struct SleepBankCard: View {
             HStack {
                 Image(systemName: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill")
                     .font(.title2)
-                    .foregroundColor(sleepBank.isInDebt ? .red : .green)
+                    .foregroundColor(sleepBank.averageHours == nil ? .secondary : sleepBank.isInDebt ? .red : .green)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Sleep Balance")
@@ -36,13 +36,20 @@ struct SleepBankCard: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    HStack(alignment: .lastTextBaseline) {
-                        Text(String(format: "%.1f", sleepBank.averageHours))
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(sleepBank.isInDebt ? .red : .green)
+                    if let averageHours = sleepBank.averageHours {
+                        
+                        HStack(alignment: .lastTextBaseline) {
+                            Text(String(format: "%.1f", averageHours))
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(sleepBank.isInDebt ? .red : .green)
+                        }
                         
                         Text("hours")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("no recent data")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -55,13 +62,19 @@ struct SleepBankCard: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    HStack(alignment: .lastTextBaseline) {
-                        Text(String(format: "%.1f", abs(sleepBank.currentBalance)))
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(sleepBank.isInDebt ? .red : .green)
+                    if sleepBank.averageHours != nil {
+                        HStack(alignment: .lastTextBaseline) {
+                            Text(String(format: "%.1f", abs(sleepBank.currentBalance)))
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(sleepBank.isInDebt ? .red : .green)
                             
-                        Text("hours \(sleepBank.isInDebt ? "behind" : "ahead")")
+                            Text("hours \(sleepBank.isInDebt ? "behind" : "ahead")")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    } else {
+                        Text("unknown")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -95,13 +108,15 @@ struct SleepBankCard: View {
                         .frame(height: 8)
                         .cornerRadius(4)
                     
-                    Rectangle()
-                        .fill(sleepBank.isInDebt ? Color.red : Color.green)
-                        .frame(
-                            width: min(geometry.size.width, geometry.size.width * (sleepBank.bankBalance / sleepBank.goalHours)),
-                            height: 8
-                        )
-                        .cornerRadius(4)
+                    if (sleepBank.averageHours != nil) {
+                        Rectangle()
+                            .fill(sleepBank.isInDebt ? .red : .green)
+                            .frame(
+                                width: geometry.size.width * min(sleepBank.bankBalance / sleepBank.goalHours, 1),
+                                height: 8
+                            )
+                            .cornerRadius(4)
+                    }
                 }
             }
             .frame(height: 8)
@@ -115,4 +130,6 @@ struct SleepBankCard: View {
 
 #Preview {
     SleepBankCard(sleepBank: SleepBank(currentBalance: -0.8, goalHours: 8, averageHours: 7.5))
+    SleepBankCard(sleepBank: SleepBank(currentBalance: 0.8, goalHours: 8, averageHours: 8.5))
+    SleepBankCard(sleepBank: SleepBank(currentBalance: 0, goalHours: 8, averageHours: nil))
 }
