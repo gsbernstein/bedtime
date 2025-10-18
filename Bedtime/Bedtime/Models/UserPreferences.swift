@@ -11,15 +11,15 @@ import SwiftData
 @Model
 final class UserPreferences {
     var sleepGoalHours: Double
-    var wakeTime: Date
+    var wakeTime: DateComponents
     var sleepBankDays: Int
     var lastUpdated: Date
     var maxSleepHoursPerNight: Double
     var minSleepHoursPerNight: Double
     
-    init(
-        sleepGoalHours: Double = 8.0,
-        wakeTime: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date(),
+    internal init(
+        sleepGoalHours: Double = 8,
+        wakeTime: DateComponents = DateComponents(hour: 7),
         sleepBankDays: Int = 7,
         maxSleepHoursPerNight: Double = 12,
         minSleepHoursPerNight: Double = 5

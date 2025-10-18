@@ -43,7 +43,7 @@ class ViewModel {
     }
     
     static func generateBedtimeRecommendation(
-        wakeTime: Date,
+        wakeTime: DateComponents,
         sleepGoal: Double,
         sleepBank: SleepBank,
         maxSleepHours: Double,
@@ -73,11 +73,12 @@ class ViewModel {
         }
         
         // Calculate recommended bedtime
-        let recommendedBedtime = calendar.date(byAdding: .minute, value: -Int(totalSleepNeeded * 60), to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
+        let wakeDate = calendar.date(from: wakeTime)!
+        let recommendedBedtime = calendar.date(byAdding: .minute, value: -Int(totalSleepNeeded * 60), to: wakeDate) ?? wakeDate.addingTimeInterval(-totalSleepNeeded * 60 * 60)
         
         return BedtimeRecommendation(
             recommendedBedtime: recommendedBedtime,
-            wakeTime: wakeTime,
+            wakeTime: wakeDate,
             targetSleepDuration: totalSleepNeeded,
             reason: reason
         )

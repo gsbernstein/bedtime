@@ -18,7 +18,7 @@ struct SettingsView: View {
     init(preferences: UserPreferences) {
         self.preferences = preferences
         self._tempSleepGoal = State(initialValue: preferences.sleepGoalHours)
-        self._tempWakeTime = State(initialValue: preferences.wakeTime)
+        self._tempWakeTime = State(initialValue: preferences.wakeTime.date!)
         self._tempSleepBankDays = State(initialValue: Double(preferences.sleepBankDays))
     }
     
@@ -92,7 +92,7 @@ struct SettingsView: View {
     
     private func saveSettings() {
         preferences.sleepGoalHours = tempSleepGoal
-        preferences.wakeTime = tempWakeTime
+        preferences.wakeTime = Calendar.current.dateComponents([.hour, .minute], from: tempWakeTime)
         preferences.sleepBankDays = Int(tempSleepBankDays)
         preferences.lastUpdated = Date()
     }
