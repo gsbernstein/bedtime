@@ -65,21 +65,6 @@ struct BedtimeRecommendationCard: View {
                         }
                     }
                     
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Target Sleep Duration")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text(TimeFormatter.formatDuration(recommendation.targetSleepDuration * 3600))
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-                        }
-                        
-                        Spacer()
-                    }
-                    
                     // Reason text
                     Text(recommendation.reason)
                         .font(.subheadline)
@@ -90,4 +75,15 @@ struct BedtimeRecommendationCard: View {
             }
         }
     }
+}
+
+#Preview {
+    BedtimeRecommendationCard(
+        recommendation: BedtimeRecommendation(
+            recommendedBedtime: Date(),
+            wakeTime: Date(),
+            targetSleepDuration: 8,
+            reason: "Yo"
+        )
+    )
 }
