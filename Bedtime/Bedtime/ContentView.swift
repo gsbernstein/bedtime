@@ -109,10 +109,8 @@ struct ContentView: View {
                 }
             }
         }
-        .onAppear {
-            Task {
-                try await healthKitManager.fetchSleepData()
-            }
+        .task {
+            try? await healthKitManager.fetchSleepData()
         }
     }
 }
