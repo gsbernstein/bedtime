@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SleepDayGroup: View {
     let date: Date
-    let sessions: [SleepSession]
+    let daySleepData: DaySleepData
     let isExpanded: Bool
     let sleepGoal: Double
     let onToggle: () -> Void
@@ -27,7 +27,7 @@ struct SleepDayGroup: View {
     }
     
     private var balanceImpact: (value: Double, isPositive: Bool, color: Color) {
-        let totalSleepHours = sessions.map(\.durationInHours).reduce(0, +)
+        let totalSleepHours = daySleepData.totalNightSleepHours
         let difference = totalSleepHours - sleepGoal
         let color = difference >= 0 ? Color.green : difference < -0.5 ? Color.red : Color.secondary
         return (abs(difference), difference >= 0, color)
@@ -43,15 +43,21 @@ struct SleepDayGroup: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        Text("\(timeFormatter.string(from: sessions.last?.startDate ?? Date())) - \(timeFormatter.string(from: sessions.first?.endDate ?? Date()))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if !daySleepData.nightSleep.isEmpty {
+                            Text("\(timeFormatter.string(from: daySleepData.nightSleep.last?.startDate ?? Date())) - \(timeFormatter.string(from: daySleepData.nightSleep.first?.endDate ?? Date()))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("No night sleep data")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
                     Spacer()
                     
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(TimeFormatter.formatDuration(sessions.reduce(0) { $0 + $1.duration }))
+                        Text(TimeFormatter.formatDuration(daySleepData.totalNightSleepHours * 3600))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
@@ -78,11 +84,43 @@ struct SleepDayGroup: View {
             // Session details (expandable)
             if isExpanded {
                 VStack(spacing: 4) {
-                    ForEach(Array(sessions.enumerated()), id: \.offset) { index, session in
-                        SleepSessionRow(session: session)
-                        
-                        if index < sessions.count - 1 {
+                    // Night sleep sessions
+                    if !daySleepData.nightSleep.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Night Sleep")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondary)
+                            
+                            ForEach(Array(daySleepData.nightSleep.enumerated()), id: \.offset) { index, session in
+                                SleepSessionRow(session: session)
+                                
+                                if index < daySleepData.nightSleep.count - 1 {
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Nap sessions
+                    if !daySleepData.naps.isEmpty {
+                        if !daySleepData.nightSleep.isEmpty {
                             Divider()
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Naps (\(String(format: "%.1f", daySleepData.totalNapHours))h)")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondary)
+                            
+                            ForEach(Array(daySleepData.naps.enumerated()), id: \.offset) { index, session in
+                                SleepSessionRow(session: session)
+                                
+                                if index < daySleepData.naps.count - 1 {
+                                    Divider()
+                                }
+                            }
                         }
                     }
                 }

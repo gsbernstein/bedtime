@@ -9,7 +9,7 @@ import Foundation
 
 class ViewModel {
     static func calculateSleepBank(
-        sleepSessions: [Date: [SleepSession]],
+        daySleepData: [Date: DaySleepData],
         goalHours: Double,
         recentDays: Int
     ) -> SleepBank {
@@ -17,15 +17,15 @@ class ViewModel {
         let endDate = Date()
         let startDate = calendar.date(byAdding: .day, value: -recentDays, to: endDate) ?? endDate
         
-        // Filter sessions from the last N days
-        let recentSessions = sleepSessions.filter { day, _ in
+        // Filter days from the last N days
+        let recentDays = daySleepData.filter { day, _ in
             day >= startDate && day <= endDate
         }
         
-        let daysWithData = recentSessions.count
+        let daysWithData = recentDays.count
         
-        // Calculate total sleep hours in the period
-        let totalSleepHours = recentSessions.values.flatMap { $0 }.map { $0.durationInHours }.reduce(0, +)
+        // Calculate total night sleep hours in the period (exclude naps)
+        let totalSleepHours = recentDays.values.map { $0.totalNightSleepHours }.reduce(0, +)
         
         // Calculate expected sleep hours (goal * number of days)
         let expectedSleepHours = goalHours * Double(daysWithData)
@@ -47,7 +47,8 @@ class ViewModel {
         sleepGoal: Double,
         sleepBank: SleepBank,
         maxSleepHours: Double,
-        minSleepHours: Double
+        minSleepHours: Double,
+        timeInBedBuffer: Double
     ) -> BedtimeRecommendation {
         let calendar = Calendar.current
         
@@ -72,13 +73,18 @@ class ViewModel {
             reason = "You're ahead of the game! Aim for at least \(String(format: "%.1f", sleepGoal)) hours tonight."
         }
         
-        // Calculate recommended bedtime
+        // Calculate recommended bedtime (when to fall asleep)
         let recommendedBedtime = calendar.date(byAdding: .minute, value: -Int(totalSleepNeeded * 60), to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
+        
+        // Calculate when to go to bed (subtract buffer)
+        let goToBedTime = calendar.date(byAdding: .minute, value: -Int((totalSleepNeeded + timeInBedBuffer) * 60), to: wakeTime) ?? wakeTime.addingTimeInterval(-(totalSleepNeeded + timeInBedBuffer) * 60 * 60)
         
         return BedtimeRecommendation(
             recommendedBedtime: recommendedBedtime,
+            goToBedTime: goToBedTime,
             wakeTime: wakeTime,
             targetSleepDuration: totalSleepNeeded,
+            timeInBedBuffer: timeInBedBuffer,
             reason: reason
         )
     }

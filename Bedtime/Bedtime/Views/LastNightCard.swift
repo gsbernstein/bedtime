@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct LastNightCard: View {
-    let sleepSessions: [SleepSession]?
+    let daySleepData: DaySleepData?
     let goal: TimeInterval
     
     var durationInHours: TimeInterval? {
-        sleepSessions?.map(\.durationInHours).reduce(0, +)
+        daySleepData?.totalNightSleepHours
     }
     
     private var timeFormatter: DateFormatter {
@@ -36,13 +36,13 @@ struct LastNightCard: View {
                     Spacer()
                 }
                 
-                if let sleepSessions {
+                if let daySleepData, !daySleepData.nightSleep.isEmpty {
                     HStack {
                         VStack(alignment: .leading) {
                             Text("In bed at")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(timeFormatter.string(from: sleepSessions.last!.startDate))
+                            Text(timeFormatter.string(from: daySleepData.nightSleep.last!.startDate))
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }
@@ -51,7 +51,7 @@ struct LastNightCard: View {
                             Text("Woke up at")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(timeFormatter.string(from: sleepSessions.first!.endDate))
+                            Text(timeFormatter.string(from: daySleepData.nightSleep.first!.endDate))
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }
@@ -76,6 +76,15 @@ struct LastNightCard: View {
                     ProgressBar(value: durationInHours!, total: goal)
                         .tint(durationInHours! > goal ? .green : .red)
                     
+                    // Show naps if any
+                    if !daySleepData.naps.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Naps: \(String(format: "%.1f", daySleepData.totalNapHours)) hours")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
                 } else {
                     Text("No sleep data available")
                         .font(.body)
@@ -92,16 +101,19 @@ import HealthKit
 
 #Preview {
     LastNightCard(
-        sleepSessions: [SleepSession(
-            startDate: DateComponents(calendar: .autoupdatingCurrent, day: 1, hour: 23, minute: 10).date!,
-            endDate: DateComponents(calendar: .autoupdatingCurrent, day: 2, hour: 6, minute: 35).date!,
-            sleepType: .asleepUnspecified,
-            source: .init(source: .default(), version: nil)
-        )],
+        daySleepData: DaySleepData(
+            date: Date(),
+            allSessions: [SleepSession(
+                startDate: DateComponents(calendar: .autoupdatingCurrent, day: 1, hour: 23, minute: 10).date!,
+                endDate: DateComponents(calendar: .autoupdatingCurrent, day: 2, hour: 6, minute: 35).date!,
+                sleepType: .asleepUnspecified,
+                source: .init(source: .default(), version: nil)
+            )]
+        ),
         goal: 8
     )
     LastNightCard(
-        sleepSessions: nil,
+        daySleepData: nil,
         goal: 8
     )
 }

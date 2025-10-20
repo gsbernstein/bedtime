@@ -9,14 +9,14 @@ import SwiftUI
 
 struct RecentSleepSessionsCard: View {
     
-    init(sessions: [Date: [SleepSession]], sleepGoal: Double) {
-        self.sessions = sessions
-        self.sortedSessions = sessions.sorted { $0.key > $1.key }
+    init(daySleepData: [Date: DaySleepData], sleepGoal: Double) {
+        self.daySleepData = daySleepData
+        self.sortedDays = daySleepData.sorted { $0.key > $1.key }
         self.sleepGoal = sleepGoal
     }
     
-    let sessions: [Date: [SleepSession]]
-    let sortedSessions: [(Date, [SleepSession])]
+    let daySleepData: [Date: DaySleepData]
+    let sortedDays: [(Date, DaySleepData)]
     let sleepGoal: Double
     
     @State private var expandedNights: Set<Date> = []
@@ -41,10 +41,10 @@ struct RecentSleepSessionsCard: View {
                 
                 // Grouped sleep sessions
                 VStack(spacing: 8) {
-                    ForEach(sortedSessions, id: \.0) { night, nightSessions in
+                    ForEach(sortedDays, id: \.0) { night, dayData in
                         SleepDayGroup(
                             date: night,
-                            sessions: nightSessions,
+                            daySleepData: dayData,
                             isExpanded: expandedNights.contains(night),
                             sleepGoal: sleepGoal,
                             onToggle: {
@@ -58,7 +58,7 @@ struct RecentSleepSessionsCard: View {
                             }
                         )
                         
-                        if night != sortedSessions.last?.0 {
+                        if night != sortedDays.last?.0 {
                             Divider()
                         }
                     }

@@ -12,14 +12,15 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var preferences: [UserPreferences]
     @StateObject private var healthKitManager = HealthKitManager()
+    @StateObject private var notificationManager = NotificationManager()
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var error: Error?
     
-    var lastNightData: [SleepSession]? {
+    var lastNightData: DaySleepData? {
         let calendar = Calendar.current
         let lastNight = calendar.startOfDay(for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date())
-        return healthKitManager.sleepSessions[lastNight]
+        return healthKitManager.daySleepData[lastNight]
     }
     
     private var userPreferences: UserPreferences {
@@ -34,9 +35,9 @@ struct ContentView: View {
     
     private var sleepBank: SleepBank {
         ViewModel.calculateSleepBank(
-            sleepSessions: healthKitManager.sleepSessions,
+            daySleepData: healthKitManager.daySleepData,
             goalHours: userPreferences.sleepGoalHours,
-            recentDays: userPreferences.sleepBankDays
+            recentDays: 7 // Fixed to 7 days
         )
     }
     
@@ -46,7 +47,8 @@ struct ContentView: View {
             sleepGoal: userPreferences.sleepGoalHours,
             sleepBank: sleepBank,
             maxSleepHours: userPreferences.maxSleepHoursPerNight,
-            minSleepHours: userPreferences.minSleepHoursPerNight
+            minSleepHours: userPreferences.minSleepHoursPerNight,
+            timeInBedBuffer: healthKitManager.calculateTimeInBedBuffer()
         )
     }
 
@@ -62,7 +64,7 @@ struct ContentView: View {
                         } else {
                             
                             if Calendar.current.component(.hour, from: Date()) < 18 {
-                                LastNightCard(sleepSessions: lastNightData,
+                                LastNightCard(daySleepData: lastNightData,
                                             goal: userPreferences.sleepGoalHours)
                             } else {
                                 BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
@@ -70,16 +72,18 @@ struct ContentView: View {
                             
                             SleepBankCard(sleepBank: sleepBank)
                             
+                            SleepProjectionCard(sleepBank: sleepBank, goalHours: userPreferences.sleepGoalHours)
+                            
                             if Calendar.current.component(.hour, from: Date()) < 18 {
                                 BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                             } else {
-                                LastNightCard(sleepSessions: lastNightData,
+                                LastNightCard(daySleepData: lastNightData,
                                             goal: userPreferences.sleepGoalHours)
                             }
                             
                             // Recent Sleep Sessions
-                            if !healthKitManager.sleepSessions.isEmpty {
-                                RecentSleepSessionsCard(sessions: healthKitManager.sleepSessions, sleepGoal: userPreferences.sleepGoalHours)
+                            if !healthKitManager.daySleepData.isEmpty {
+                                RecentSleepSessionsCard(daySleepData: healthKitManager.daySleepData, sleepGoal: userPreferences.sleepGoalHours)
                             }
                         }
                     }
@@ -87,6 +91,10 @@ struct ContentView: View {
                 }
                 .navigationTitle("Bedtime")
                 .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        NavigationLink("Plan", destination: PlanningView(sleepBank: sleepBank, goalHours: userPreferences.sleepGoalHours))
+                    }
+                    
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Settings", systemImage: "gear") {
                             showingSettings = true
@@ -110,7 +118,16 @@ struct ContentView: View {
             }
         }
         .task {
-            try? await healthKitManager.fetchSleepData()
+            try await healthKitManager.fetchSleepData()
+            await notificationManager.requestPermission()
+            
+            // Schedule notifications based on current recommendations
+            if notificationManager.isAuthorized {
+                notificationManager.updateNotifications(
+                    bedtime: bedtimeRecommendation.goToBedTime,
+                    wakeTime: userPreferences.wakeTime
+                )
+            }
         }
     }
 }
