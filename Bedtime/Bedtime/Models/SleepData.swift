@@ -119,7 +119,9 @@ struct SleepBank {
 
 struct BedtimeRecommendation {
     let recommendedBedtime: Date
+    let goToBedTime: Date
     let wakeTime: Date
     let targetSleepDuration: Double // in hours
+    let timeInBedBuffer: Double // in hours
     let reason: String
 }

@@ -13,7 +13,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var tempSleepGoal: Double
     @State private var tempWakeTime: Date
-    @State private var tempSleepBankDays: Double
     @State private var tempMaxSleepHoursPerNight: Double
     @State private var tempMinSleepHoursPerNight: Double
     
@@ -21,7 +20,6 @@ struct SettingsView: View {
         self.preferences = preferences
         self._tempSleepGoal = State(initialValue: preferences.sleepGoalHours)
         self._tempWakeTime = State(initialValue: preferences.wakeTime)
-        self._tempSleepBankDays = State(initialValue: Double(preferences.sleepBankDays))
         self._tempMaxSleepHoursPerNight = State(initialValue: preferences.maxSleepHoursPerNight)
         self._tempMinSleepHoursPerNight = State(initialValue: preferences.minSleepHoursPerNight)
     }
@@ -53,25 +51,6 @@ struct SettingsView: View {
                     )
                 }
                 
-                Section("Sleep Bank Calculation") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Days to Consider")
-                            Spacer()
-                            Text("\(String(format: "%.0f", tempSleepBankDays)) days")
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Slider(value: $tempSleepBankDays, in: 3...14, step: 1) {
-                            EmptyView()
-                        }
-                        .accentColor(.blue)
-                        
-                        Text("How many recent days to include in your sleep bank calculation")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
                 
                 Section("Sleep Limits") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -125,7 +104,6 @@ struct SettingsView: View {
     private func saveSettings() {
         preferences.sleepGoalHours = tempSleepGoal
         preferences.wakeTime = tempWakeTime
-        preferences.sleepBankDays = Int(tempSleepBankDays)
         preferences.maxSleepHoursPerNight = tempMaxSleepHoursPerNight
         preferences.minSleepHoursPerNight = tempMinSleepHoursPerNight
         preferences.lastUpdated = Date()
