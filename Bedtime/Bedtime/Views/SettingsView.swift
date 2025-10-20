@@ -51,7 +51,6 @@ struct SettingsView: View {
                         selection: $tempWakeTime,
                         displayedComponents: .hourAndMinute
                     )
-                    .datePickerStyle(.wheel)
                 }
                 
                 Section("Sleep Bank Calculation") {
