@@ -85,6 +85,9 @@ class HealthKitManager: ObservableObject {
     private func processSleepSamples(_ samples: [HKCategorySample]) {        
         // Sort by start date (most recent first)
         let sessions = samples
+            .filter {
+                $0.sourceRevision.source.bundleIdentifier.lowercased().starts(with: "com.apple.health")
+            }
             .compactMap { SleepSession(sample: $0) }
         
         self.sleepSessions = Dictionary(grouping: sessions) { $0.dateForGrouping }
