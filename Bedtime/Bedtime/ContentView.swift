@@ -12,7 +12,6 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var preferences: [UserPreferences]
     @StateObject private var healthKitManager = HealthKitManager()
-    @StateObject private var notificationManager = NotificationManager()
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var error: Error?
@@ -91,10 +90,6 @@ struct ContentView: View {
                 }
                 .navigationTitle("Bedtime")
                 .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        NavigationLink("Plan", destination: PlanningView(sleepBank: sleepBank, goalHours: userPreferences.sleepGoalHours))
-                    }
-                    
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Settings", systemImage: "gear") {
                             showingSettings = true
@@ -118,16 +113,7 @@ struct ContentView: View {
             }
         }
         .task {
-            try await healthKitManager.fetchSleepData()
-            await notificationManager.requestPermission()
-            
-            // Schedule notifications based on current recommendations
-            if notificationManager.isAuthorized {
-                notificationManager.updateNotifications(
-                    bedtime: bedtimeRecommendation.goToBedTime,
-                    wakeTime: userPreferences.wakeTime
-                )
-            }
+            try? await healthKitManager.fetchSleepData()
         }
     }
 }

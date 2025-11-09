@@ -6,11 +6,15 @@
 //
 
 import Foundation
+import HealthKit
 
 struct DaySleepData {
     let date: Date
     let nightSleep: [SleepSession]
     let naps: [SleepSession]
+    let timeInBed: Date?
+    let timeAsleep: Date
+    let timeToSleep: TimeInterval?
     
     var totalNightSleepHours: Double {
         return nightSleep.reduce(0) { $0 + $1.durationInHours }
@@ -27,12 +31,19 @@ struct DaySleepData {
     init(date: Date, allSessions: [SleepSession]) {
         self.date = date
         
+        
         // Sort sessions by start time
         let sortedSessions = allSessions.sorted { $0.startDate < $1.startDate }
+        
+        self.timeInBed = allSessions.filter { $0.sleepType == .inBed }.first?.startDate
         
         // Group sessions by gaps (> 2 hours between end and start)
         var chunks: [[SleepSession]] = []
         var currentChunk: [SleepSession] = []
+        
+        let groupedBySources = sortedSessions.filter { $0.sleepType != .inBed }.reduce(Set()) { session, set in
+            set.insert(session.source)
+        }
         
         for session in sortedSessions {
             if let lastSession = currentChunk.last {
@@ -70,5 +81,7 @@ struct DaySleepData {
         
         self.nightSleep = nightSleep
         self.naps = naps
+        
+        self.timeAsleep =
     }
 }

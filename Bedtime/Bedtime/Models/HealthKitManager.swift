@@ -13,12 +13,10 @@ import Combine
 class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
     @Published var isAuthorized = false
-    @Published var sleepSessions: [Date: [SleepSession]] = [:]
-    @Published var inBedSessions: [Date: [SleepSession]] = [:]
     @Published var daySleepData: [Date: DaySleepData] = [:]
     @Published var errorMessage: String?
     private var observerQuery: HKObserverQuery?
-        
+    
     init() {
         do {
             try checkHealthKitAvailability()
@@ -91,26 +89,10 @@ class HealthKitManager: ObservableObject {
         // Separate "In Bed" from "Asleep" sessions
         let allSessions = samples.compactMap { SleepSession(sample: $0) }
         
-        let asleepSessions = allSessions.filter { session in
-            HKCategoryValueSleepAnalysis.allAsleepValues.contains(session.sleepType)
-        }
-        
-        let inBedSessions = allSessions.filter { session in
-            session.sleepType == .inBed
-        }
-        
-        self.sleepSessions = Dictionary(grouping: asleepSessions) { $0.dateForGrouping }
-        self.inBedSessions = Dictionary(grouping: inBedSessions) { $0.dateForGrouping }
-        
-        // Create DaySleepData for each day
-        var newDaySleepData: [Date: DaySleepData] = [:]
-        let allDays = Set(self.sleepSessions.keys).union(Set(self.inBedSessions.keys))
-        
-        for day in allDays {
-            let dayAsleepSessions = self.sleepSessions[day] ?? []
-            let dayInBedSessions = self.inBedSessions[day] ?? []
-            let allDaySessions = dayAsleepSessions + dayInBedSessions
-            newDaySleepData[day] = DaySleepData(date: day, allSessions: allDaySessions)
+        let groupedSessions = Dictionary.init(grouping: allSessions, by: \.dateForGrouping)
+
+        let newDaySleepData = groupedSessions.map { day, dayData in
+            DaySleepData(date: day, allSessions: dayData)
         }
         
         self.daySleepData = newDaySleepData
@@ -166,8 +148,7 @@ class HealthKitManager: ObservableObject {
         for day in stride(from: startDate, to: endDate, by: 86400) {
             let dayStart = calendar.startOfDay(for: day)
             
-            if let dayAsleepSessions = sleepSessions[dayStart],
-               let dayInBedSessions = inBedSessions[dayStart] {
+            if let daySleepData = daySleepData[dayStart] {
                 
                 // Calculate total asleep time for the day
                 let totalAsleepTime = dayAsleepSessions.reduce(0) { $0 + $1.durationInHours }
