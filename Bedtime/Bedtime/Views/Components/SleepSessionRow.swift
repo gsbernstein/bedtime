@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HealthKit
 
 struct SleepSessionRow: View {
     let session: SleepSession
@@ -43,4 +44,8 @@ struct SleepSessionRow: View {
         }
         .padding(.vertical, 2)
     }
+}
+
+#Preview {
+    SleepSessionRow(session: SleepSession(startDate: Date(), endDate: Date(), sleepType: .asleepDeep, source: .init(source: .default(), version: "1")))
 }
