@@ -95,7 +95,8 @@ import HealthKit
         sleepSessions: [SleepSession(
             startDate: DateComponents(calendar: .autoupdatingCurrent, day: 1, hour: 23, minute: 10).date!,
             endDate: DateComponents(calendar: .autoupdatingCurrent, day: 2, hour: 6, minute: 35).date!,
-            sleepType: .asleepUnspecified
+            sleepType: .asleepUnspecified,
+            source: .init(source: .default(), version: nil)
         )],
         goal: 8
     )

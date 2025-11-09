@@ -14,12 +14,14 @@ struct SleepSession {
     let endDate: Date
     let duration: TimeInterval
     let sleepType: HKCategoryValueSleepAnalysis
+    let source: HKSourceRevision
     
-    init(startDate: Date, endDate: Date, sleepType: HKCategoryValueSleepAnalysis) {
+    init(startDate: Date, endDate: Date, sleepType: HKCategoryValueSleepAnalysis, source: HKSourceRevision) {
         self.startDate = startDate
         self.endDate = endDate
         self.duration = endDate.timeIntervalSince(startDate)
         self.sleepType = sleepType
+        self.source = source
     }
     
     var durationInHours: Double {
@@ -38,8 +40,9 @@ extension SleepSession {
         guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return nil }
         guard HKCategoryValueSleepAnalysis.allAsleepValues.contains(sleepType) else { return nil }
         self.init(startDate: sample.startDate,
-            endDate: sample.endDate,
-            sleepType: sleepType)
+                  endDate: sample.endDate,
+                  sleepType: sleepType,
+                  source: sample.sourceRevision)
     }
 }
 
