@@ -18,29 +18,33 @@ struct SleepSessionRow: View {
     }
     
     var body: some View {
-        HStack {
-            HStack(spacing: 6) {
-                Image(systemName: session.sleepType.icon)
+        HStack(spacing: 6) {
+            Image(systemName: session.sleepType.icon)
+                .font(.caption)
+                .foregroundColor(Color(session.sleepType.color))
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(timeFormatter.string(from: session.startDate)) - \(timeFormatter.string(from: session.endDate))")
                     .font(.caption)
-                    .foregroundColor(Color(session.sleepType.color))
+                    .foregroundColor(.secondary)
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(timeFormatter.string(from: session.startDate)) - \(timeFormatter.string(from: session.endDate))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text(session.sleepType.displayName)
-                        .font(.caption2)
-                        .foregroundColor(Color(session.sleepType.color))
-                }
+                Text(session.sleepType.displayName)
+                    .font(.caption2)
+                    .foregroundColor(Color(session.sleepType.color))
             }
             
             Spacer()
             
-            Text(TimeFormatter.formatDuration(session.duration))
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(TimeFormatter.formatDuration(session.duration))
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                
+                Text(session.source.source.name)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 2)
     }
