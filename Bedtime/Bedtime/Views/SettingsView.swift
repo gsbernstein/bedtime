@@ -195,9 +195,10 @@ struct SettingsView: View {
 }
 
 #Preview {
+    let sourcePreferences = SourcePreferences()
     SettingsView(
         preferences: UserPreferences(),
-        sourcePreferences: SourcePreferences(),
-        healthKitManager: HealthKitManager(sourcePreferences: SourcePreferences())
+        sourcePreferences: sourcePreferences,
+        healthKitManager: HealthKitManager(sourcePreferences: sourcePreferences)
     )
 }
