@@ -13,6 +13,9 @@ import Combine
 class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
     private let sourcePreferences: SourcePreferences
+    private var rawSleepSamples: [HKCategorySample] = []
+    private var cancellables = Set<AnyCancellable>()
+    
     @Published var isAuthorized = false
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
     @Published var errorMessage: String?
@@ -20,11 +23,20 @@ class HealthKitManager: ObservableObject {
     
     init(sourcePreferences: SourcePreferences) {
         self.sourcePreferences = sourcePreferences
+        
         do {
             try checkHealthKitAvailability()
         } catch {
             errorMessage = error.localizedDescription
         }
+        
+        // Listen for preference changes to re-filter data immediately
+        sourcePreferences.objectWillChange
+            .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.reprocessStoredSamples()
+            }
+            .store(in: &cancellables)
     }
     
     private func checkHealthKitAvailability() throws {
@@ -82,6 +94,7 @@ class HealthKitManager: ObservableObject {
                     return
                 }
                 
+                self?.rawSleepSamples = samples
                 self?.processSleepSamples(samples)
             }
         }
@@ -131,7 +144,11 @@ class HealthKitManager: ObservableObject {
         healthStore.execute(query)
     }
     
-    private func processSleepSamples(_ samples: [HKCategorySample]) {        
+    private func reprocessStoredSamples() {
+        processSleepSamples(rawSleepSamples)
+    }
+    
+    private func processSleepSamples(_ samples: [HKCategorySample]) {
         // Filter based on user's source preferences
         let sessions = samples
             .filter {
