@@ -7,23 +7,31 @@
 
 import SwiftUI
 import Combine
+import HealthKit
 
 struct SettingsView: View {
     var preferences: UserPreferences
+    var sourcePreferences: SourcePreferences
+    var healthKitManager: HealthKitManager
     @Environment(\.dismiss) private var dismiss
+    
     @State private var tempSleepGoal: Double
     @State private var tempWakeTime: Date
     @State private var tempSleepBankDays: Double
     @State private var tempMaxSleepHoursPerNight: Double
     @State private var tempMinSleepHoursPerNight: Double
+    @State private var tempExcludedSources: Set<String>
     
-    init(preferences: UserPreferences) {
+    init(preferences: UserPreferences, sourcePreferences: SourcePreferences, healthKitManager: HealthKitManager) {
         self.preferences = preferences
+        self.sourcePreferences = sourcePreferences
+        self.healthKitManager = healthKitManager
         self._tempSleepGoal = State(initialValue: preferences.sleepGoalHours)
         self._tempWakeTime = State(initialValue: preferences.wakeTime)
         self._tempSleepBankDays = State(initialValue: Double(preferences.sleepBankDays))
         self._tempMaxSleepHoursPerNight = State(initialValue: preferences.maxSleepHoursPerNight)
         self._tempMinSleepHoursPerNight = State(initialValue: preferences.minSleepHoursPerNight)
+        self._tempExcludedSources = State(initialValue: sourcePreferences.excludedBundleIdentifiers)
     }
     
     var body: some View {
@@ -101,6 +109,59 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section("Data Sources") {
+                    if let availableSources = healthKitManager.availableSources {
+                        let allExcluded = !availableSources.contains(where: { !tempExcludedSources.contains($0.bundleIdentifier) })
+                        let noLongerRelevant = tempExcludedSources.filter { !availableSources.map(\.bundleIdentifier).contains($0) }
+                        
+                        ForEach(availableSources, id: \.bundleIdentifier) { source in
+                            let isSelected = !tempExcludedSources.contains(source.bundleIdentifier)
+                            
+                            Toggle(isOn: Binding(
+                                get: { isSelected },
+                                set: { newValue in
+                                    if newValue {
+                                        tempExcludedSources.remove(source.bundleIdentifier)
+                                    } else {
+                                        tempExcludedSources.insert(source.bundleIdentifier)
+                                    }
+                                }
+                            )) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(source.name)
+                                        .font(.body)
+                                    Text(source.bundleIdentifier)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                }
+                            }
+                        }
+                        
+                        ForEach(Array(noLongerRelevant).sorted(), id: \.self) { bundleIdentifier in
+                            Button(action: {
+                                tempExcludedSources.remove(bundleIdentifier)
+                            }) {
+                                Text("Source \(bundleIdentifier) is no longer available. Tap to delete.")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        
+                        if allExcluded {
+                            Text("No sources selected. Sleep data will not be displayed.")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                        
+                    } else {
+                        Text("No sources discovered yet. Please log some sleep data to Apple Health.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -129,9 +190,14 @@ struct SettingsView: View {
         preferences.maxSleepHoursPerNight = tempMaxSleepHoursPerNight
         preferences.minSleepHoursPerNight = tempMinSleepHoursPerNight
         preferences.lastUpdated = Date()
+        sourcePreferences.excludedBundleIdentifiers = tempExcludedSources
     }
 }
 
 #Preview {
-    SettingsView(preferences: UserPreferences())
+    SettingsView(
+        preferences: UserPreferences(),
+        sourcePreferences: SourcePreferences(),
+        healthKitManager: HealthKitManager(sourcePreferences: SourcePreferences())
+    )
 }

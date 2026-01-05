@@ -11,10 +11,17 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var preferences: [UserPreferences]
-    @StateObject private var healthKitManager = HealthKitManager()
+    @StateObject private var sourcePreferences: SourcePreferences
+    @StateObject private var healthKitManager: HealthKitManager
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var error: Error?
+    
+    init() {
+        let sourcePrefs = SourcePreferences()
+        _sourcePreferences = StateObject(wrappedValue: sourcePrefs)
+        _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
+    }
     
     var lastNightData: [SleepSession]? {
         let calendar = Calendar.current
@@ -105,7 +112,11 @@ struct ContentView: View {
                     Alert(title: Text("Error"), message: Text("Error refreshing sleep data: \(error?.localizedDescription ?? "Unknown error")"), dismissButton: .default(Text("OK")))
                 }
                 .sheet(isPresented: $showingSettings) {
-                    SettingsView(preferences: userPreferences)
+                    SettingsView(
+                        preferences: userPreferences,
+                        sourcePreferences: sourcePreferences,
+                        healthKitManager: healthKitManager
+                    )
                 }
             }
         }
