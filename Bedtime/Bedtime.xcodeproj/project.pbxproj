@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		373AAEDD2E91B7E900D8ED84 /* Bedtime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bedtime.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		373AAEDD2E91B7E900D8ED84 /* Bedger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bedger.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -53,7 +53,7 @@
 		373AAEDE2E91B7E900D8ED84 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				373AAEDD2E91B7E900D8ED84 /* Bedtime.app */,
+				373AAEDD2E91B7E900D8ED84 /* Bedger.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,7 +80,7 @@
 			packageProductDependencies = (
 			);
 			productName = Bedtime;
-			productReference = 373AAEDD2E91B7E900D8ED84 /* Bedtime.app */;
+			productReference = 373AAEDD2E91B7E900D8ED84 /* Bedger.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -160,9 +160,9 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.burnsides.bedtime;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Bedger;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -195,9 +195,9 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.burnsides.bedtime;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Bedger;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;

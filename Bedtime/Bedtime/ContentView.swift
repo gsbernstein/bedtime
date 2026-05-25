@@ -92,7 +92,7 @@ struct ContentView: View {
                     }
                     .padding()
                 }
-                .navigationTitle("Bedtime")
+                .navigationTitle("Bedger")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Settings", systemImage: "gear") {
