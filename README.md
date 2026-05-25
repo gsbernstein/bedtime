@@ -1,4 +1,4 @@
-# Bedtime - Sleep Optimization App
+# Bedger - Sleep Optimization App
 
 A native iOS app that helps optimize your sleep by tracking your "sleep bank" and providing personalized bedtime recommendations.
 
