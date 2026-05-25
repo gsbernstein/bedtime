@@ -50,8 +50,16 @@ class HealthKitManager: ObservableObject {
         
         let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
         
+        // In DEBUG builds we also request write access so the developer
+        // utilities can populate fake sleep data.
+        #if DEBUG
+        let writeTypes: Set<HKSampleType> = [sleepType]
+        #else
+        let writeTypes: Set<HKSampleType> = []
+        #endif
+        
         do {
-            try await healthStore.requestAuthorization(toShare: [], read: [sleepType])
+            try await healthStore.requestAuthorization(toShare: writeTypes, read: [sleepType])
             isAuthorized = true
             try await fetchSleepData()
         } catch {
@@ -158,4 +166,27 @@ class HealthKitManager: ObservableObject {
         
         self.sleepSessions = Dictionary(grouping: sessions) { $0.dateForGrouping }
     }
+    
+    #if DEBUG
+    /// Writes a batch of fake sleep nights into HealthKit and refreshes the
+    /// in-memory cache so the UI updates immediately. Debug builds only.
+    func generateFakeSleepData(nights: Int = 14, targetSleepHours: Double = 7.5) async throws {
+        if !isAuthorized {
+            try await requestAuthorization()
+        }
+        try await DebugDataGenerator.generateFakeSleepData(
+            in: healthStore,
+            nights: nights,
+            targetSleepHours: targetSleepHours
+        )
+        try await fetchSleepData()
+    }
+    
+    /// Deletes every sample previously written by this app's debug utilities
+    /// (real samples are untouched).
+    func clearFakeSleepData() async throws {
+        try await DebugDataGenerator.clearFakeSleepData(in: healthStore)
+        try await fetchSleepData()
+    }
+    #endif
 }
