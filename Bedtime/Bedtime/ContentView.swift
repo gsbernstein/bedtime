@@ -91,6 +91,8 @@ struct ContentView: View {
                         }
                     }
                     .padding()
+                    .frame(maxWidth: 600)
+                    .frame(maxWidth: .infinity)
                 }
                 .navigationTitle("Bedger")
                 .toolbar {
