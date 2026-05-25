@@ -111,12 +111,13 @@ struct ContentView: View {
                 .alert(isPresented: $showingError) {
                     Alert(title: Text("Error"), message: Text("Error refreshing sleep data: \(error?.localizedDescription ?? "Unknown error")"), dismissButton: .default(Text("OK")))
                 }
-                .sheet(isPresented: $showingSettings) {
+                .inspector(isPresented: $showingSettings) {
                     SettingsView(
                         preferences: userPreferences,
                         sourcePreferences: sourcePreferences,
                         healthKitManager: healthKitManager
                     )
+                    .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
                 }
             }
         }
