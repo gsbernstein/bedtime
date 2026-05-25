@@ -35,7 +35,7 @@ struct SettingsView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Sleep Goal") {
                     VStack(alignment: .leading, spacing: 8) {
