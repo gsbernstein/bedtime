@@ -5,6 +5,9 @@
 ## User settings
 xcuserdata/
 
+## Build output
+build/
+
 ## Obj-C/Swift specific
 *.hmap
 
