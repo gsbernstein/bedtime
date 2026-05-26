@@ -85,10 +85,19 @@ extension HKCategoryValueSleepAnalysis {
     }
 }
 
+struct NightSummary: Identifiable {
+    let date: Date
+    let totalHours: Double
+    let hasData: Bool
+    
+    var id: Date { date }
+}
+
 struct SleepBank {
     let currentBalance: Double // in hours
     let goalHours: Double
     let averageHours: Double?
+    let recentNights: [NightSummary]
     
     var isInDebt: Bool {
         return currentBalance < 0

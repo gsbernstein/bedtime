@@ -6,9 +6,15 @@
 //
 
 import SwiftUI
+import Charts
 
 struct SleepBankCard: View {
     let sleepBank: SleepBank
+    
+    private var chartUpperBound: Double {
+        let maxNight = sleepBank.recentNights.map(\.totalHours).max() ?? 0
+        return max(sleepBank.goalHours + 1, maxNight + 0.5)
+    }
     
     var body: some View {
         CardComponent {
@@ -101,13 +107,68 @@ struct SleepBankCard: View {
                         }
                     }
                 }
+                
+                if !sleepBank.recentNights.isEmpty {
+                    sparkline
+                }
             }
         }
     }
 }
 
+private extension SleepBankCard {
+    var sparkline: some View {
+        Chart {
+            ForEach(sleepBank.recentNights) { night in
+                if night.hasData {
+                    BarMark(
+                        x: .value("Night", night.date, unit: .day),
+                        y: .value("Hours", night.totalHours),
+                        width: .ratio(0.6)
+                    )
+                    .foregroundStyle(night.totalHours >= sleepBank.goalHours ? Color.green : Color.red)
+                    .cornerRadius(2)
+                }
+            }
+            
+            RuleMark(y: .value("Goal", sleepBank.goalHours))
+                .foregroundStyle(.secondary)
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartYScale(domain: 0...chartUpperBound)
+        .frame(height: 64)
+        .accessibilityLabel("Sleep duration over the last \(sleepBank.recentNights.count) nights")
+    }
+}
+
 #Preview {
-    SleepBankCard(sleepBank: SleepBank(currentBalance: -0.8, goalHours: 8, averageHours: 7.5))
-    SleepBankCard(sleepBank: SleepBank(currentBalance: 0.8, goalHours: 8, averageHours: 8.5))
-    SleepBankCard(sleepBank: SleepBank(currentBalance: 0, goalHours: 8, averageHours: nil))
+    let calendar = Calendar.current
+    let today = calendar.startOfDay(for: Date())
+    func night(_ daysAgo: Int, _ hours: Double, hasData: Bool = true) -> NightSummary {
+        NightSummary(
+            date: calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today,
+            totalHours: hasData ? hours : 0,
+            hasData: hasData
+        )
+    }
+    let inDebtNights: [NightSummary] = [
+        night(6, 6.5), night(5, 7.2), night(4, 0, hasData: false), night(3, 7.8),
+        night(2, 6.8), night(1, 7.4), night(0, 7.0)
+    ]
+    let aheadNights: [NightSummary] = [
+        night(6, 8.5), night(5, 8.2), night(4, 9.0), night(3, 7.5),
+        night(2, 8.7), night(1, 8.8), night(0, 8.3)
+    ]
+    let emptyNights: [NightSummary] = (0..<7).reversed().map { night($0, 0, hasData: false) }
+    
+    return ScrollView {
+        VStack {
+            SleepBankCard(sleepBank: SleepBank(currentBalance: -0.8, goalHours: 8, averageHours: 7.5, recentNights: inDebtNights))
+            SleepBankCard(sleepBank: SleepBank(currentBalance: 0.8, goalHours: 8, averageHours: 8.5, recentNights: aheadNights))
+            SleepBankCard(sleepBank: SleepBank(currentBalance: 0, goalHours: 8, averageHours: nil, recentNights: emptyNights))
+        }
+        .padding()
+    }
 }
