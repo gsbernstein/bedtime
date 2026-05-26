@@ -98,7 +98,7 @@ struct ContentView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Settings", systemImage: "gear") {
-                            showingSettings = true
+                            showingSettings.toggle()
                         }
                     }
                 }
