@@ -22,7 +22,7 @@ struct SleepDayGroup: View {
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
+        formatter.dateFormat = "EEE, MMM d"
         return formatter
     }
     

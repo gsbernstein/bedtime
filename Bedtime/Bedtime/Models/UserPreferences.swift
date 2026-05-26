@@ -21,7 +21,7 @@ final class UserPreferences {
         sleepGoalHours: Double = 8.0,
         wakeTime: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date(),
         sleepBankDays: Int = 7,
-        maxSleepHoursPerNight: Double = 12,
+        maxSleepHoursPerNight: Double = 10,
         minSleepHoursPerNight: Double = 5
     ) {
         self.sleepGoalHours = sleepGoalHours
