@@ -60,70 +60,67 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color.backgroundBehindCards.edgesIgnoringSafeArea(.all)
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // HealthKit Authorization
-                        if !healthKitManager.isAuthorized {
-                            HealthKitAuthorizationCard(healthKitManager: healthKitManager)
+            ScrollView {
+                VStack(spacing: 20) {
+                    // HealthKit Authorization
+                    if !healthKitManager.isAuthorized {
+                        HealthKitAuthorizationCard(healthKitManager: healthKitManager)
+                    } else {
+                        if Calendar.current.component(.hour, from: Date()) < 18 {
+                            LastNightCard(sleepSessions: lastNightData,
+                                          goal: userPreferences.sleepGoalHours)
                         } else {
-                            
-                            if Calendar.current.component(.hour, from: Date()) < 18 {
-                                LastNightCard(sleepSessions: lastNightData,
-                                            goal: userPreferences.sleepGoalHours)
-                            } else {
-                                BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
-                            }
-                            
-                            SleepBankCard(sleepBank: sleepBank)
-                            
-                            if Calendar.current.component(.hour, from: Date()) < 18 {
-                                BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
-                            } else {
-                                LastNightCard(sleepSessions: lastNightData,
-                                            goal: userPreferences.sleepGoalHours)
-                            }
-                            
-                            // Recent Sleep Sessions
-                            if !healthKitManager.sleepSessions.isEmpty {
-                                RecentSleepSessionsCard(sessions: healthKitManager.sleepSessions, sleepGoal: userPreferences.sleepGoalHours)
-                            }
+                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         }
-                    }
-                    .padding()
-                    .frame(maxWidth: 600)
-                    .frame(maxWidth: .infinity)
-                }
-                .navigationTitle("Bedger")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Settings", systemImage: "gear") {
-                            showingSettings.toggle()
+
+                        SleepBankCard(sleepBank: sleepBank)
+
+                        if Calendar.current.component(.hour, from: Date()) < 18 {
+                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                        } else {
+                            LastNightCard(sleepSessions: lastNightData,
+                                          goal: userPreferences.sleepGoalHours)
+                        }
+
+                        // Recent Sleep Sessions
+                        if !healthKitManager.sleepSessions.isEmpty {
+                            RecentSleepSessionsCard(sessions: healthKitManager.sleepSessions, sleepGoal: userPreferences.sleepGoalHours)
                         }
                     }
                 }
-                .refreshable {
-                    do {
-                        try await healthKitManager.fetchSleepData()
-                    } catch {
-                        showingError = true
-                        self.error = error
+                .padding()
+                .frame(maxWidth: 600)
+                .frame(maxWidth: .infinity)
+            }
+            .background(Color.backgroundBehindCards)
+            .navigationTitle("Bedger")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Settings", systemImage: "gear") {
+                        showingSettings.toggle()
                     }
                 }
-                .alert(isPresented: $showingError) {
-                    Alert(title: Text("Error"), message: Text("Error refreshing sleep data: \(error?.localizedDescription ?? "Unknown error")"), dismissButton: .default(Text("OK")))
+            }
+            .refreshable {
+                do {
+                    try await healthKitManager.fetchSleepData()
+                } catch {
+                    showingError = true
+                    self.error = error
                 }
-                .settingsPresentation(
-                    isPresented: $showingSettings,
-                    useInspector: horizontalSizeClass == .regular
-                ) {
-                    SettingsView(
-                        preferences: userPreferences,
-                        sourcePreferences: sourcePreferences,
-                        healthKitManager: healthKitManager
-                    )
-                }
+            }
+            .alert(isPresented: $showingError) {
+                Alert(title: Text("Error"), message: Text("Error refreshing sleep data: \(error?.localizedDescription ?? "Unknown error")"), dismissButton: .default(Text("OK")))
+            }
+            .settingsPresentation(
+                isPresented: $showingSettings,
+                useInspector: horizontalSizeClass == .regular
+            ) {
+                SettingsView(
+                    preferences: userPreferences,
+                    sourcePreferences: sourcePreferences,
+                    healthKitManager: healthKitManager
+                )
             }
         }
         .task {
