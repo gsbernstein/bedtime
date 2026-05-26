@@ -10,6 +10,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Query private var preferences: [UserPreferences]
     @StateObject private var sourcePreferences: SourcePreferences
     @StateObject private var healthKitManager: HealthKitManager
@@ -113,13 +114,15 @@ struct ContentView: View {
                 .alert(isPresented: $showingError) {
                     Alert(title: Text("Error"), message: Text("Error refreshing sleep data: \(error?.localizedDescription ?? "Unknown error")"), dismissButton: .default(Text("OK")))
                 }
-                .inspector(isPresented: $showingSettings) {
+                .settingsPresentation(
+                    isPresented: $showingSettings,
+                    useInspector: horizontalSizeClass == .regular
+                ) {
                     SettingsView(
                         preferences: userPreferences,
                         sourcePreferences: sourcePreferences,
                         healthKitManager: healthKitManager
                     )
-                    .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
                 }
             }
         }
@@ -132,5 +135,25 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .modelContainer(for: UserPreferences.self, inMemory: true)
+}
+
+private extension View {
+    /// Presents settings as an inspector pane when `useInspector` is true (iPad regular width)
+    /// and as a sheet otherwise (iPhone / iPad split-screen).
+    @ViewBuilder
+    func settingsPresentation<SettingsContent: View>(
+        isPresented: Binding<Bool>,
+        useInspector: Bool,
+        @ViewBuilder content: @escaping () -> SettingsContent
+    ) -> some View {
+        if useInspector {
+            inspector(isPresented: isPresented) {
+                content()
+                    .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
+            }
+        } else {
+            sheet(isPresented: isPresented, content: content)
+        }
+    }
 }
 
