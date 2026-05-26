@@ -101,12 +101,6 @@ struct SleepBankCard: View {
                         }
                     }
                 }
-                
-                // Progress bar
-                ProgressBar(value: sleepBank.bankBalance,
-                             total: sleepBank.goalHours)
-                    .tint(sleepBank.isInDebt ? .red : .green)
-                    .rotationEffect(sleepBank.isInDebt ? .degrees(180) : .degrees(0))
             }
         }
     }
