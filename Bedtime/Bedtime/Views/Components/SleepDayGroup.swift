@@ -72,6 +72,7 @@ struct SleepDayGroup: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 8)
+                .contentShape(Rectangle())
             }
             .buttonStyle(PlainButtonStyle())
             
