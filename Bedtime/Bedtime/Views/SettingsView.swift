@@ -71,30 +71,30 @@ struct SettingsView: View {
                 }
                 
                 Section("Sleep Limits") {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("Max sleep hours per night")
+                            Text("Hours per night")
                             Spacer()
-                            Text("\(String(format: "%.0f", preferences.maxSleepHoursPerNight)) hours")
+                            Text("\(String(format: "%.0f", preferences.minSleepHoursPerNight))–\(String(format: "%.0f", preferences.maxSleepHoursPerNight)) hours")
                                 .foregroundColor(.secondary)
+                                .monospacedDigit()
                         }
-                        
-                        Slider(value: $preferences.maxSleepHoursPerNight, in: 8...16, step: 1) {
-                            Text("Max")
-                        }
-                        .accentColor(.blue)
-                        
+
+                        RangeSlider(
+                            lowerValue: $preferences.minSleepHoursPerNight,
+                            upperValue: $preferences.maxSleepHoursPerNight,
+                            bounds: 2...16,
+                            step: 1
+                        )
+                        .tint(.blue)
+
                         HStack {
-                            Text("Min sleep hours per night")
+                            Text("\(String(format: "%.0f", 2.0))h")
                             Spacer()
-                            Text("\(String(format: "%.0f", preferences.minSleepHoursPerNight)) hours")
-                                .foregroundColor(.secondary)
+                            Text("\(String(format: "%.0f", 16.0))h")
                         }
-                        
-                        Slider(value: $preferences.minSleepHoursPerNight, in: 2...10, step: 1) {
-                            Text("Min")
-                        }
-                        .accentColor(.blue)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                     }
                 }
                 
