@@ -19,7 +19,7 @@ struct SettingsView: View {
     private var sleepBankDaysBinding: Binding<Double> {
         Binding(
             get: { Double(preferences.sleepBankDays) },
-            set: { preferences.sleepBankDays = Int($0) }
+            set: { preferences.sleepBankDays = Int($0.rounded()) }
         )
     }
     
@@ -100,12 +100,14 @@ struct SettingsView: View {
                 
                 Section("Data Sources") {
                     if let availableSources = healthKitManager.availableSources {
-                        let allExcluded = !availableSources.contains(where: { !sourcePreferences.excludedBundleIdentifiers.contains($0.bundleIdentifier) })
-                        let noLongerRelevant = sourcePreferences.excludedBundleIdentifiers.filter { !availableSources.map(\.bundleIdentifier).contains($0) }
+                        let excluded = sourcePreferences.excludedBundleIdentifiers
+                        let availableIDs = Set(availableSources.map(\.bundleIdentifier))
+                        let allExcluded = !availableSources.contains(where: { !excluded.contains($0.bundleIdentifier) })
+                        let noLongerRelevant = excluded.filter { !availableIDs.contains($0) }
                         
                         ForEach(availableSources, id: \.bundleIdentifier) { source in
                             Toggle(isOn: Binding(
-                                get: { !sourcePreferences.excludedBundleIdentifiers.contains(source.bundleIdentifier) },
+                                get: { !excluded.contains(source.bundleIdentifier) },
                                 set: { newValue in
                                     if newValue {
                                         sourcePreferences.includeSource(source.bundleIdentifier)

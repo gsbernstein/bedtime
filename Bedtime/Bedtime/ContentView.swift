@@ -59,6 +59,7 @@ struct ContentView: View {
     }
 
     var body: some View {
+        let isBeforeEvening = Calendar.current.component(.hour, from: Date()) < 18
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
@@ -66,7 +67,7 @@ struct ContentView: View {
                     if !healthKitManager.isAuthorized {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     } else {
-                        if Calendar.current.component(.hour, from: Date()) < 18 {
+                        if isBeforeEvening {
                             LastNightCard(sleepSessions: lastNightData,
                                           goal: userPreferences.sleepGoalHours)
                         } else {
@@ -75,7 +76,7 @@ struct ContentView: View {
 
                         SleepBankCard(sleepBank: sleepBank)
 
-                        if Calendar.current.component(.hour, from: Date()) < 18 {
+                        if isBeforeEvening {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         } else {
                             LastNightCard(sleepSessions: lastNightData,
