@@ -22,7 +22,12 @@ struct SettingsView: View {
             set: { preferences.sleepBankDays = Int($0.rounded()) }
         )
     }
-    
+
+    #if DEBUG
+    @State private var debugIsWorking = false
+    @State private var debugMessage: String?
+    #endif
+
     var body: some View {
         NavigationStack {
             Form {
@@ -151,6 +156,52 @@ struct SettingsView: View {
                     }
                 }
                 
+                #if DEBUG
+                Section("Developer") {
+                    Button {
+                        runDebugTask {
+                            try await healthKitManager.generateFakeSleepData(
+                                nights: 14,
+                                targetSleepHours: preferences.sleepGoalHours
+                            )
+                            return "Generated 14 nights of fake sleep data."
+                        }
+                    } label: {
+                        Label("Generate Fake Sleep Data (14 nights)", systemImage: "wand.and.stars")
+                    }
+                    .disabled(debugIsWorking)
+                    
+                    Button(role: .destructive) {
+                        runDebugTask {
+                            try await healthKitManager.clearFakeSleepData()
+                            return "Cleared fake sleep data."
+                        }
+                    } label: {
+                        Label("Delete Generated Sleep Data", systemImage: "trash")
+                    }
+                    .disabled(debugIsWorking)
+                    
+                    if debugIsWorking {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Working...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    if let debugMessage {
+                        Text(debugMessage)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Text("Fake samples are tagged so deletion only removes data this app wrote.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                #endif
+                
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -165,6 +216,24 @@ struct SettingsView: View {
             }
         }
     }
+    
+    #if DEBUG
+    /// Runs a debug action while toggling the working state and surfacing
+    /// either a success message or the error description in the UI.
+    private func runDebugTask(_ work: @escaping () async throws -> String) {
+        debugIsWorking = true
+        debugMessage = nil
+        Task { @MainActor in
+            do {
+                let message = try await work()
+                debugMessage = message
+            } catch {
+                debugMessage = "Error: \(error.localizedDescription)"
+            }
+            debugIsWorking = false
+        }
+    }
+    #endif
 }
 
 #Preview {
