@@ -102,7 +102,7 @@ struct SettingsView: View {
                     if let availableSources = healthKitManager.availableSources {
                         let excluded = sourcePreferences.excludedBundleIdentifiers
                         let availableIDs = Set(availableSources.map(\.bundleIdentifier))
-                        let allExcluded = !availableSources.contains(where: { !excluded.contains($0.bundleIdentifier) })
+                        let allExcluded = availableIDs.isSubset(of: excluded)
                         let noLongerRelevant = excluded.filter { !availableIDs.contains($0) }
                         
                         ForEach(availableSources, id: \.bundleIdentifier) { source in
