@@ -10,43 +10,32 @@ import Combine
 import HealthKit
 
 struct SettingsView: View {
-    var preferences: UserPreferences
-    var sourcePreferences: SourcePreferences
+    @Bindable var preferences: UserPreferences
+    @ObservedObject var sourcePreferences: SourcePreferences
     var healthKitManager: HealthKitManager
     @Environment(\.dismiss) private var dismiss
-    
-    @State private var tempSleepGoal: Double
-    @State private var tempWakeTime: Date
-    @State private var tempSleepBankDays: Double
-    @State private var tempMaxSleepHoursPerNight: Double
-    @State private var tempMinSleepHoursPerNight: Double
-    @State private var tempExcludedSources: Set<String>
-    
-    init(preferences: UserPreferences, sourcePreferences: SourcePreferences, healthKitManager: HealthKitManager) {
-        self.preferences = preferences
-        self.sourcePreferences = sourcePreferences
-        self.healthKitManager = healthKitManager
-        self._tempSleepGoal = State(initialValue: preferences.sleepGoalHours)
-        self._tempWakeTime = State(initialValue: preferences.wakeTime)
-        self._tempSleepBankDays = State(initialValue: Double(preferences.sleepBankDays))
-        self._tempMaxSleepHoursPerNight = State(initialValue: preferences.maxSleepHoursPerNight)
-        self._tempMinSleepHoursPerNight = State(initialValue: preferences.minSleepHoursPerNight)
-        self._tempExcludedSources = State(initialValue: sourcePreferences.excludedBundleIdentifiers)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var sleepBankDaysBinding: Binding<Double> {
+        Binding(
+            get: { Double(preferences.sleepBankDays) },
+            set: { preferences.sleepBankDays = Int($0.rounded()) }
+        )
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Sleep Goal") {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Target Sleep Duration")
                             Spacer()
-                            Text(TimeFormatter.formatDuration(tempSleepGoal*60*60))
+                            Text(TimeFormatter.formatDuration(preferences.sleepGoalHours*60*60))
                                 .foregroundStyle(.secondary)
                         }
                         
-                        Slider(value: $tempSleepGoal, in: 6...12, step: 0.25) {
+                        Slider(value: $preferences.sleepGoalHours, in: 6...12, step: 0.25) {
                             EmptyView()
                         }
                             .accentColor(.blue)
@@ -56,7 +45,7 @@ struct SettingsView: View {
                 Section("Wake Time") {
                     DatePicker(
                         "Wake Time",
-                        selection: $tempWakeTime,
+                        selection: $preferences.wakeTime,
                         displayedComponents: .hourAndMinute
                     )
                 }
@@ -66,11 +55,11 @@ struct SettingsView: View {
                         HStack {
                             Text("Days to Consider")
                             Spacer()
-                            Text("\(String(format: "%.0f", tempSleepBankDays)) days")
+                            Text("\(preferences.sleepBankDays) days")
                                 .foregroundColor(.secondary)
                         }
                         
-                        Slider(value: $tempSleepBankDays, in: 3...14, step: 1) {
+                        Slider(value: sleepBankDaysBinding, in: 3...14, step: 1) {
                             EmptyView()
                         }
                         .accentColor(.blue)
@@ -86,11 +75,11 @@ struct SettingsView: View {
                         HStack {
                             Text("Max sleep hours per night")
                             Spacer()
-                            Text("\(String(format: "%.0f", tempMaxSleepHoursPerNight)) hours")
+                            Text("\(String(format: "%.0f", preferences.maxSleepHoursPerNight)) hours")
                                 .foregroundColor(.secondary)
                         }
                         
-                        Slider(value: $tempMaxSleepHoursPerNight, in: 8...16, step: 1) {
+                        Slider(value: $preferences.maxSleepHoursPerNight, in: 8...16, step: 1) {
                             Text("Max")
                         }
                         .accentColor(.blue)
@@ -98,11 +87,11 @@ struct SettingsView: View {
                         HStack {
                             Text("Min sleep hours per night")
                             Spacer()
-                            Text("\(String(format: "%.0f", tempMinSleepHoursPerNight)) hours")
+                            Text("\(String(format: "%.0f", preferences.minSleepHoursPerNight)) hours")
                                 .foregroundColor(.secondary)
                         }
                         
-                        Slider(value: $tempMinSleepHoursPerNight, in: 2...10, step: 1) {
+                        Slider(value: $preferences.minSleepHoursPerNight, in: 2...10, step: 1) {
                             Text("Min")
                         }
                         .accentColor(.blue)
@@ -111,19 +100,19 @@ struct SettingsView: View {
                 
                 Section("Data Sources") {
                     if let availableSources = healthKitManager.availableSources {
-                        let allExcluded = !availableSources.contains(where: { !tempExcludedSources.contains($0.bundleIdentifier) })
-                        let noLongerRelevant = tempExcludedSources.filter { !availableSources.map(\.bundleIdentifier).contains($0) }
+                        let excluded = sourcePreferences.excludedBundleIdentifiers
+                        let availableIDs = Set(availableSources.map(\.bundleIdentifier))
+                        let allExcluded = availableIDs.isSubset(of: excluded)
+                        let noLongerRelevant = excluded.filter { !availableIDs.contains($0) }
                         
                         ForEach(availableSources, id: \.bundleIdentifier) { source in
-                            let isSelected = !tempExcludedSources.contains(source.bundleIdentifier)
-                            
                             Toggle(isOn: Binding(
-                                get: { isSelected },
+                                get: { !excluded.contains(source.bundleIdentifier) },
                                 set: { newValue in
                                     if newValue {
-                                        tempExcludedSources.remove(source.bundleIdentifier)
+                                        sourcePreferences.includeSource(source.bundleIdentifier)
                                     } else {
-                                        tempExcludedSources.insert(source.bundleIdentifier)
+                                        sourcePreferences.excludeSource(source.bundleIdentifier)
                                     }
                                 }
                             )) {
@@ -141,7 +130,7 @@ struct SettingsView: View {
                         
                         ForEach(Array(noLongerRelevant).sorted(), id: \.self) { bundleIdentifier in
                             Button(action: {
-                                tempExcludedSources.remove(bundleIdentifier)
+                                sourcePreferences.includeSource(bundleIdentifier)
                             }) {
                                 Text("Source \(bundleIdentifier) is no longer available. Tap to delete.")
                                     .font(.caption)
@@ -166,31 +155,15 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+                if horizontalSizeClass == .compact {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            dismiss()
+                        }
                     }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveSettings()
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
                 }
             }
         }
-    }
-    
-    private func saveSettings() {
-        preferences.sleepGoalHours = tempSleepGoal
-        preferences.wakeTime = tempWakeTime
-        preferences.sleepBankDays = Int(tempSleepBankDays)
-        preferences.maxSleepHoursPerNight = tempMaxSleepHoursPerNight
-        preferences.minSleepHoursPerNight = tempMinSleepHoursPerNight
-        preferences.lastUpdated = Date()
-        sourcePreferences.excludedBundleIdentifiers = tempExcludedSources
     }
 }
 
