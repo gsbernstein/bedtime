@@ -25,8 +25,6 @@ enum DebugDataGenerator {
         nights: Int,
         targetSleepHours: Double
     ) async throws {
-        let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
-
         var samples: [HKCategorySample] = []
         let calendar = Calendar.current
         let now = Date()
@@ -58,8 +56,7 @@ enum DebugDataGenerator {
 
             samples.append(contentsOf: makeNightSamples(
                 bedtime: bedtime,
-                duration: durationSeconds,
-                sleepType: sleepType
+                duration: durationSeconds
             ))
         }
 
@@ -72,13 +69,12 @@ enum DebugDataGenerator {
     /// Real samples (from Apple Watch, third-party trackers, etc.) are left
     /// alone because they don't carry our metadata marker.
     static func clearFakeSleepData(in healthStore: HKHealthStore) async throws {
-        let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
         let predicate = HKQuery.predicateForObjects(
             withMetadataKey: fakeDataMetadataKey
         )
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            healthStore.deleteObjects(of: sleepType, predicate: predicate) { _, _, error in
+            healthStore.deleteObjects(of: HKCategoryType.sleepAnalysis, predicate: predicate) { _, _, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
@@ -95,8 +91,7 @@ enum DebugDataGenerator {
     /// roughly matches what HealthKit consumers expect to see.
     private static func makeNightSamples(
         bedtime: Date,
-        duration: TimeInterval,
-        sleepType: HKCategoryType
+        duration: TimeInterval
     ) -> [HKCategorySample] {
         var samples: [HKCategorySample] = []
         var cursor = bedtime
@@ -121,7 +116,7 @@ enum DebugDataGenerator {
             // Skip zero-length tail segments.
             if stageEnd > cursor {
                 samples.append(HKCategorySample(
-                    type: sleepType,
+                    type: HKCategoryType.sleepAnalysis,
                     value: stage.rawValue,
                     start: cursor,
                     end: stageEnd,

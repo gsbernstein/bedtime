@@ -60,18 +60,16 @@ class HealthKitManager: ObservableObject {
         
         try checkHealthKitAvailability()
         
-        let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
-        
         // In DEBUG builds we also request write access so the developer
         // utilities can populate fake sleep data.
         #if DEBUG
-        let writeTypes: Set<HKSampleType> = [sleepType]
+        let writeTypes: Set<HKSampleType> = [HKCategoryType.sleepAnalysis]
         #else
         let writeTypes: Set<HKSampleType> = []
         #endif
         
         do {
-            try await healthStore.requestAuthorization(toShare: writeTypes, read: [sleepType])
+            try await healthStore.requestAuthorization(toShare: writeTypes, read: [HKCategoryType.sleepAnalysis])
             hasRequestedAuthorization = true
         } catch {
             throw NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to request HealthKit authorization: \(error.localizedDescription)"])
@@ -88,7 +86,6 @@ class HealthKitManager: ObservableObject {
     }
     
     private func fetchSleepDataForDisplay() async throws {
-        let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
         let calendar = Calendar.current
         let endDate = Date()
         guard let startDate = calendar.date(byAdding: .day, value: -30, to: endDate) else {
@@ -98,7 +95,7 @@ class HealthKitManager: ObservableObject {
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
         
         let query = HKSampleQuery(
-            sampleType: sleepType,
+            sampleType: HKCategoryType.sleepAnalysis,
             predicate: predicate,
             limit: HKObjectQueryNoLimit,
             sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
@@ -123,8 +120,6 @@ class HealthKitManager: ObservableObject {
     }
     
     private func discoverAvailableSources() async throws {
-        let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
-        
         // Query all time to discover all sources that have ever provided sleep data
         // Use a very old start date to get all historical data
         let predicate = HKQuery.predicateForSamples(
@@ -134,7 +129,7 @@ class HealthKitManager: ObservableObject {
         )
         
         let query = HKSampleQuery(
-            sampleType: sleepType,
+            sampleType: HKCategoryType.sleepAnalysis,
             predicate: predicate,
             limit: HKObjectQueryNoLimit,
             sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
@@ -182,8 +177,8 @@ class HealthKitManager: ObservableObject {
     #if DEBUG
     /// Unlike read access, HealthKit does report write/share authorization
     /// status. Call this before any write or delete operation.
-    private func requireWriteAuthorization(for sleepType: HKCategoryType) throws {
-        switch healthStore.authorizationStatus(for: sleepType) {
+    private func requireWriteAuthorization() throws {
+        switch healthStore.authorizationStatus(for: HKCategoryType.sleepAnalysis) {
         case .sharingAuthorized:
             return
         case .sharingDenied:
@@ -211,8 +206,7 @@ class HealthKitManager: ObservableObject {
     /// in-memory cache so the UI updates immediately. Debug builds only.
     func generateFakeSleepData(nights: Int = 14, targetSleepHours: Double = 7.5) async throws {
         try await requestAuthorization()
-        let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
-        try requireWriteAuthorization(for: sleepType)
+        try requireWriteAuthorization()
         try await DebugDataGenerator.generateFakeSleepData(
             in: healthStore,
             nights: nights,
@@ -225,8 +219,7 @@ class HealthKitManager: ObservableObject {
     /// (real samples are untouched).
     func clearFakeSleepData() async throws {
         try await requestAuthorization()
-        let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
-        try requireWriteAuthorization(for: sleepType)
+        try requireWriteAuthorization()
         try await DebugDataGenerator.clearFakeSleepData(in: healthStore)
         try await fetchSleepData()
     }
