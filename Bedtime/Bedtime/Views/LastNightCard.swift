@@ -27,7 +27,7 @@ struct LastNightCard: View {
                 HStack {
                     Image(systemName: "calendar")
                         .font(.title2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppColors.lastNight)
                         .frame(width: Constants.iconWidth)
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Last Night")
@@ -64,7 +64,7 @@ struct LastNightCard: View {
                                 Text(String(format: "%.1f", durationInHours!))
                                     .font(.title2)
                                     .fontWeight(.bold)
-                                    .foregroundStyle(durationInHours! > goal ? .green : .red)
+                                    .foregroundStyle(durationInHours! > goal ? AppColors.positive : AppColors.negative)
                                 Text("hours")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
@@ -74,7 +74,7 @@ struct LastNightCard: View {
                     
                     // Progress bar
                     ProgressBar(value: durationInHours!, total: goal)
-                        .tint(durationInHours! > goal ? .green : .red)
+                        .tint(durationInHours! > goal ? AppColors.positive : AppColors.negative)
                     
                 } else {
                     Text("No sleep data available")

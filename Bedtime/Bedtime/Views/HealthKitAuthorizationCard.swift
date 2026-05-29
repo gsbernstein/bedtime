@@ -16,7 +16,7 @@ struct HealthKitAuthorizationCard: View {
                 HStack {
                     Image(systemName: "heart.text.square")
                         .font(.title2)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppColors.healthKit)
                         .frame(width: Constants.iconWidth)
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -39,7 +39,7 @@ struct HealthKitAuthorizationCard: View {
                 if let errorMessage = healthKitManager.errorMessage {
                     Text(errorMessage)
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppColors.healthKit)
                         .multilineTextAlignment(.leading)
                 }
                 

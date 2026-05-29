@@ -22,7 +22,7 @@ struct BedtimeRecommendationCard: View {
                 HStack {
                     Image(systemName: "bed.double.fill")
                         .font(.title2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppColors.bedtime)
                         .frame(width: Constants.iconWidth)
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -48,7 +48,7 @@ struct BedtimeRecommendationCard: View {
                             Text(timeFormatter.string(from: recommendation.recommendedBedtime))
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppColors.bedtime)
                         }
                         
                         Spacer()

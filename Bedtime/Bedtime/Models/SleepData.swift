@@ -74,11 +74,11 @@ extension HKCategoryValueSleepAnalysis {
     
     var color: Color {
         switch self {
-        case .asleepDeep:        return Color.blue
-        case .asleepREM:         return Color.purple
-        case .asleepCore:        return Color.indigo
-        case .awake:             return Color.orange
-        case .inBed:             return Color.gray
+        case .asleepDeep:        return AppColors.sleepDeep
+        case .asleepREM:         return AppColors.sleepREM
+        case .asleepCore:        return AppColors.sleepCore
+        case .awake:             return AppColors.sleepAwake
+        case .inBed:             return AppColors.sleepInBed
         case .asleepUnspecified: return Color.secondary
         @unknown default:        return Color.secondary
         }
