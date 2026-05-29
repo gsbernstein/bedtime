@@ -112,9 +112,6 @@ struct SleepBank {
         }
     }
     
-    var bankBalance: Double {
-        return currentBalance + goalHours
-    }
 }
 
 struct BedtimeRecommendation {
