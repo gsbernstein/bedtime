@@ -223,7 +223,7 @@ struct SettingsView: View {
     private func runDebugTask(_ work: @escaping () async throws -> String) {
         debugIsWorking = true
         debugMessage = nil
-        Task {
+        Task { @MainActor in
             do {
                 let message = try await work()
                 debugMessage = message

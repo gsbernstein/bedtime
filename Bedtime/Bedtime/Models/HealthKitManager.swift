@@ -185,6 +185,9 @@ class HealthKitManager: ObservableObject {
     /// Deletes every sample previously written by this app's debug utilities
     /// (real samples are untouched).
     func clearFakeSleepData() async throws {
+        if !isAuthorized {
+            try await requestAuthorization()
+        }
         try await DebugDataGenerator.clearFakeSleepData(in: healthStore)
         try await fetchSleepData()
     }
