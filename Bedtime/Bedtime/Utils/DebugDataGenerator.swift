@@ -73,15 +73,7 @@ enum DebugDataGenerator {
             withMetadataKey: fakeDataMetadataKey
         )
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            healthStore.deleteObjects(of: HKCategoryType.sleepAnalysis, predicate: predicate) { _, _, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume()
-                }
-            }
-        }
+        try await healthStore.deleteObjects(of: HKCategoryType.sleepAnalysis, predicate: predicate)
     }
 
     // MARK: - Night composition
