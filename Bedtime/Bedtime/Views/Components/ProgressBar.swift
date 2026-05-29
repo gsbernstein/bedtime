@@ -34,7 +34,7 @@ struct ProgressBar: View {
             .tint(Gradient(colors: [AppColors.recentSleep, AppColors.bedtime]))
 
         ProgressBar(value: 8, total: 10)
-            .tint(LinearGradient(colors: [AppColors.positive, .cyan], startPoint: .leading, endPoint: .trailing))
+            .tint(LinearGradient(colors: [AppColors.positive, AppColors.accent], startPoint: .leading, endPoint: .trailing))
     }
     .frame(height: 64)
     .padding()
