@@ -16,7 +16,14 @@ class HealthKitManager: ObservableObject {
     private var rawSleepSamples: [HKCategorySample] = []
     private var cancellables = Set<AnyCancellable>()
     
-    @Published var isAuthorized = false
+    /// True once we've presented the HealthKit authorization sheet.
+    ///
+    /// HealthKit intentionally does **not** report whether read access was
+    /// granted — `requestAuthorization` succeeding only means the sheet was
+    /// dismissed. We use this flag to avoid re-prompting, not as proof of
+    /// access. Write/share permission (DEBUG fake-data utilities) *can* be
+    /// checked via `authorizationStatus(for:)`.
+    @Published private(set) var hasRequestedAuthorization = false
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
     @Published var errorMessage: String?
     @Published var availableSources: [HKSource]?
@@ -45,7 +52,12 @@ class HealthKitManager: ObservableObject {
         }
     }
     
+    /// Presents the HealthKit authorization sheet if we haven't already.
+    /// No-op on subsequent calls — see `hasRequestedAuthorization` for why
+    /// we can't verify read access was actually granted.
     func requestAuthorization() async throws {
+        guard !hasRequestedAuthorization else { return }
+        
         try checkHealthKitAvailability()
         
         let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
@@ -60,18 +72,18 @@ class HealthKitManager: ObservableObject {
         
         do {
             try await healthStore.requestAuthorization(toShare: writeTypes, read: [sleepType])
-            isAuthorized = true
-            try await fetchSleepData()
+            hasRequestedAuthorization = true
         } catch {
             throw NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to request HealthKit authorization: \(error.localizedDescription)"])
         }
     }
     
-    func fetchSleepData() async throws  {
-        if !isAuthorized {
-            try await requestAuthorization()
-        }
-        
+    func fetchSleepData() async throws {
+        try await requestAuthorization()
+        try await loadSleepData()
+    }
+    
+    private func loadSleepData() async throws {
         _ = try await [fetchSleepDataForDisplay(), discoverAvailableSources()]
     }
     
@@ -168,12 +180,39 @@ class HealthKitManager: ObservableObject {
     }
     
     #if DEBUG
+    /// Unlike read access, HealthKit does report write/share authorization
+    /// status. Call this before any write or delete operation.
+    private func requireWriteAuthorization(for sleepType: HKCategoryType) throws {
+        switch healthStore.authorizationStatus(for: sleepType) {
+        case .sharingAuthorized:
+            return
+        case .sharingDenied:
+            throw NSError(
+                domain: "HealthKitManager",
+                code: 3,
+                userInfo: [NSLocalizedDescriptionKey: "HealthKit write access was denied. Enable sleep data sharing in Settings → Health → Data Access & Devices."]
+            )
+        case .notDetermined:
+            throw NSError(
+                domain: "HealthKitManager",
+                code: 4,
+                userInfo: [NSLocalizedDescriptionKey: "HealthKit write access has not been granted yet."]
+            )
+        @unknown default:
+            throw NSError(
+                domain: "HealthKitManager",
+                code: 5,
+                userInfo: [NSLocalizedDescriptionKey: "Unknown HealthKit authorization status."]
+            )
+        }
+    }
+    
     /// Writes a batch of fake sleep nights into HealthKit and refreshes the
     /// in-memory cache so the UI updates immediately. Debug builds only.
     func generateFakeSleepData(nights: Int = 14, targetSleepHours: Double = 7.5) async throws {
-        if !isAuthorized {
-            try await requestAuthorization()
-        }
+        try await requestAuthorization()
+        let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
+        try requireWriteAuthorization(for: sleepType)
         try await DebugDataGenerator.generateFakeSleepData(
             in: healthStore,
             nights: nights,
@@ -185,9 +224,9 @@ class HealthKitManager: ObservableObject {
     /// Deletes every sample previously written by this app's debug utilities
     /// (real samples are untouched).
     func clearFakeSleepData() async throws {
-        if !isAuthorized {
-            try await requestAuthorization()
-        }
+        try await requestAuthorization()
+        let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
+        try requireWriteAuthorization(for: sleepType)
         try await DebugDataGenerator.clearFakeSleepData(in: healthStore)
         try await fetchSleepData()
     }
