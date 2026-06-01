@@ -214,23 +214,45 @@ struct SettingsView: View {
                 #endif
                 
             }
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if horizontalSizeClass == .compact {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
+        .modifier(SettingsNavigationChrome(isSheet: horizontalSizeClass == .compact, dismiss: dismiss))
+    }
+}
+
+private struct SettingsNavigationChrome: ViewModifier {
+    let isSheet: Bool
+    let dismiss: DismissAction
+
+    func body(content: Content) -> some View {
+        if isSheet {
+            content
+                .navigationTitle("Settings")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            dismiss()
+                        }
                     }
                 }
-            }
+        } else {
+            content
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    Text("Settings")
+                        .font(.title2.bold())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.vertical, 12)
+                        .background(.background)
+                }
         }
     }
-    
-    #if DEBUG
+}
+
+#if DEBUG
+extension SettingsView {
     /// Runs a debug action while toggling the working state and surfacing
     /// either a success message or the error description in the UI.
-    private func runDebugTask(_ work: @escaping () async throws -> String) {
+    func runDebugTask(_ work: @escaping () async throws -> String) {
         debugIsWorking = true
         debugMessage = nil
         Task { @MainActor in
@@ -243,8 +265,8 @@ struct SettingsView: View {
             debugIsWorking = false
         }
     }
-    #endif
 }
+#endif
 
 #Preview {
     let sourcePreferences = SourcePreferences()
