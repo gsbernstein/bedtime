@@ -29,8 +29,19 @@ struct SettingsView: View {
     #endif
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Group {
+            if horizontalSizeClass == .compact {
+                NavigationStack {
+                    settingsForm
+                }
+            } else {
+                settingsForm
+            }
+        }
+    }
+
+    private var settingsForm: some View {
+        Form {
                 Section("Sleep Goal") {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -203,14 +214,13 @@ struct SettingsView: View {
                 #endif
                 
             }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if horizontalSizeClass == .compact {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") {
-                            dismiss()
-                        }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if horizontalSizeClass == .compact {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
                     }
                 }
             }
