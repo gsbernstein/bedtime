@@ -33,19 +33,29 @@ struct SleepDayGroup: View {
         return (abs(difference), difference >= 0, color)
     }
     
+    private var hasSessions: Bool {
+        !sessions.isEmpty
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Day header (always visible)
-            Button(action: onToggle) {
+            Button(action: hasSessions ? onToggle : {}) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(dateFormatter.string(from: date))
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        Text("\(timeFormatter.string(from: sessions.last?.startDate ?? Date())) - \(timeFormatter.string(from: sessions.first?.endDate ?? Date()))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if hasSessions {
+                            Text("\(timeFormatter.string(from: sessions.last?.startDate ?? Date())) - \(timeFormatter.string(from: sessions.first?.endDate ?? Date()))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("No sleep data")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
                     Spacer()
@@ -54,7 +64,7 @@ struct SleepDayGroup: View {
                         Text(TimeFormatter.formatDuration(sessions.reduce(0) { $0 + $1.duration }))
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundColor(.primary)
+                            .foregroundColor(hasSessions ? .primary : .secondary)
                         
                         HStack(spacing: 2) {
                             Text(balanceImpact.isPositive ? "+" : "-")
@@ -67,17 +77,20 @@ struct SleepDayGroup: View {
                         }
                     }
                     
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if hasSessions {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding(.vertical, 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(PlainButtonStyle())
+            .disabled(!hasSessions)
             
             // Session details (expandable)
-            if isExpanded {
+            if isExpanded && hasSessions {
                 VStack(spacing: 4) {
                     ForEach(Array(sessions.enumerated()), id: \.offset) { index, session in
                         SleepSessionRow(session: session)
