@@ -9,4 +9,5 @@ import Foundation
 
 class Constants {
     static let iconWidth: CGFloat = 30
+    static let sleepHistoryDays = 30
 }

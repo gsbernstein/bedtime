@@ -33,6 +33,10 @@ struct SleepDayGroup: View {
         return (abs(difference), difference >= 0, color)
     }
     
+    private var hasSessions: Bool {
+        !sessions.isEmpty
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Day header (always visible)
@@ -43,41 +47,52 @@ struct SleepDayGroup: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        Text("\(timeFormatter.string(from: sessions.last?.startDate ?? Date())) - \(timeFormatter.string(from: sessions.first?.endDate ?? Date()))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if hasSessions {
+                            Text("\(timeFormatter.string(from: sessions.last!.startDate)) - \(timeFormatter.string(from: sessions.first!.endDate))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("No sleep data")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
                     Spacer()
                     
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(TimeFormatter.formatDuration(sessions.reduce(0) { $0 + $1.duration }))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                        
-                        HStack(spacing: 2) {
-                            Text(balanceImpact.isPositive ? "+" : "-")
-                                .font(.caption)
-                                .foregroundColor(balanceImpact.color)
+                        if hasSessions {
+                            Text(TimeFormatter.formatDuration(sessions.reduce(0) { $0 + $1.duration }))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
                             
-                            Text(String(format: "%.1fh", balanceImpact.value))
-                                .font(.caption)
-                                .foregroundColor(balanceImpact.color)
+                            HStack(spacing: 2) {
+                                Text(balanceImpact.isPositive ? "+" : "-")
+                                    .font(.caption)
+                                    .foregroundColor(balanceImpact.color)
+                                
+                                Text(String(format: "%.1fh", balanceImpact.value))
+                                    .font(.caption)
+                                    .foregroundColor(balanceImpact.color)
+                            }
                         }
                     }
                     
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if hasSessions {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding(.vertical, 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(PlainButtonStyle())
+            .disabled(!hasSessions)
             
             // Session details (expandable)
-            if isExpanded {
+            if isExpanded && hasSessions {
                 VStack(spacing: 4) {
                     ForEach(Array(sessions.enumerated()), id: \.offset) { index, session in
                         SleepSessionRow(session: session)

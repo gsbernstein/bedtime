@@ -9,10 +9,17 @@ import SwiftUI
 
 struct RecentSleepSessionsCard: View {
     
-    init(sessions: [Date: [SleepSession]], sleepGoal: Double) {
+    init(sessions: [Date: [SleepSession]], sleepGoal: Double, dayCount: Int = Constants.sleepHistoryDays) {
         self.sessions = sessions
-        self.sortedSessions = sessions.sorted { $0.key > $1.key }
         self.sleepGoal = sleepGoal
+        
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        self.sortedSessions = (0..<dayCount).compactMap { offset -> (Date, [SleepSession])? in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            let dayStart = calendar.startOfDay(for: day)
+            return (dayStart, sessions[dayStart] ?? [])
+        }
     }
     
     let sessions: [Date: [SleepSession]]
