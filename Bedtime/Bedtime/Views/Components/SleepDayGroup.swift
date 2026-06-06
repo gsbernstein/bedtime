@@ -61,19 +61,21 @@ struct SleepDayGroup: View {
                     Spacer()
                     
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(TimeFormatter.formatDuration(sessions.reduce(0) { $0 + $1.duration }))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(hasSessions ? .primary : .secondary)
-                        
-                        HStack(spacing: 2) {
-                            Text(balanceImpact.isPositive ? "+" : "-")
-                                .font(.caption)
-                                .foregroundColor(balanceImpact.color)
+                        if hasSessions {
+                            Text(TimeFormatter.formatDuration(sessions.reduce(0) { $0 + $1.duration }))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
                             
-                            Text(String(format: "%.1fh", balanceImpact.value))
-                                .font(.caption)
-                                .foregroundColor(balanceImpact.color)
+                            HStack(spacing: 2) {
+                                Text(balanceImpact.isPositive ? "+" : "-")
+                                    .font(.caption)
+                                    .foregroundColor(balanceImpact.color)
+                                
+                                Text(String(format: "%.1fh", balanceImpact.value))
+                                    .font(.caption)
+                                    .foregroundColor(balanceImpact.color)
+                            }
                         }
                     }
                     
