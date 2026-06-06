@@ -40,7 +40,7 @@ struct SleepDayGroup: View {
     var body: some View {
         VStack(spacing: 0) {
             // Day header (always visible)
-            Button(action: hasSessions ? onToggle : {}) {
+            Button(action: onToggle) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(dateFormatter.string(from: date))
