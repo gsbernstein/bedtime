@@ -84,7 +84,8 @@ class HealthKitManager: ObservableObject {
         let calendar = Calendar.current
         let endDate = Date()
         let today = calendar.startOfDay(for: endDate)
-        guard let startDate = calendar.date(byAdding: .day, value: -(Constants.sleepHistoryDays - 1), to: today) else {
+        // Fetch one "extra" day (intentional off-by-one) to include overnight sleep on the first day.
+        guard let startDate = calendar.date(byAdding: .day, value: -Constants.sleepHistoryDays, to: today) else {
             throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate start date"])
         }
         
