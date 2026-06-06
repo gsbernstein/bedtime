@@ -10,7 +10,6 @@ import SwiftUI
 struct RecentSleepSessionsCard: View {
     
     init(sessions: [Date: [SleepSession]], sleepGoal: Double, dayCount: Int = Constants.sleepHistoryDays) {
-        self.sessions = sessions
         self.sleepGoal = sleepGoal
         
         let calendar = Calendar.current
@@ -22,7 +21,6 @@ struct RecentSleepSessionsCard: View {
         }
     }
     
-    let sessions: [Date: [SleepSession]]
     let sortedSessions: [(Date, [SleepSession])]
     let sleepGoal: Double
     
