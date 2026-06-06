@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bedger · Midpoint + 6h Sleep Grouping</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-2: #1c2330;
+    --border: #2a313c;
+    --text: #e6edf3;
+    --muted: #8b97a7;
+    --accent: #6ea8fe;
+    --accent-2: #a78bfa;
+    --warn: #f7a23b;
+    --sleep: #5b8def;
+    --sleep-soft: rgba(91, 141, 239, 0.22);
+    --grid: #2a313c;
+    --day-a: rgba(110, 168, 254, 0.05);
+    --day-b: rgba(167, 139, 250, 0.05);
+    --good: #57d38c;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  header h1 {
+    font-size: 1.7rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+  }
+  header p.lead {
+    color: var(--muted);
+    margin: 0 0 4px;
+    line-height: 1.55;
+    max-width: 70ch;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 22px;
+  }
+  .card h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 16px;
+    font-weight: 600;
+  }
+
+  /* Timeline */
+  .timeline-shell { position: relative; user-select: none; }
+  svg { display: block; width: 100%; height: auto; touch-action: none; }
+  .hint {
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  /* Controls */
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 640px) { .controls { grid-template-columns: 1fr; } }
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .control label b { color: var(--text); font-variant-numeric: tabular-nums; }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--sleep);
+  }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .presets button {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .presets button:hover { border-color: var(--accent); background: #20283a; }
+
+  /* Computation panel */
+  .calc { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .calc { grid-template-columns: 1fr; } }
+  .step {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .step .k { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .step .v { font-size: 1.15rem; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .step.result { border-color: var(--good); background: rgba(87, 211, 140, 0.08); }
+  .step.result .v { color: var(--good); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    margin-left: 8px;
+    background: rgba(247,162,59,.16);
+    color: var(--warn);
+  }
+  code {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 6px;
+    font-size: 0.86em;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; font-size: 0.82rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+  footer { margin-top: 36px; color: var(--muted); font-size: 0.82rem; line-height: 1.6; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>The "Midpoint + 6 hours" sleep-grouping rule</h1>
+    <p class="lead">
+      Bedger has to decide which calendar day a sleep session "belongs" to. A nap, an
+      overnight sleep that crosses midnight, and an early-evening doze all need a single
+      home day. The app does this by taking the <b>midpoint</b> of the session, shifting it
+      forward by <b>6 hours</b>, and then taking the start of <i>that</i> day.
+    </p>
+    <p class="lead">
+      The net effect: the "new day" for sleep starts at <b>6:00&nbsp;PM</b>. Drag the sleep
+      block below (or use the sliders) to see which day a session lands on and why.
+    </p>
+  </header>
+
+  <div class="card">
+    <h2>Timeline</h2>
+    <div class="timeline-shell">
+      <svg id="viz" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet" aria-label="Sleep grouping timeline"></svg>
+    </div>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--sleep)"></i> Sleep session (drag body to move, edges to resize)</span>
+      <span><i class="swatch" style="background:var(--accent-2)"></i> Midpoint</span>
+      <span><i class="swatch" style="background:var(--warn)"></i> Midpoint + 6h</span>
+      <span><i class="swatch" style="background:var(--good)"></i> Assigned day</span>
+    </div>
+    <p class="hint">Tip: drag the blue block to move it, or grab either edge to change start / end time.</p>
+  </div>
+
+  <div class="card">
+    <h2>Controls</h2>
+    <div class="controls">
+      <div class="control">
+        <label>Sleep start <b id="startLabel"></b></label>
+        <input type="range" id="startRange" min="0" max="4319" step="5" />
+      </div>
+      <div class="control">
+        <label>Duration <b id="durLabel"></b></label>
+        <input type="range" id="durRange" min="15" max="840" step="5" />
+      </div>
+    </div>
+    <div class="presets">
+      <button data-start="1380" data-dur="450">Overnight (11:00 PM → 6:30 AM)</button>
+      <button data-start="840" data-dur="90">Afternoon nap (2:00 PM)</button>
+      <button data-start="1290" data-dur="120">Early evening (9:30 PM → 11:30 PM)</button>
+      <button data-start="60" data-dur="390">Late riser (1:00 AM → 7:30 AM)</button>
+      <button data-start="1020" data-dur="45">Quick doze (5:00 PM)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>How the day is computed</h2>
+    <div class="calc">
+      <div class="step">
+        <div class="k">Midpoint = start + duration / 2</div>
+        <div class="v" id="midVal"></div>
+      </div>
+      <div class="step">
+        <div class="k">Shifted = midpoint + 6 hours</div>
+        <div class="v" id="shiftVal"></div>
+      </div>
+      <div class="step result" style="grid-column: 1 / -1;">
+        <div class="k">Assigned day = startOfDay(shifted)</div>
+        <div class="v" id="dayVal"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      This mirrors <code>SleepSession.dateForGrouping</code> in
+      <code>Bedtime/Bedtime/Models/SleepData.swift</code>:
+    </p>
+    <pre style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;"><code>var dateForGrouping: Date {
+    let midpoint = startDate.addingTimeInterval(duration / 2)
+    let shiftedMidpoint = midpoint.addingTimeInterval(TimeInterval(6 * 60 * 60))
+    return Calendar.current.startOfDay(for: shiftedMidpoint)
+}</code></pre>
+    <p>Built as an interactive companion for the Bedger sleep app.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Model ---------------------------------------------------------------
+  // The visible window spans 3 days. t is measured in minutes from the window
+  // origin (00:00 of Day 1). Total window = 3 days = 4320 minutes.
+  const DAY = 1440;
+  const TOTAL = 3 * DAY;                 // 4320 minutes
+  const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu"]; // boundaries shown along the axis
+  const SHIFT = 6 * 60;                  // 6 hours, in minutes
+
+  // State: start (minutes from origin) and duration (minutes).
+  let start = 1380;   // 11:00 PM on Day 1
+  let dur = 450;      // 7h30m
+
+  // ---- SVG geometry --------------------------------------------------------
+  const svg = document.getElementById("viz");
+  const NS = "http://www.w3.org/2000/svg";
+  const W = 1000, H = 320;
+  const PAD_L = 20, PAD_R = 20;
+  const PLOT_W = W - PAD_L - PAD_R;
+  const AXIS_Y = 250;        // baseline for the time axis
+  const TRACK_TOP = 96;      // top of the sleep block
+  const TRACK_H = 70;        // height of the sleep block
+
+  const xOf = (mins) => PAD_L + (mins / TOTAL) * PLOT_W;
+  const minsOf = (x) => clamp(((x - PAD_L) / PLOT_W) * TOTAL, 0, TOTAL);
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function el(tag, attrs) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  // ---- Time formatting -----------------------------------------------------
+  function fmtClock(totalMins) {
+    let m = ((totalMins % DAY) + DAY) % DAY;
+    let h = Math.floor(m / 60);
+    let mm = Math.round(m % 60);
+    if (mm === 60) { mm = 0; h = (h + 1) % 24; }
+    const ampm = h < 12 ? "AM" : "PM";
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return h12 + ":" + String(mm).padStart(2, "0") + " " + ampm;
+  }
+  function dayIndex(totalMins) { return Math.floor(totalMins / DAY); }
+  function fmtDayTime(totalMins) {
+    const di = clamp(dayIndex(totalMins), 0, DAY_NAMES.length - 1);
+    return DAY_NAMES[di] + " " + fmtClock(totalMins);
+  }
+  function fmtDur(mins) {
+    const h = Math.floor(mins / 60), m = mins % 60;
+    if (h === 0) return m + "m";
+    if (m === 0) return h + "h";
+    return h + "h " + m + "m";
+  }
+
+  // ---- Render --------------------------------------------------------------
+  function render() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+    const end = start + dur;
+    const mid = start + dur / 2;
+    const shifted = mid + SHIFT;
+    const assignedDay = Math.floor(shifted / DAY) * DAY;
+
+    // Day background bands + the "new day starts at 6 PM" threshold bands.
+    for (let d = 0; d < 3; d++) {
+      svg.appendChild(el("rect", {
+        x: xOf(d * DAY), y: 40, width: (DAY / TOTAL) * PLOT_W, height: AXIS_Y - 40,
+        fill: d % 2 === 0 ? "rgba(110,168,254,0.05)" : "rgba(167,139,250,0.05)"
+      }));
+    }
+
+    // Highlight the assigned day band.
+    svg.appendChild(el("rect", {
+      x: xOf(assignedDay), y: 40,
+      width: (DAY / TOTAL) * PLOT_W, height: AXIS_Y - 40,
+      fill: "rgba(87,211,140,0.10)", stroke: "rgba(87,211,140,0.5)",
+      "stroke-width": 1, "stroke-dasharray": "4 4", rx: 4
+    }));
+
+    // 6 PM thresholds (the effective day boundary for sleep grouping).
+    for (let d = 0; d < 3; d++) {
+      const t = d * DAY + (DAY - SHIFT); // 18:00 each day
+      svg.appendChild(el("line", {
+        x1: xOf(t), y1: 44, x2: xOf(t), y2: AXIS_Y,
+        stroke: "rgba(247,162,59,0.35)", "stroke-width": 1.5, "stroke-dasharray": "2 5"
+      }));
+      const lbl = el("text", { x: xOf(t) + 4, y: 58, fill: "rgba(247,162,59,0.7)", "font-size": 10 });
+      lbl.textContent = "6 PM cutoff";
+      svg.appendChild(lbl);
+    }
+
+    // Midnight grid lines + day labels.
+    for (let d = 0; d <= 3; d++) {
+      const x = xOf(d * DAY);
+      svg.appendChild(el("line", { x1: x, y1: 40, x2: x, y2: AXIS_Y + 6, stroke: "var(--grid)", "stroke-width": 1 }));
+      if (d < 3) {
+        const t = el("text", { x: xOf(d * DAY + DAY / 2), y: 30, fill: "var(--muted)", "font-size": 13, "text-anchor": "middle" });
+        t.textContent = DAY_NAMES[d] + " (00:00 → 24:00)";
+        svg.appendChild(t);
+      }
+      const midnightLbl = el("text", { x: x, y: AXIS_Y + 20, fill: "var(--muted)", "font-size": 10, "text-anchor": "middle" });
+      midnightLbl.textContent = "12 AM";
+      svg.appendChild(midnightLbl);
+    }
+
+    // Axis baseline.
+    svg.appendChild(el("line", { x1: PAD_L, y1: AXIS_Y, x2: W - PAD_R, y2: AXIS_Y, stroke: "var(--border)", "stroke-width": 1.5 }));
+
+    // Sleep block.
+    const bx = xOf(start), bw = Math.max(2, xOf(end) - xOf(start));
+    svg.appendChild(el("rect", {
+      id: "sleepBlock", x: bx, y: TRACK_TOP, width: bw, height: TRACK_H, rx: 8,
+      fill: "var(--sleep)", "fill-opacity": 0.85, cursor: "grab"
+    }));
+    // Resize handles.
+    [["hStart", bx], ["hEnd", bx + bw]].forEach(([id, hx]) => {
+      svg.appendChild(el("rect", {
+        id, x: hx - 5, y: TRACK_TOP, width: 10, height: TRACK_H, rx: 3,
+        fill: "#cfe0ff", "fill-opacity": 0.9, cursor: "ew-resize"
+      }));
+    });
+    // Block label.
+    if (bw > 120) {
+      const t = el("text", { x: bx + bw / 2, y: TRACK_TOP + TRACK_H / 2 + 4, fill: "#0e1116", "font-size": 12, "font-weight": 700, "text-anchor": "middle" });
+      t.textContent = fmtDur(dur) + " asleep";
+      svg.appendChild(t);
+    }
+
+    // Marker helper.
+    function marker(t, color, label, yText) {
+      svg.appendChild(el("line", { x1: xOf(t), y1: 44, x2: xOf(t), y2: AXIS_Y, stroke: color, "stroke-width": 2 }));
+      svg.appendChild(el("circle", { cx: xOf(t), cy: TRACK_TOP + TRACK_H / 2, r: 5, fill: color }));
+      const lab = el("text", { x: xOf(t), y: yText, fill: color, "font-size": 11, "font-weight": 600, "text-anchor": "middle" });
+      lab.textContent = label;
+      svg.appendChild(lab);
+    }
+    marker(mid, "var(--accent-2)", "midpoint", 200);
+    marker(shifted, "var(--warn)", "+6h", 222);
+
+    // Arrow from midpoint to shifted.
+    if (xOf(shifted) - xOf(mid) > 14) {
+      svg.appendChild(el("line", { x1: xOf(mid), y1: 185, x2: xOf(shifted) - 6, y2: 185, stroke: "var(--warn)", "stroke-width": 1.5 }));
+      svg.appendChild(el("path", { d: `M ${xOf(shifted)} 185 l -8 -4 l 0 8 z`, fill: "var(--warn)" }));
+    }
+
+    updatePanel(mid, shifted, assignedDay);
+  }
+
+  function updatePanel(mid, shifted, assignedDay) {
+    document.getElementById("startLabel").textContent = fmtDayTime(start);
+    document.getElementById("durLabel").textContent = fmtDur(dur);
+    document.getElementById("startRange").value = start;
+    document.getElementById("durRange").value = dur;
+
+    document.getElementById("midVal").textContent = fmtDayTime(mid);
+    document.getElementById("shiftVal").textContent = fmtDayTime(shifted);
+
+    const di = clamp(dayIndex(assignedDay), 0, DAY_NAMES.length - 1);
+    const rolled = dayIndex(mid) !== di;
+    document.getElementById("dayVal").innerHTML =
+      DAY_NAMES[di] +
+      (rolled ? '<span class="badge">rolled to next day (midpoint after 6 PM)</span>' : '');
+  }
+
+  // ---- Interaction ---------------------------------------------------------
+  let drag = null; // { mode, grabOffset }
+
+  function eventX(evt) {
+    const pt = svg.createSVGPoint();
+    pt.x = (evt.touches ? evt.touches[0].clientX : evt.clientX);
+    pt.y = (evt.touches ? evt.touches[0].clientY : evt.clientY);
+    const ctm = svg.getScreenCTM();
+    return pt.matrixTransform(ctm.inverse()).x;
+  }
+
+  svg.addEventListener("pointerdown", (e) => {
+    const id = e.target.id;
+    if (id === "hStart") drag = { mode: "start" };
+    else if (id === "hEnd") drag = { mode: "end" };
+    else if (id === "sleepBlock") drag = { mode: "move", grab: minsOf(eventX(e)) - start };
+    else return;
+    svg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  svg.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const t = minsOf(eventX(e));
+    if (drag.mode === "start") {
+      const newStart = clamp(t, 0, start + dur - 15);
+      dur = (start + dur) - newStart;
+      start = newStart;
+    } else if (drag.mode === "end") {
+      const newEnd = clamp(t, start + 15, TOTAL);
+      dur = newEnd - start;
+    } else if (drag.mode === "move") {
+      start = clamp(t - drag.grab, 0, TOTAL - dur);
+    }
+    start = Math.round(start / 5) * 5;
+    dur = Math.round(dur / 5) * 5;
+    render();
+  });
+
+  function endDrag(e) { if (drag) { drag = null; try { svg.releasePointerCapture(e.pointerId); } catch (_) {} } }
+  svg.addEventListener("pointerup", endDrag);
+  svg.addEventListener("pointercancel", endDrag);
+
+  // Sliders.
+  document.getElementById("startRange").addEventListener("input", (e) => {
+    start = clamp(parseInt(e.target.value, 10), 0, TOTAL - dur);
+    render();
+  });
+  document.getElementById("durRange").addEventListener("input", (e) => {
+    dur = parseInt(e.target.value, 10);
+    if (start + dur > TOTAL) start = TOTAL - dur;
+    render();
+  });
+
+  // Presets.
+  document.querySelectorAll(".presets button").forEach((b) => {
+    b.addEventListener("click", () => {
+      start = clamp(parseInt(b.dataset.start, 10) + DAY, 0, TOTAL); // place on Day 2 for context
+      dur = parseInt(b.dataset.dur, 10);
+      if (start + dur > TOTAL) start = TOTAL - dur;
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

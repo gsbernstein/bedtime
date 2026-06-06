@@ -44,6 +44,13 @@ A native iOS app that helps optimize your sleep by tracking your "sleep bank" an
 3. Grant HealthKit permissions when prompted
 4. Configure your sleep goal and wake time in settings
 
+## Interactive: Midpoint + 6h grouping
+
+Sleep sessions are assigned to a calendar day using a "midpoint + 6 hours" rule (see
+`SleepSession.dateForGrouping`). An interactive visualization of this rule lives in
+[`docs/index.html`](docs/index.html) and is published via GitHub Pages (enable Pages →
+"GitHub Actions" in repo settings to host it).
+
 ## Privacy
 
 - All data stays on your device
