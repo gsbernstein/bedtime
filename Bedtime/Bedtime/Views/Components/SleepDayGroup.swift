@@ -48,7 +48,7 @@ struct SleepDayGroup: View {
                             .fontWeight(.medium)
                         
                         if hasSessions {
-                            Text("\(timeFormatter.string(from: sessions.last?.startDate ?? Date())) - \(timeFormatter.string(from: sessions.first?.endDate ?? Date()))")
+                            Text("\(timeFormatter.string(from: sessions.last!.startDate)) - \(timeFormatter.string(from: sessions.first!.endDate))")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         } else {
