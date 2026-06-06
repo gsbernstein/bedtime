@@ -84,7 +84,9 @@ class HealthKitManager: ObservableObject {
         let calendar = Calendar.current
         let endDate = Date()
         let today = calendar.startOfDay(for: endDate)
-        // Fetch one "extra" day (intentional off-by-one) to include overnight sleep on the first day.
+        // Fetch one extra day before the UI range: grouping (midpoint + 6h) can assign
+        // sessions that start the previous evening to the oldest displayed day, including
+        // short blocks (e.g. 9–11pm) as well as overnight sleep.
         guard let startDate = calendar.date(byAdding: .day, value: -Constants.sleepHistoryDays, to: today) else {
             throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate start date"])
         }
