@@ -28,13 +28,13 @@ struct ProgressBar: View {
 #Preview(traits: .sizeThatFitsLayout) {
     VStack {
         ProgressBar(value: 0.2)
-            .tint(Gradient(colors: [.orange, .red]))
+            .tint(Gradient(colors: [AppColors.warning, AppColors.negative]))
 
         ProgressBar(value: 6, total: 8)
-            .tint(Gradient(colors: [.purple, .blue]))
+            .tint(Gradient(colors: [AppColors.recentSleep, AppColors.bedtime]))
 
         ProgressBar(value: 8, total: 10)
-            .tint(LinearGradient(colors: [.green, .cyan], startPoint: .leading, endPoint: .trailing))
+            .tint(LinearGradient(colors: [AppColors.positive, AppColors.accent], startPoint: .leading, endPoint: .trailing))
     }
     .frame(height: 64)
     .padding()
