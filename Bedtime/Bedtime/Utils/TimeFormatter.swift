@@ -9,8 +9,9 @@ import Foundation
 
 struct TimeFormatter {
     static func formatDuration(_ duration: TimeInterval) -> String {
-        let hours = Int(duration) / 3600
-        let minutes = Int((duration.truncatingRemainder(dividingBy: 3600) / 60).rounded())
+        let totalMinutes = Int((duration / 60).rounded())
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
         return "\(hours):\(String(format: "%02d", minutes))"
     }
 }
