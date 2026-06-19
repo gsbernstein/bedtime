@@ -43,7 +43,7 @@ struct SettingsView: View {
                         Slider(value: $preferences.sleepGoalHours, in: 6...12, step: 0.25) {
                             EmptyView()
                         }
-                            .accentColor(.blue)
+                            .accentColor(AppColors.accent)
                     }
                 }
                 
@@ -67,7 +67,7 @@ struct SettingsView: View {
                         Slider(value: sleepBankDaysBinding, in: 3...14, step: 1) {
                             EmptyView()
                         }
-                        .accentColor(.blue)
+                        .accentColor(AppColors.accent)
                         
                         Text("How many recent days to include in your sleep bank calculation")
                             .font(.caption)
@@ -87,7 +87,7 @@ struct SettingsView: View {
                         Slider(value: $preferences.maxSleepHoursPerNight, in: 8...16, step: 1) {
                             Text("Max")
                         }
-                        .accentColor(.blue)
+                        .accentColor(AppColors.accent)
                         
                         HStack {
                             Text("Min sleep hours per night")
@@ -99,7 +99,7 @@ struct SettingsView: View {
                         Slider(value: $preferences.minSleepHoursPerNight, in: 2...10, step: 1) {
                             Text("Min")
                         }
-                        .accentColor(.blue)
+                        .accentColor(AppColors.accent)
                     }
                 }
                 
@@ -139,14 +139,14 @@ struct SettingsView: View {
                             }) {
                                 Text("Source \(bundleIdentifier) is no longer available. Tap to delete.")
                                     .font(.caption)
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(AppColors.warning)
                             }
                         }
                         
                         if allExcluded {
                             Text("No sources selected. Sleep data will not be displayed.")
                                 .font(.caption)
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppColors.warning)
                         }
                         
                     } else {

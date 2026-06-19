@@ -33,7 +33,7 @@ struct RecentSleepSessionsCard: View {
                 HStack {
                     Image(systemName: "chart.line.uptrend.xyaxis")
                         .font(.title2)
-                        .foregroundColor(.purple)
+                        .foregroundColor(AppColors.recentSleep)
                         .frame(width: Constants.iconWidth)
                     
                     VStack(alignment: .leading, spacing: 4) {
