@@ -41,7 +41,15 @@ export GITHUB_PULL_REQUEST="123"
 
 ## Usage
 
-Poll until complete, then fetch and extract:
+Trigger a build, block until it finishes, then fetch screenshots (fully synchronous):
+
+```bash
+python3 scripts/fetch_xcode_cloud_screenshots.py trigger-and-fetch \
+  --workflow-id WORKFLOW_ID \
+  --branch main
+```
+
+Poll an already-triggered build until complete, then fetch:
 
 ```bash
 python3 scripts/fetch_xcode_cloud_screenshots.py wait-and-fetch --run-id BUILD_RUN_ID

@@ -42,12 +42,20 @@ class XcodeCloudClient:
     def __exit__(self, *args: object) -> None:
         self.close()
 
-    def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        allowed_statuses: set[int] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         url = path if path.startswith("http") else urljoin(self.BASE_URL, path.lstrip("/"))
         headers = kwargs.pop("headers", {})
         headers["Authorization"] = f"Bearer {self._token_provider()}"
         response = self._client.request(method, url, headers=headers, **kwargs)
-        if response.status_code >= 400:
+        allowed = allowed_statuses or {200}
+        if response.status_code not in allowed:
             raise XcodeCloudError(
                 f"{method} {url} failed with {response.status_code}: {response.text}"
             )
@@ -57,6 +65,38 @@ class XcodeCloudClient:
 
     def get_build_run(self, run_id: str) -> dict[str, Any]:
         return self._request("GET", f"ciBuildRuns/{run_id}")
+
+    def create_build_run(self, workflow_id: str, git_reference_id: str) -> dict[str, Any]:
+        body = {
+            "data": {
+                "type": "ciBuildRuns",
+                "relationships": {
+                    "workflow": {
+                        "data": {"type": "ciWorkflows", "id": workflow_id},
+                    },
+                    "sourceBranchOrTag": {
+                        "data": {"type": "scmGitReferences", "id": git_reference_id},
+                    },
+                },
+            }
+        }
+        return self._request(
+            "POST",
+            "ciBuildRuns",
+            json=body,
+            allowed_statuses={201},
+        )
+
+    def get_workflow(self, workflow_id: str, *, include_repository: bool = False) -> dict[str, Any]:
+        query = "include=repository" if include_repository else None
+        path = f"ciWorkflows/{workflow_id}"
+        if query:
+            path = f"{path}?{query}"
+        return self._request("GET", path)
+
+    def list_git_references(self, repository_id: str) -> list[dict[str, Any]]:
+        payload = self._request("GET", f"scmRepositories/{repository_id}/gitReferences")
+        return payload.get("data", [])
 
     def list_build_actions(self, run_id: str) -> list[dict[str, Any]]:
         payload = self._request("GET", f"ciBuildRuns/{run_id}/actions")

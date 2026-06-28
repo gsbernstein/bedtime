@@ -18,7 +18,9 @@ from scripts.xcode_cloud.github_pr import build_screenshot_comment, post_pr_comm
 from scripts.xcode_cloud.screenshots import (
     extract_screenshots_from_local_bundle,
     fetch_screenshots_from_build_run,
+    fetch_test_result_bundle,
 )
+from scripts.xcode_cloud.trigger import trigger_and_wait
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -61,6 +63,28 @@ def build_parser() -> argparse.ArgumentParser:
     wait_parser.add_argument("--timeout-seconds", type=int, default=3600)
     wait_parser.add_argument("--poll-interval-seconds", type=int, default=30)
     wait_parser.add_argument("--only-failures", action="store_true")
+
+    trigger_parser = subparsers.add_parser(
+        "trigger-and-fetch",
+        help="Start an Xcode Cloud build, wait until it finishes, then fetch screenshots.",
+    )
+    trigger_parser.add_argument("--workflow-id", required=True, help="ciWorkflows ID")
+    branch_group = trigger_parser.add_mutually_exclusive_group(required=True)
+    branch_group.add_argument("--branch", help="Branch name to build")
+    branch_group.add_argument("--git-reference-id", help="scmGitReferences ID")
+    trigger_parser.add_argument(
+        "--output-dir",
+        default="./xcode-cloud-output",
+        help="Directory for downloaded bundles and screenshots",
+    )
+    trigger_parser.add_argument("--timeout-seconds", type=int, default=3600)
+    trigger_parser.add_argument("--poll-interval-seconds", type=int, default=30)
+    trigger_parser.add_argument("--only-failures", action="store_true")
+    trigger_parser.add_argument(
+        "--skip-extract",
+        action="store_true",
+        help="Download the bundle but do not run xcresulttool extraction",
+    )
 
     local_parser = subparsers.add_parser(
         "extract-local",
@@ -118,34 +142,55 @@ def main(argv: list[str] | None = None) -> int:
 
     credentials = credentials_from_env()
     output_dir = Path(args.output_dir)
+    build_succeeded = True
 
     with XcodeCloudClient(lambda: create_asc_token(credentials)) as client:
-        if args.command == "wait-and-fetch":
+        run_id = getattr(args, "run_id", None)
+
+        if args.command == "trigger-and-fetch":
+            trigger_result = trigger_and_wait(
+                client,
+                args.workflow_id,
+                git_reference_id=getattr(args, "git_reference_id", None),
+                branch=getattr(args, "branch", None),
+                timeout_seconds=args.timeout_seconds,
+                poll_interval_seconds=args.poll_interval_seconds,
+            )
+            run_id = trigger_result.build_run_id
+            build_succeeded = trigger_result.status.completion_status == "SUCCEEDED"
+            print(
+                f"Triggered build run {run_id}; completed with status "
+                f"{trigger_result.status.completion_status or 'UNKNOWN'}"
+            )
+
+        elif args.command == "wait-and-fetch":
             status = client.wait_for_build_run(
                 args.run_id,
                 timeout_seconds=args.timeout_seconds,
                 poll_interval_seconds=args.poll_interval_seconds,
             )
+            run_id = status.run_id
+            build_succeeded = status.completion_status == "SUCCEEDED"
             print(
                 f"Build run {status.run_id} completed with status "
                 f"{status.completion_status or 'UNKNOWN'}"
             )
 
-        if args.command == "fetch" and args.skip_extract:
-            from scripts.xcode_cloud.screenshots import fetch_test_result_bundle
+        assert run_id is not None
 
+        if getattr(args, "skip_extract", False):
             _, artifact_id, bundle_path = fetch_test_result_bundle(
                 client,
-                args.run_id,
+                run_id,
                 output_dir,
             )
             print(f"Downloaded artifact {artifact_id} to {bundle_path}")
-            return 0
+            return 0 if build_succeeded else 1
 
         try:
             result = fetch_screenshots_from_build_run(
                 client,
-                args.run_id,
+                run_id,
                 output_dir,
                 only_failures=getattr(args, "only_failures", False),
             )
@@ -153,11 +198,11 @@ def main(argv: list[str] | None = None) -> int:
             print(str(error), file=sys.stderr)
             return 2
 
-    print(f"Test action: {result.test_action_id}")
-    print(f"Artifact: {result.artifact_id}")
-    print(f"Bundle: {result.bundle_path}")
-    _print_screenshots(result.screenshot_paths)
-    return 0
+        print(f"Test action: {result.test_action_id}")
+        print(f"Artifact: {result.artifact_id}")
+        print(f"Bundle: {result.bundle_path}")
+        _print_screenshots(result.screenshot_paths)
+        return 0 if build_succeeded else 1
 
 
 def _print_screenshots(screenshots: list[Path] | tuple[Path, ...]) -> None:
