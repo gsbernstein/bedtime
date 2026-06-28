@@ -24,7 +24,6 @@ from scripts.xcode_cloud.trigger import trigger_and_wait
 from scripts.xcode_cloud.upload import (
     UploadConfigError,
     UploadedScreenshot,
-    upload_config_from_env,
     upload_screenshots,
     write_manifest,
 )
@@ -128,6 +127,12 @@ def build_parser() -> argparse.ArgumentParser:
     upload_parser.add_argument("--screenshots-dir", required=True)
     upload_parser.add_argument("--build-id", required=True)
     upload_parser.add_argument(
+        "--backend",
+        choices=["auto", "imgur", "s3"],
+        default="auto",
+        help="Upload backend (default: auto-detect from env)",
+    )
+    upload_parser.add_argument(
         "--manifest",
         default="./xcode-cloud-output/screenshots-manifest.json",
         help="Where to write the public URL manifest",
@@ -180,22 +185,17 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "upload-screenshots":
         try:
-            config = upload_config_from_env()
+            uploads = upload_screenshots(
+                Path(args.screenshots_dir),
+                build_id=args.build_id,
+                backend=args.backend,
+            )
         except UploadConfigError as error:
             parser.error(str(error))
 
-        uploads = upload_screenshots(
-            Path(args.screenshots_dir),
-            build_id=args.build_id,
-            bucket=config["bucket"],
-            prefix=config["prefix"],
-            public_base_url=config["public_base_url"],
-            region=config["region"],
-            endpoint_url=config["endpoint_url"],
-        )
         manifest_path = Path(args.manifest)
         write_manifest(manifest_path, args.build_id, uploads)
-        print(f"Uploaded {len(uploads)} screenshot(s)")
+        print(f"Uploaded {len(uploads)} screenshot(s) via {args.backend}")
         for item in uploads:
             print(item.url)
         print(f"Manifest: {manifest_path}")

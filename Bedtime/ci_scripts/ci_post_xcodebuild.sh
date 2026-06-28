@@ -36,9 +36,11 @@ echo "ci_post_xcodebuild: exporting screenshots from $CI_RESULT_BUNDLE_PATH"
 # shellcheck disable=SC2086
 "$PYTHON_BIN" "$FETCH_SCRIPT" $EXTRACT_ARGS
 
-if [ -n "${SCREENSHOTS_S3_BUCKET:-}" ]; then
-  echo "ci_post_xcodebuild: uploading screenshots to s3://$SCREENSHOTS_S3_BUCKET"
-  "$PYTHON_BIN" -m pip install --quiet boto3
+if [ -n "${IMGUR_CLIENT_ID:-}" ] || [ -n "${SCREENSHOTS_S3_BUCKET:-}" ]; then
+  echo "ci_post_xcodebuild: uploading screenshots to public image host"
+  if [ -n "${SCREENSHOTS_S3_BUCKET:-}" ]; then
+    "$PYTHON_BIN" -m pip install --quiet boto3
+  fi
   "$PYTHON_BIN" "$FETCH_SCRIPT" upload-screenshots \
     --screenshots-dir "$SCREENSHOTS_DIR" \
     --build-id "$BUILD_ID" \
