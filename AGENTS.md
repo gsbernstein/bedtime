@@ -32,4 +32,4 @@ On a macOS machine with Xcode 15+ installed:
 - There is nothing to install: no package manager and no SPM dependencies. The startup update
   script is intentionally a no‑op.
 - Code changes can still be made and reviewed on Linux, but verification (build/run/HealthKit
-  behavior) must be done by a human (or macOS CI) on macOS + Xcode using the iOS Simulator.
+  behavior) must be done on macOS and/or iOS.
