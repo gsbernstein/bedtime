@@ -9,6 +9,18 @@ import Foundation
 import HealthKit
 import Combine
 
+/// UI state for the HealthKit read-authorization flow.
+///
+/// HealthKit intentionally does **not** report whether read access was granted —
+/// `requestAuthorization` succeeding only means the sheet was dismissed. There is
+/// no separate "already has permission" case; returning users reach `.hasRequested`
+/// when the silent re-check completes without showing the sheet.
+enum PermissionsRequestState: Equatable {
+    case loading
+    case shouldRequest
+    case hasRequested
+}
+
 @MainActor
 class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
@@ -16,18 +28,7 @@ class HealthKitManager: ObservableObject {
     private var rawSleepSamples: [HKCategorySample] = []
     private var cancellables = Set<AnyCancellable>()
     
-    /// Whether we've presented the HealthKit authorization sheet this session.
-    ///
-    /// - `nil`: initial authorization check still in flight
-    /// - `false`: check finished; show the permission prompt
-    /// - `true`: authorization sheet was presented; show main content
-    ///
-    /// HealthKit intentionally does **not** report whether read access was
-    /// granted — `requestAuthorization` succeeding only means the sheet was
-    /// dismissed. We use this flag to avoid re-prompting for read-only access,
-    /// not as proof of access. Write/share permission is handled separately by
-    /// `requireWriteAuthorization(for:)`, which can re-prompt when needed.
-    @Published private(set) var hasRequestedAuthorization: Bool?
+    @Published private(set) var permissionsRequestState: PermissionsRequestState = .loading
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
     @Published var errorMessage: String?
     @Published var availableSources: [HKSource]?
@@ -39,7 +40,7 @@ class HealthKitManager: ObservableObject {
             try checkHealthKitAvailability()
         } catch {
             errorMessage = error.localizedDescription
-            hasRequestedAuthorization = false
+            permissionsRequestState = .shouldRequest
         }
         
         // Listen for preference changes to re-filter data immediately
@@ -58,10 +59,10 @@ class HealthKitManager: ObservableObject {
     }
     
     /// Presents the HealthKit authorization sheet for read access if we haven't
-    /// already. No-op on subsequent calls — see `hasRequestedAuthorization` for
+    /// already. No-op on subsequent calls — see `permissionsRequestState` for
     /// why we can't verify read access was actually granted.
     func requestAuthorization() async throws {
-        guard hasRequestedAuthorization != true else { return }
+        guard permissionsRequestState != .hasRequested else { return }
         
         try checkHealthKitAvailability()
         
@@ -70,7 +71,7 @@ class HealthKitManager: ObservableObject {
                 toShare: [],
                 read: [HKCategoryType.sleepAnalysis]
             )
-            hasRequestedAuthorization = true
+            permissionsRequestState = .hasRequested
         } catch {
             throw NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to request HealthKit authorization: \(error.localizedDescription)"])
         }
@@ -78,8 +79,8 @@ class HealthKitManager: ObservableObject {
     
     func fetchSleepData() async throws {
         defer {
-            if hasRequestedAuthorization == nil {
-                hasRequestedAuthorization = false
+            if permissionsRequestState == .loading {
+                permissionsRequestState = .shouldRequest
             }
         }
         try await requestAuthorization()
@@ -198,7 +199,7 @@ class HealthKitManager: ObservableObject {
                 toShare: [type],
                 read: [HKCategoryType.sleepAnalysis]
             )
-            hasRequestedAuthorization = true
+            permissionsRequestState = .hasRequested
         } catch {
             throw NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to request HealthKit authorization: \(error.localizedDescription)"])
         }
