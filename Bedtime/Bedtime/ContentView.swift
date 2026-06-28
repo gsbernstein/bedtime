@@ -64,11 +64,11 @@ struct ContentView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     // HealthKit Authorization
-                    if healthKitManager.isCheckingAuthorization {
+                    if healthKitManager.hasRequestedAuthorization == nil {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
-                    } else if !healthKitManager.hasRequestedAuthorization {
+                    } else if healthKitManager.hasRequestedAuthorization == false {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     } else {
                         if isBeforeEvening {
