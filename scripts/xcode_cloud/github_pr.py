@@ -6,13 +6,30 @@ from pathlib import Path
 
 import httpx
 
+from scripts.xcode_cloud.upload import UploadedScreenshot
+
 
 def build_screenshot_comment(
-  screenshot_paths: list[Path],
-  *,
-  build_run_id: str,
-  title: str = "Xcode Cloud screenshots",
+    screenshot_paths: list[Path],
+    *,
+    build_run_id: str,
+    title: str = "Xcode Cloud screenshots",
+    uploaded: list[UploadedScreenshot] | None = None,
 ) -> str:
+    if uploaded:
+        lines = [
+            f"### {title}",
+            "",
+            f"Build run `{build_run_id}`",
+            "",
+        ]
+        for item in uploaded:
+            lines.append(f"**{item.name}**")
+            lines.append("")
+            lines.append(f"![{item.name}]({item.url})")
+            lines.append("")
+        return "\n".join(lines).rstrip()
+
     if not screenshot_paths:
         return (
             f"### {title}\n\n"
@@ -23,6 +40,9 @@ def build_screenshot_comment(
         f"### {title}",
         "",
         f"Build run `{build_run_id}`",
+        "",
+        "Screenshots were extracted on the Xcode Cloud Mac but not uploaded to a public bucket.",
+        "Set `SCREENSHOTS_S3_BUCKET` (and related env vars) to embed images in PR comments.",
         "",
         "| Screenshot |",
         "| --- |",

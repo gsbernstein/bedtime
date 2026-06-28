@@ -2,28 +2,66 @@
 
 Fetch UI test screenshots from Xcode Cloud after a build completes.
 
-## Why not a GitHub Action?
+## Recommended flow: Xcode Cloud uploads to a public bucket
 
-A GitHub Action is **optional**, not required. It was only suggested earlier because `xcresulttool` needs macOS.
+PR comments need **stable, public image URLs**. Apple's artifact `downloadUrl` values expire, and extraction requires **macOS + Xcode** (`xcresulttool`).
 
-This repo uses two paths instead:
+The recommended path is to do everything on the **Xcode Cloud Mac** in `Bedtime/ci_scripts/ci_post_xcodebuild.sh`:
 
-1. **`Bedtime/ci_scripts/ci_post_xcodebuild.sh`** (recommended on Xcode Cloud)
-   Runs on Apple's Mac right after tests finish. It reads `CI_RESULT_BUNDLE_PATH` directly, so there is no API round-trip and no second macOS runner.
-
-2. **`scripts/fetch_xcode_cloud_screenshots.py fetch`**
-   For webhook handlers, local machines, or Cursor Cloud Agents. Downloads the test result bundle via the App Store Connect API, then extracts screenshots if `xcresulttool` is available.
-
-Use a GitHub Action only if you want extraction to happen outside Xcode Cloud.
-
-## Setup
-
-```bash
-cd scripts
-python3 -m pip install -r requirements-dev.txt
+```text
+UI tests finish on Xcode Cloud (macOS)
+  → extract PNGs from CI_RESULT_BUNDLE_PATH   [macOS only]
+  → upload to public S3/R2 bucket             [stable URLs]
+  → post PR comment with embedded images
 ```
 
-### Credentials (Runtime Secrets in Cursor, or local env)
+Anything that runs on Linux (Cursor Cloud Agent, webhook handler, `trigger-and-fetch` without `--skip-extract`) can **trigger** builds and **download** bundles, but cannot extract screenshots unless you move the `.xcresult` to a Mac.
+
+## macOS requirement (extraction)
+
+| Step | Runs on | Tool |
+|------|---------|------|
+| Trigger build | anywhere | App Store Connect API |
+| Wait for completion | anywhere | App Store Connect API |
+| Download `.xcresult` | anywhere | App Store Connect API |
+| **Extract PNGs** | **macOS only** | `xcresulttool` (ships with Xcode) |
+| Upload to public bucket | anywhere with AWS creds | `boto3` |
+| Post PR comment | anywhere | GitHub API |
+
+On Linux, use `--skip-extract` to download the bundle only. Do not expect `fetch` or `trigger-and-fetch` to produce PNGs on a Linux agent.
+
+## Xcode Cloud setup (public bucket + PR embed)
+
+Add these as **Xcode Cloud workflow secrets**:
+
+```bash
+# S3 or S3-compatible bucket with public read on the prefix (bucket policy, or CDN in front)
+SCREENSHOTS_S3_BUCKET="my-public-screenshots"
+SCREENSHOTS_S3_PREFIX="bedtime"
+SCREENSHOTS_PUBLIC_BASE_URL="https://my-public-screenshots.s3.amazonaws.com"  # or CloudFront URL
+AWS_ACCESS_KEY_ID="..."
+AWS_SECRET_ACCESS_KEY="..."
+
+# Optional: PR comment with embedded images
+GITHUB_TOKEN="..."
+GITHUB_REPOSITORY="owner/repo"
+GITHUB_PULL_REQUEST="123"   # set via custom env / script if not automatic
+```
+
+For R2 or other S3-compatible storage:
+
+```bash
+SCREENSHOTS_S3_ENDPOINT_URL="https://<account>.r2.cloudflarestorage.com"
+SCREENSHOTS_PUBLIC_BASE_URL="https://screenshots.example.com"
+```
+
+`ci_post_xcodebuild.sh` will:
+
+1. Extract screenshots from `CI_RESULT_BUNDLE_PATH`
+2. Upload PNGs when `SCREENSHOTS_S3_BUCKET` is set
+3. Post a PR comment with `![name](url)` markdown when GitHub env vars are set
+
+## App Store Connect API (trigger / fetch from outside Xcode Cloud)
 
 ```bash
 export APP_STORE_CONNECT_KEY_ID="..."
@@ -31,17 +69,7 @@ export APP_STORE_CONNECT_ISSUER_ID="..."
 export APP_STORE_CONNECT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 ```
 
-Optional for PR comments from `ci_post_xcodebuild.sh`:
-
-```bash
-export GITHUB_TOKEN="..."
-export GITHUB_REPOSITORY="owner/repo"
-export GITHUB_PULL_REQUEST="123"
-```
-
-## Usage
-
-Trigger a build, block until it finishes, then fetch screenshots (fully synchronous):
+### Fully synchronous trigger + wait + fetch
 
 ```bash
 python3 scripts/fetch_xcode_cloud_screenshots.py trigger-and-fetch \
@@ -49,60 +77,36 @@ python3 scripts/fetch_xcode_cloud_screenshots.py trigger-and-fetch \
   --branch main
 ```
 
-Poll an already-triggered build until complete, then fetch:
+On Linux, add `--skip-extract` and rely on `ci_post_xcodebuild.sh` for extraction + upload.
+
+### Wait for an existing build, then fetch
 
 ```bash
 python3 scripts/fetch_xcode_cloud_screenshots.py wait-and-fetch --run-id BUILD_RUN_ID
 ```
 
-Fetch a completed build:
+### Manual upload + PR comment (after extraction on a Mac)
 
 ```bash
-python3 scripts/fetch_xcode_cloud_screenshots.py fetch --run-id BUILD_RUN_ID
-```
+python3 scripts/fetch_xcode_cloud_screenshots.py upload-screenshots \
+  --screenshots-dir ./xcode-cloud-output/screenshots \
+  --build-id BUILD_RUN_ID
 
-Download only (skip extraction on Linux):
-
-```bash
-python3 scripts/fetch_xcode_cloud_screenshots.py fetch --run-id BUILD_RUN_ID --skip-extract
-```
-
-Extract from a local bundle (Xcode Cloud Mac or your laptop):
-
-```bash
-python3 scripts/fetch_xcode_cloud_screenshots.py extract-local \
-  --bundle-path /path/to/resultbundle.xcresult
-```
-
-Post a PR summary comment:
-
-```bash
 python3 scripts/fetch_xcode_cloud_screenshots.py comment-pr \
   --repo owner/repo \
   --pr-number 123 \
   --run-id BUILD_RUN_ID \
-  --screenshots-dir ./xcode-cloud-output/screenshots
+  --manifest ./xcode-cloud-output/screenshots-manifest.json
 ```
 
-## Tests
+## Local development
 
 ```bash
 cd scripts
+python3 -m pip install -r requirements-dev.txt
 python3 -m pytest
 ```
 
-## Flow
+## Why not a GitHub Action?
 
-```text
-Xcode Cloud test action finishes
-  ├─ ci_post_xcodebuild.sh (on Mac)
-  │    └─ extract from CI_RESULT_BUNDLE_PATH
-  │
-  └─ webhook / manual fetch (anywhere)
-       └─ App Store Connect API → temporary downloadUrl
-            └─ download .xcresult
-                 └─ xcresulttool export attachments (macOS)
-                      └─ optional GitHub PR comment
-```
-
-Apple's `downloadUrl` values are short-lived. Do not embed them directly in PRs. Extract PNGs and upload or reference stable assets instead.
+A GitHub Action is optional. It only helps if you want macOS extraction **outside** Xcode Cloud. If Xcode Cloud already runs your UI tests, `ci_post_xcodebuild.sh` is the simpler place to extract and upload — no second macOS runner.

@@ -21,6 +21,13 @@ from scripts.xcode_cloud.screenshots import (
     fetch_test_result_bundle,
 )
 from scripts.xcode_cloud.trigger import trigger_and_wait
+from scripts.xcode_cloud.upload import (
+    UploadConfigError,
+    UploadedScreenshot,
+    upload_config_from_env,
+    upload_screenshots,
+    write_manifest,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -107,8 +114,23 @@ def build_parser() -> argparse.ArgumentParser:
     comment_parser.add_argument("--run-id", required=True)
     comment_parser.add_argument(
         "--screenshots-dir",
-        required=True,
-        help="Directory containing extracted .png files",
+        help="Directory containing extracted .png files (used when no manifest is provided)",
+    )
+    comment_parser.add_argument(
+        "--manifest",
+        help="JSON manifest written by upload-screenshots (preferred for embedded images)",
+    )
+
+    upload_parser = subparsers.add_parser(
+        "upload-screenshots",
+        help="Upload extracted screenshots to a public S3 bucket.",
+    )
+    upload_parser.add_argument("--screenshots-dir", required=True)
+    upload_parser.add_argument("--build-id", required=True)
+    upload_parser.add_argument(
+        "--manifest",
+        default="./xcode-cloud-output/screenshots-manifest.json",
+        help="Where to write the public URL manifest",
     )
     return parser
 
@@ -127,17 +149,56 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "comment-pr":
+        import json
         import os
 
         token = os.environ.get("GITHUB_TOKEN")
         if not token:
             parser.error("GITHUB_TOKEN is required for comment-pr")
 
-        screenshots_dir = Path(args.screenshots_dir)
-        screenshots = sorted(screenshots_dir.rglob("*.png"))
-        body = build_screenshot_comment(screenshots, build_run_id=args.run_id)
+        uploaded: list[UploadedScreenshot] | None = None
+        screenshots: list[Path] = []
+        if args.manifest:
+            manifest = json.loads(Path(args.manifest).read_text())
+            uploaded = [
+                UploadedScreenshot(name=item["name"], key=item["key"], url=item["url"])
+                for item in manifest.get("screenshots", [])
+            ]
+        elif args.screenshots_dir:
+            screenshots = sorted(Path(args.screenshots_dir).rglob("*.png"))
+        else:
+            parser.error("comment-pr requires --manifest or --screenshots-dir")
+
+        body = build_screenshot_comment(
+            screenshots,
+            build_run_id=args.run_id,
+            uploaded=uploaded,
+        )
         post_pr_comment(args.repo, args.pr_number, body, token=token)
         print(f"Posted PR comment to {args.repo}#{args.pr_number}")
+        return 0
+
+    if args.command == "upload-screenshots":
+        try:
+            config = upload_config_from_env()
+        except UploadConfigError as error:
+            parser.error(str(error))
+
+        uploads = upload_screenshots(
+            Path(args.screenshots_dir),
+            build_id=args.build_id,
+            bucket=config["bucket"],
+            prefix=config["prefix"],
+            public_base_url=config["public_base_url"],
+            region=config["region"],
+            endpoint_url=config["endpoint_url"],
+        )
+        manifest_path = Path(args.manifest)
+        write_manifest(manifest_path, args.build_id, uploads)
+        print(f"Uploaded {len(uploads)} screenshot(s)")
+        for item in uploads:
+            print(item.url)
+        print(f"Manifest: {manifest_path}")
         return 0
 
     credentials = credentials_from_env()
