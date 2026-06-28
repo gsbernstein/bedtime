@@ -11,6 +11,8 @@ import Combine
 
 @MainActor
 class HealthKitManager: ObservableObject {
+    private static let hasRequestedAuthorizationKey = "hasRequestedHealthKitAuthorization"
+    
     private let healthStore = HKHealthStore()
     private let sourcePreferences: SourcePreferences
     private var rawSleepSamples: [HKCategorySample] = []
@@ -24,17 +26,25 @@ class HealthKitManager: ObservableObject {
     /// not as proof of access. Write/share permission is handled separately by
     /// `requireWriteAuthorization(for:)`, which can re-prompt when needed.
     @Published private(set) var hasRequestedAuthorization = false
+    
+    /// True while the initial authorization check is in flight on startup.
+    /// Prevents flashing the permission card before we know prior authorization
+    /// status for this install.
+    @Published private(set) var isCheckingAuthorization = false
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
     @Published var errorMessage: String?
     @Published var availableSources: [HKSource]?
     
     init(sourcePreferences: SourcePreferences) {
         self.sourcePreferences = sourcePreferences
+        hasRequestedAuthorization = UserDefaults.standard.bool(forKey: Self.hasRequestedAuthorizationKey)
+        isCheckingAuthorization = !hasRequestedAuthorization
         
         do {
             try checkHealthKitAvailability()
         } catch {
             errorMessage = error.localizedDescription
+            isCheckingAuthorization = false
         }
         
         // Listen for preference changes to re-filter data immediately
@@ -65,15 +75,21 @@ class HealthKitManager: ObservableObject {
                 toShare: [],
                 read: [HKCategoryType.sleepAnalysis]
             )
-            hasRequestedAuthorization = true
+            markAuthorizationRequested()
         } catch {
             throw NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to request HealthKit authorization: \(error.localizedDescription)"])
         }
     }
     
     func fetchSleepData() async throws {
+        defer { isCheckingAuthorization = false }
         try await requestAuthorization()
         try await loadSleepData()
+    }
+    
+    private func markAuthorizationRequested() {
+        hasRequestedAuthorization = true
+        UserDefaults.standard.set(true, forKey: Self.hasRequestedAuthorizationKey)
     }
     
     private func loadSleepData() async throws {
@@ -188,7 +204,7 @@ class HealthKitManager: ObservableObject {
                 toShare: [type],
                 read: [HKCategoryType.sleepAnalysis]
             )
-            hasRequestedAuthorization = true
+            markAuthorizationRequested()
         } catch {
             throw NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to request HealthKit authorization: \(error.localizedDescription)"])
         }
