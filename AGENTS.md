@@ -17,10 +17,9 @@ On a macOS machine with Xcode 15+ installed:
 - Open and run: open `Bedtime/Bedtime.xcodeproj` in Xcode, select the `Bedtime` scheme, and run.
 - Build from CLI:
   `xcodebuild -project Bedtime/Bedtime.xcodeproj -scheme Bedtime -destination 'platform=iOS Simulator,name=iPhone 15' build`
-- HealthKit works in the **iOS Simulator** — a physical device is not required. The Simulator
-  starts with no sleep data, so add sample sleep sessions before testing (e.g. via the Simulator's
-  Health app, or a dummy‑data debug script that writes `HKCategorySample` sleep records). A physical
-  device with real Health data is only needed if you want to validate against real‑world data.
+- Run HealthKit features in the iOS Simulator. The Simulator starts with no sleep data, so add
+  sample sleep sessions first via the Simulator's Health app or a dummy‑data debug script that
+  writes `HKCategorySample` sleep records.
 
 ## Cursor Cloud specific instructions
 
@@ -32,5 +31,4 @@ On a macOS machine with Xcode 15+ installed:
 - There is nothing to install: no package manager and no SPM dependencies. The startup update
   script is intentionally a no‑op.
 - Code changes can still be made and reviewed on Linux, but verification (build/run/HealthKit
-  behavior) must be done by a human (or macOS CI) on macOS + Xcode. The **iOS Simulator is
-  sufficient** for HealthKit testing once sample sleep data is added; a physical device is optional.
+  behavior) must be done by a human (or macOS CI) on macOS + Xcode using the iOS Simulator.
