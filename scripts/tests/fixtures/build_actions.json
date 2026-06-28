@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "type": "ciBuildActions",
+      "id": "action-build-1",
+      "attributes": {
+        "name": "build",
+        "actionType": "ARCHIVE"
+      }
+    },
+    {
+      "type": "ciBuildActions",
+      "id": "action-test-1",
+      "attributes": {
+        "name": "test",
+        "actionType": "TEST"
+      }
+    }
+  ]
+}

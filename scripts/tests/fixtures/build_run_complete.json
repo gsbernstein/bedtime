@@ -1,0 +1,10 @@
+{
+  "data": {
+    "type": "ciBuildRuns",
+    "id": "build-run-123",
+    "attributes": {
+      "executionProgress": "COMPLETE",
+      "completionStatus": "SUCCEEDED"
+    }
+  }
+}
