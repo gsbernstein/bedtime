@@ -17,9 +17,10 @@ On a macOS machine with Xcode 15+ installed:
 - Open and run: open `Bedtime/Bedtime.xcodeproj` in Xcode, select the `Bedtime` scheme, and run.
 - Build from CLI:
   `xcodebuild -project Bedtime/Bedtime.xcodeproj -scheme Bedtime -destination 'platform=iOS Simulator,name=iPhone 15' build`
-- Run HealthKit features in the iOS Simulator. The Simulator starts with no sleep data, so add
-  sample sleep sessions first via the Simulator's Health app or a dummy‑data debug script that
-  writes `HKCategorySample` sleep records.
+- Run HealthKit features in the iOS Simulator. The Simulator starts with no sleep data, so seed it
+  first: in a DEBUG build, use the debug buttons in `SettingsView` (backed by
+  `DebugDataGenerator` / `HealthKitManager.generateFakeSleepData`), which write synthetic sleep‑stage
+  samples into HealthKit and can be cleared again with `clearFakeSleepData`.
 
 ## Cursor Cloud specific instructions
 
