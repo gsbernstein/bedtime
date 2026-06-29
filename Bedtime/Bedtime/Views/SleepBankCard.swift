@@ -11,9 +11,10 @@ import Charts
 struct SleepBankCard: View {
     let sleepBank: SleepBank
     
-    private var chartUpperBound: Double {
-        let maxNight = sleepBank.recentNights.map(\.totalHours).max() ?? 0
-        return max(sleepBank.goalHours + 1, maxNight + 0.5)
+    private var chartBalanceBounds: ClosedRange<Double> {
+        let balances = sleepBank.balanceHistory.map(\.balance)
+        let magnitude = max(balances.map(abs).max() ?? 0, 0.5)
+        return (-magnitude - 0.25)...(magnitude + 0.25)
     }
     
     var body: some View {
@@ -108,7 +109,7 @@ struct SleepBankCard: View {
                     }
                 }
                 
-                if !sleepBank.recentNights.isEmpty {
+                if !sleepBank.balanceHistory.isEmpty {
                     sparkline
                 }
             }
@@ -118,28 +119,34 @@ struct SleepBankCard: View {
 
 private extension SleepBankCard {
     var sparkline: some View {
-        Chart {
-            ForEach(sleepBank.recentNights) { night in
-                if night.hasData {
-                    BarMark(
-                        x: .value("Night", night.date, unit: .day),
-                        y: .value("Hours", night.totalHours),
-                        width: .ratio(0.6)
-                    )
-                    .foregroundStyle(night.totalHours >= sleepBank.goalHours ? Color.green : Color.red)
-                    .cornerRadius(2)
-                }
+        let lineColor = sleepBank.isInDebt ? Color.red : Color.green
+        
+        return Chart {
+            ForEach(sleepBank.balanceHistory) { point in
+                AreaMark(
+                    x: .value("Night", point.date, unit: .day),
+                    yStart: .value("Even", 0),
+                    yEnd: .value("Balance", point.balance)
+                )
+                .foregroundStyle(lineColor.opacity(0.2))
+                
+                LineMark(
+                    x: .value("Night", point.date, unit: .day),
+                    y: .value("Balance", point.balance)
+                )
+                .foregroundStyle(lineColor)
+                .lineStyle(StrokeStyle(lineWidth: 2))
             }
             
-            RuleMark(y: .value("Goal", sleepBank.goalHours))
-                .foregroundStyle(.secondary)
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            RuleMark(y: .value("Even", 0))
+                .foregroundStyle(.secondary.opacity(0.6))
+                .lineStyle(StrokeStyle(lineWidth: 1))
         }
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
-        .chartYScale(domain: 0...chartUpperBound)
+        .chartYScale(domain: chartBalanceBounds)
         .frame(height: 64)
-        .accessibilityLabel("Sleep duration over the last \(sleepBank.recentNights.count) nights")
+        .accessibilityLabel("Sleep balance trend over the last \(sleepBank.balanceHistory.count) nights")
     }
 }
 
