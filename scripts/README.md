@@ -7,8 +7,8 @@ The cleanest setup avoids App Store Connect API credentials entirely:
 ```text
 git push screenshots/pr-42     →  Xcode Cloud starts (branch/tag start condition)
   → BedtimeUITests capture PNGs
-  → ci_post_xcodebuild uploads to Imgur
-  → PR comment with embedded images + "What to test" notes
+  → ci_post_xcodebuild compares to previous baseline
+  → updates one sticky PR comment (before/after for changed screenshots only)
 ```
 
 ### 1. Create a dedicated Xcode Cloud workflow
@@ -25,14 +25,28 @@ In Xcode or App Store Connect, add a **Screenshots** workflow with:
 
 Keep this workflow separate from your main CI so screenshot runs do not block merges.
 
-### 2. Xcode Cloud secrets (only two)
+### 2. Xcode Cloud secrets
 
 ```bash
 IMGUR_CLIENT_ID=...          # public image URLs
-GITHUB_TOKEN=...             # PR comments only
+GITHUB_TOKEN=...             # sticky PR comment + screenshot-baselines branch
 ```
 
+`GITHUB_TOKEN` needs permission to write issue comments and repository contents (for the per-PR baseline manifest on branch `screenshot-baselines`).
+
 No `APP_STORE_CONNECT_*` keys needed for the git-trigger path.
+
+### Sticky PR comment with before/after diffs
+
+Each PR keeps **one** screenshot comment (updated in place, not a new comment per build).
+
+1. Load the previous baseline from `screenshot-baselines` → `prs/{number}/manifest.json`
+2. Download previous images from the stored Imgur URLs
+3. Compare pixel-by-pixel against the new screenshots
+4. Embed a before/after table for **changed** and **new** screenshots only
+5. Save the new baseline manifest for the next run
+
+First run on a PR shows all screenshots as **new**. Later runs only surface diffs.
 
 ### 3. Trigger from your machine or a Cursor agent
 

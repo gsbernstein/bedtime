@@ -14,7 +14,8 @@ if str(ROOT) not in sys.path:
 from scripts.xcode_cloud.asc_auth import create_asc_token, credentials_from_env
 from scripts.xcode_cloud.client import XcodeCloudClient
 from scripts.xcode_cloud.extract import XcresultToolNotFoundError
-from scripts.xcode_cloud.github_pr import build_screenshot_comment, post_pr_comment
+from scripts.xcode_cloud.github_pr import build_screenshot_comment, upsert_pr_comment
+from scripts.xcode_cloud.pr_report import publish_screenshot_pr_report
 from scripts.xcode_cloud.screenshots import (
     extract_screenshots_from_local_bundle,
     fetch_screenshots_from_build_run,
@@ -165,28 +166,39 @@ def main(argv: list[str] | None = None) -> int:
         if not token:
             parser.error("GITHUB_TOKEN is required for comment-pr")
 
-        uploaded: list[UploadedScreenshot] | None = None
-        screenshots: list[Path] = []
+        what_to_test = _read_what_to_test(args)
+
+        if args.screenshots_dir:
+            result = publish_screenshot_pr_report(
+                args.repo,
+                args.pr_number,
+                args.run_id,
+                Path(args.screenshots_dir),
+                token=token,
+                what_to_test=what_to_test,
+            )
+            print(
+                f"Updated PR comment on {args.repo}#{args.pr_number}: {result['comment_url']}"
+            )
+            return 0
+
         if args.manifest:
             manifest = json.loads(Path(args.manifest).read_text())
             uploaded = [
                 UploadedScreenshot(name=item["name"], key=item["key"], url=item["url"])
                 for item in manifest.get("screenshots", [])
             ]
-        elif args.screenshots_dir:
-            screenshots = sorted(Path(args.screenshots_dir).rglob("*.png"))
-        else:
-            parser.error("comment-pr requires --manifest or --screenshots-dir")
+            body = build_screenshot_comment(
+                [],
+                build_run_id=args.run_id,
+                uploaded=uploaded,
+                what_to_test=what_to_test,
+            )
+            upsert_pr_comment(args.repo, args.pr_number, body, token=token)
+            print(f"Updated PR comment on {args.repo}#{args.pr_number}")
+            return 0
 
-        body = build_screenshot_comment(
-            screenshots,
-            build_run_id=args.run_id,
-            uploaded=uploaded,
-            what_to_test=_read_what_to_test(args),
-        )
-        post_pr_comment(args.repo, args.pr_number, body, token=token)
-        print(f"Posted PR comment to {args.repo}#{args.pr_number}")
-        return 0
+        parser.error("comment-pr requires --screenshots-dir or --manifest")
 
     if args.command == "upload-screenshots":
         try:
@@ -278,6 +290,14 @@ def _print_screenshots(screenshots: list[Path] | tuple[Path, ...]) -> None:
     print(f"Extracted {len(screenshots)} screenshot(s):")
     for path in screenshots:
         print(path)
+
+
+def _read_what_to_test(args: argparse.Namespace) -> str | None:
+    path = getattr(args, "what_to_test_file", None)
+    if not path:
+        return None
+    text = Path(path).read_text().strip()
+    return text or None
 
 
 if __name__ == "__main__":
