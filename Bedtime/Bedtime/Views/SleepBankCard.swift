@@ -12,8 +12,8 @@ struct SleepBankCard: View {
     let sleepBank: SleepBank
     
     private var chartBalanceBounds: ClosedRange<Double> {
-        let balances = sleepBank.balanceHistory.map(\.balance)
-        let magnitude = max(balances.map(abs).max() ?? 0, 0.5)
+        let values = sleepBank.balanceCandles.flatMap { [$0.openingBalance, $0.closingBalance] }
+        let magnitude = max(values.map(abs).max() ?? 0, 0.5)
         return (-magnitude - 0.25)...(magnitude + 0.25)
     }
     
@@ -109,8 +109,8 @@ struct SleepBankCard: View {
                     }
                 }
                 
-                if !sleepBank.balanceHistory.isEmpty {
-                    sparkline
+                if !sleepBank.balanceCandles.isEmpty {
+                    balanceChart
                 }
             }
         }
@@ -118,24 +118,17 @@ struct SleepBankCard: View {
 }
 
 private extension SleepBankCard {
-    var sparkline: some View {
-        let lineColor = sleepBank.isInDebt ? Color.red : Color.green
-        
-        return Chart {
-            ForEach(sleepBank.balanceHistory) { point in
-                AreaMark(
-                    x: .value("Night", point.date, unit: .day),
-                    yStart: .value("Even", 0),
-                    yEnd: .value("Balance", point.balance)
+    var balanceChart: some View {
+        Chart {
+            ForEach(sleepBank.balanceCandles) { candle in
+                RectangleMark(
+                    x: .value("Night", candle.date, unit: .day),
+                    yStart: .value("Open", candle.openingBalance),
+                    yEnd: .value("Close", candle.closingBalance),
+                    width: .ratio(0.65)
                 )
-                .foregroundStyle(lineColor.opacity(0.2))
-                
-                LineMark(
-                    x: .value("Night", point.date, unit: .day),
-                    y: .value("Balance", point.balance)
-                )
-                .foregroundStyle(lineColor)
-                .lineStyle(StrokeStyle(lineWidth: 2))
+                .foregroundStyle(candle.isGain ? Color.green : Color.red)
+                .cornerRadius(2)
             }
             
             RuleMark(y: .value("Even", 0))
@@ -146,7 +139,7 @@ private extension SleepBankCard {
         .chartYAxis(.hidden)
         .chartYScale(domain: chartBalanceBounds)
         .frame(height: 64)
-        .accessibilityLabel("Sleep balance trend over the last \(sleepBank.balanceHistory.count) nights")
+        .accessibilityLabel("Daily sleep balance changes over the last \(sleepBank.balanceCandles.count) nights")
     }
 }
 
