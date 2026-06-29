@@ -93,14 +93,14 @@ struct NightSummary: Identifiable {
     var id: Date { date }
 }
 
-struct BalanceCandle: Identifiable {
+struct BalanceDayImpact: Identifiable {
     let date: Date
-    let openingBalance: Double
-    let closingBalance: Double
+    let priorBalance: Double
+    let impact: Double
     
     var id: Date { date }
-    
-    var isGain: Bool { closingBalance > openingBalance }
+    var newBalance: Double { priorBalance + impact }
+    var isGain: Bool { impact > 0 }
 }
 
 struct SleepBank {
@@ -131,18 +131,15 @@ struct SleepBank {
         }
     }
     
-    /// Per-night balance movement, like a candlestick body from open to close.
-    var balanceCandles: [BalanceCandle] {
+    /// Per-night impact on running balance. Each box stacks on the prior total.
+    var balanceImpacts: [BalanceDayImpact] {
         var runningBalance = 0.0
         return recentNights.compactMap { night in
             guard night.hasData else { return nil }
-            let openingBalance = runningBalance
-            runningBalance += night.totalHours - goalHours
-            return BalanceCandle(
-                date: night.date,
-                openingBalance: openingBalance,
-                closingBalance: runningBalance
-            )
+            let priorBalance = runningBalance
+            let impact = night.totalHours - goalHours
+            runningBalance += impact
+            return BalanceDayImpact(date: night.date, priorBalance: priorBalance, impact: impact)
         }
     }
     
