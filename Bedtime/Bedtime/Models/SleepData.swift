@@ -93,6 +93,13 @@ struct NightSummary: Identifiable {
     var id: Date { date }
 }
 
+struct BalancePoint: Identifiable {
+    let date: Date
+    let balance: Double
+    
+    var id: Date { date }
+}
+
 struct SleepBank {
     let currentBalance: Double // in hours
     let goalHours: Double
@@ -118,6 +125,16 @@ struct SleepBank {
             return "You're \(String(format: "%.1f", debtHours)) hours behind your sleep goal"
         } else {
             return "You're \(String(format: "%.1f", creditHours)) hours ahead of your sleep goal"
+        }
+    }
+    
+    /// Running sleep balance after each night with data, oldest to newest.
+    var balanceHistory: [BalancePoint] {
+        var runningBalance = 0.0
+        return recentNights.compactMap { night in
+            guard night.hasData else { return nil }
+            runningBalance += night.totalHours - goalHours
+            return BalancePoint(date: night.date, balance: runningBalance)
         }
     }
     
