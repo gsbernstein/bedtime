@@ -137,6 +137,10 @@ def build_parser() -> argparse.ArgumentParser:
         default="./xcode-cloud-output/screenshots-manifest.json",
         help="Where to write the public URL manifest",
     )
+    comment_parser.add_argument(
+        "--what-to-test-file",
+        help="Text file with What to test notes for the PR comment",
+    )
     return parser
 
 
@@ -178,6 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             screenshots,
             build_run_id=args.run_id,
             uploaded=uploaded,
+            what_to_test=_read_what_to_test(args),
         )
         post_pr_comment(args.repo, args.pr_number, body, token=token)
         print(f"Posted PR comment to {args.repo}#{args.pr_number}")

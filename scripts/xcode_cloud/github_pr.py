@@ -15,6 +15,7 @@ def build_screenshot_comment(
     build_run_id: str,
     title: str = "Xcode Cloud screenshots",
     uploaded: list[UploadedScreenshot] | None = None,
+    what_to_test: str | None = None,
 ) -> str:
     if uploaded:
         lines = [
@@ -23,6 +24,8 @@ def build_screenshot_comment(
             f"Build run `{build_run_id}`",
             "",
         ]
+        if what_to_test:
+            lines.extend(["**What to test**", "", what_to_test.strip(), ""])
         for item in uploaded:
             lines.append(f"**{item.name}**")
             lines.append("")
