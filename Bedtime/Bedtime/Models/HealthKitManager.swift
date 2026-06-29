@@ -83,8 +83,13 @@ class HealthKitManager: ObservableObject {
                 permissionsRequestState = .shouldRequest
             }
         }
-        try await requestAuthorization()
-        try await loadSleepData()
+        do {
+            try await requestAuthorization()
+            try await loadSleepData()
+        } catch {
+            errorMessage = error.localizedDescription
+            throw error
+        }
     }
     
     private func loadSleepData() async throws {
