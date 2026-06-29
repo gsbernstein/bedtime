@@ -2,8 +2,8 @@
 set -eu
 
 # Runs on the Xcode Cloud Mac after xcodebuild finishes.
-# Extracts screenshots, compares to the previous PR baseline, uploads diffs,
-# and updates a single sticky PR comment with before/after tables.
+# Extracts screenshots, compares to the main-branch baseline commit comment,
+# uploads to Imgur, and updates a sticky comment on this commit.
 
 OUTPUT_DIR="${CI_DERIVED_DATA_PATH:-/tmp}/xcode-cloud-screenshots"
 SCREENSHOTS_DIR="$OUTPUT_DIR/screenshots"
@@ -35,16 +35,9 @@ echo "ci_post_xcodebuild: exporting screenshots from $CI_RESULT_BUNDLE_PATH"
 # shellcheck disable=SC2086
 "$PYTHON_BIN" "$FETCH_SCRIPT" $EXTRACT_ARGS
 
-PR_NUMBER="${GITHUB_PULL_REQUEST:-${CI_PULL_REQUEST_NUMBER:-}}"
-REPO_SLUG="${GITHUB_REPOSITORY:-${CI_PULL_REQUEST_TARGET_REPO:-}}"
-
-if [ -z "$PR_NUMBER" ] && [ -n "${CI_BRANCH:-}" ]; then
-  case "$CI_BRANCH" in
-    screenshots/pr-*)
-      PR_NUMBER="${CI_BRANCH#screenshots/pr-}"
-      ;;
-  esac
-fi
+COMMIT_SHA="${CI_COMMIT:-}"
+REPO_SLUG="${GITHUB_REPOSITORY:-${CI_PULL_REQUEST_TARGET_REPO:-${CI_PULL_REQUEST_SOURCE_REPO:-}}}"
+BASELINE_COMMIT="${CI_PULL_REQUEST_TARGET_COMMIT:-}"
 
 WHAT_TO_TEST=""
 if [ -d "$REPO_ROOT/.git" ]; then
@@ -54,10 +47,14 @@ if [ -d "$REPO_ROOT/.git" ]; then
   ' | sed '/^[[:space:]]*$/d' || true)"
 fi
 
-if [ -n "$REPO_SLUG" ] && [ -n "$PR_NUMBER" ] && [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${IMGUR_CLIENT_ID:-}" ]; then
-  echo "ci_post_xcodebuild: publishing sticky screenshot diff comment on PR #${PR_NUMBER}"
+if [ -n "$REPO_SLUG" ] && [ -n "$COMMIT_SHA" ] && [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${IMGUR_CLIENT_ID:-}" ]; then
+  echo "ci_post_xcodebuild: publishing sticky screenshot comment on commit ${COMMIT_SHA}"
   "$PYTHON_BIN" -m pip install --quiet -r "$REPO_ROOT/scripts/requirements.txt"
-  COMMENT_ARGS="comment-pr --repo \"$REPO_SLUG\" --pr-number \"$PR_NUMBER\" --run-id \"$BUILD_ID\" --screenshots-dir \"$SCREENSHOTS_DIR\""
+  COMMENT_ARGS="comment-commit --repo \"$REPO_SLUG\" --commit-sha \"$COMMIT_SHA\" --run-id \"$BUILD_ID\" --screenshots-dir \"$SCREENSHOTS_DIR\""
+  if [ -n "$BASELINE_COMMIT" ] && [ "$BASELINE_COMMIT" != "$COMMIT_SHA" ]; then
+    COMMENT_ARGS="$COMMENT_ARGS --baseline-commit \"$BASELINE_COMMIT\""
+    echo "ci_post_xcodebuild: comparing against baseline commit ${BASELINE_COMMIT}"
+  fi
   if [ -n "$WHAT_TO_TEST" ]; then
     WHAT_TO_TEST_FILE="$OUTPUT_DIR/what-to-test.txt"
     printf '%s\n' "$WHAT_TO_TEST" > "$WHAT_TO_TEST_FILE"
@@ -66,7 +63,7 @@ if [ -n "$REPO_SLUG" ] && [ -n "$PR_NUMBER" ] && [ -n "${GITHUB_TOKEN:-}" ] && [
   # shellcheck disable=SC2086
   "$PYTHON_BIN" "$FETCH_SCRIPT" $COMMENT_ARGS
 elif [ -n "${IMGUR_CLIENT_ID:-}" ] || [ -n "${SCREENSHOTS_S3_BUCKET:-}" ]; then
-  echo "ci_post_xcodebuild: uploading screenshots without PR diff comment"
+  echo "ci_post_xcodebuild: uploading screenshots without commit comment"
   if [ -n "${SCREENSHOTS_S3_BUCKET:-}" ]; then
     "$PYTHON_BIN" -m pip install --quiet boto3
   fi

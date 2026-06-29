@@ -14,8 +14,8 @@ if str(ROOT) not in sys.path:
 from scripts.xcode_cloud.asc_auth import create_asc_token, credentials_from_env
 from scripts.xcode_cloud.client import XcodeCloudClient
 from scripts.xcode_cloud.extract import XcresultToolNotFoundError
-from scripts.xcode_cloud.github_pr import build_screenshot_comment, upsert_pr_comment
-from scripts.xcode_cloud.pr_report import publish_screenshot_pr_report
+from scripts.xcode_cloud.commit_report import publish_screenshot_commit_report
+from scripts.xcode_cloud.github_comments import build_screenshot_comment
 from scripts.xcode_cloud.screenshots import (
     extract_screenshots_from_local_bundle,
     fetch_screenshots_from_build_run,
@@ -106,11 +106,15 @@ def build_parser() -> argparse.ArgumentParser:
     local_parser.add_argument("--only-failures", action="store_true")
 
     comment_parser = subparsers.add_parser(
-        "comment-pr",
-        help="Post a screenshot summary comment to a GitHub pull request.",
+        "comment-commit",
+        help="Post or update a sticky screenshot comment on a Git commit.",
     )
     comment_parser.add_argument("--repo", required=True, help="owner/repo")
-    comment_parser.add_argument("--pr-number", type=int, required=True)
+    comment_parser.add_argument("--commit-sha", required=True, help="Commit to comment on")
+    comment_parser.add_argument(
+        "--baseline-commit",
+        help="Baseline commit to compare against (e.g. main HEAD for PR builds)",
+    )
     comment_parser.add_argument("--run-id", required=True)
     comment_parser.add_argument(
         "--screenshots-dir",
@@ -118,7 +122,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     comment_parser.add_argument(
         "--manifest",
-        help="JSON manifest written by upload-screenshots (preferred for embedded images)",
+        help="JSON manifest written by upload-screenshots (legacy, no diff)",
     )
 
     upload_parser = subparsers.add_parser(
@@ -140,7 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     comment_parser.add_argument(
         "--what-to-test-file",
-        help="Text file with What to test notes for the PR comment",
+        help="Text file with What to test notes for the commit comment",
     )
     return parser
 
@@ -158,27 +162,29 @@ def main(argv: list[str] | None = None) -> int:
         _print_screenshots(screenshots)
         return 0
 
-    if args.command == "comment-pr":
+    if args.command == "comment-commit":
         import json
         import os
 
         token = os.environ.get("GITHUB_TOKEN")
         if not token:
-            parser.error("GITHUB_TOKEN is required for comment-pr")
+            parser.error("GITHUB_TOKEN is required for comment-commit")
 
         what_to_test = _read_what_to_test(args)
 
         if args.screenshots_dir:
-            result = publish_screenshot_pr_report(
+            result = publish_screenshot_commit_report(
                 args.repo,
-                args.pr_number,
+                args.commit_sha,
                 args.run_id,
                 Path(args.screenshots_dir),
                 token=token,
+                baseline_commit_sha=args.baseline_commit,
                 what_to_test=what_to_test,
             )
             print(
-                f"Updated PR comment on {args.repo}#{args.pr_number}: {result['comment_url']}"
+                f"Updated commit comment on {args.repo}@{args.commit_sha[:7]}: "
+                f"{result['comment_url']}"
             )
             return 0
 
@@ -188,17 +194,27 @@ def main(argv: list[str] | None = None) -> int:
                 UploadedScreenshot(name=item["name"], key=item["key"], url=item["url"])
                 for item in manifest.get("screenshots", [])
             ]
+            screenshot_urls = {item.name: item.url for item in uploaded}
             body = build_screenshot_comment(
                 [],
                 build_run_id=args.run_id,
+                commit_sha=args.commit_sha,
                 uploaded=uploaded,
                 what_to_test=what_to_test,
+                screenshot_urls=screenshot_urls,
             )
-            upsert_pr_comment(args.repo, args.pr_number, body, token=token)
-            print(f"Updated PR comment on {args.repo}#{args.pr_number}")
+            from scripts.xcode_cloud.github_commit import upsert_commit_comment
+
+            upsert_commit_comment(
+                args.repo,
+                args.commit_sha,
+                body,
+                token=token,
+            )
+            print(f"Updated commit comment on {args.repo}@{args.commit_sha[:7]}")
             return 0
 
-        parser.error("comment-pr requires --screenshots-dir or --manifest")
+        parser.error("comment-commit requires --screenshots-dir or --manifest")
 
     if args.command == "upload-screenshots":
         try:

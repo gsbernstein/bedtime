@@ -5,10 +5,9 @@
 The cleanest setup avoids App Store Connect API credentials entirely:
 
 ```text
-git push screenshots/pr-42     →  Xcode Cloud starts (branch/tag start condition)
-  → BedtimeUITests capture PNGs
-  → ci_post_xcodebuild compares to previous baseline
-  → updates one sticky PR comment (before/after for changed screenshots only)
+main push                   →  screenshots on commit, Imgur URLs in commit comment
+PR push                     →  compare vs main baseline commit comment, sticky comment on PR commit
+git push screenshots/pr-42  →  on-demand screenshot run (branch start condition)
 ```
 
 ### 1. Create a dedicated Xcode Cloud workflow
@@ -17,9 +16,9 @@ In Xcode or App Store Connect, add a **Screenshots** workflow with:
 
 | Setting | Value |
 |---------|--------|
-| Start condition | **Branch changes** → branches beginning with `screenshots/` |
-| | and/or **Tag changes** → tags beginning with `screenshots/` |
-| | and/or **Pull request changes** (runs on every PR automatically) |
+| Start condition | **Branch changes** → `main` (keeps baseline fresh) |
+| | and/or branches beginning with `screenshots/` |
+| | and/or **Pull request changes** |
 | Test action | Scheme `Bedtime`, include `BedtimeUITests` |
 | Test plan | Screenshots: **On, and keep all** |
 
@@ -29,24 +28,31 @@ Keep this workflow separate from your main CI so screenshot runs do not block me
 
 ```bash
 IMGUR_CLIENT_ID=...          # public image URLs
-GITHUB_TOKEN=...             # sticky PR comment + screenshot-baselines branch
+GITHUB_TOKEN=...             # sticky commit comments
 ```
 
-`GITHUB_TOKEN` needs permission to write issue comments and repository contents (for the per-PR baseline manifest on branch `screenshot-baselines`).
+`GITHUB_TOKEN` needs permission to create and update **commit comments** (`repo` scope or fine-grained equivalent).
 
-No `APP_STORE_CONNECT_*` keys needed for the git-trigger path.
+No `APP_STORE_CONNECT_*` keys needed for the git-trigger path. No S3, no separate baseline branch.
 
-### Sticky PR comment with before/after diffs
+### Sticky commit comments with before/after diffs
 
-Each PR keeps **one** screenshot comment (updated in place, not a new comment per build).
+Screenshots are reported as a **commit comment** on the built commit (`github.com/{owner}/{repo}/commit/{sha}`). No PR required.
 
-1. Load the previous baseline from `screenshot-baselines` → `prs/{number}/manifest.json`
-2. Download previous images from the stored Imgur URLs
-3. Compare pixel-by-pixel against the new screenshots
-4. Embed a before/after table for **changed** and **new** screenshots only
-5. Save the new baseline manifest for the next run
+**Main builds** (`CI_COMMIT` on `main`):
 
-First run on a PR shows all screenshots as **new**. Later runs only surface diffs.
+1. Upload screenshots to Imgur
+2. Post/update one sticky comment on that commit
+3. Embed Imgur URLs in a hidden metadata block inside the comment (for baseline lookup)
+
+**PR builds**:
+
+1. Read Imgur URLs from the commit comment on `CI_PULL_REQUEST_TARGET_COMMIT` (main HEAD)
+2. Download those images as the "before" baseline
+3. Compare pixel-by-pixel against new screenshots
+4. Post/update sticky comment on `CI_COMMIT` (PR head) with before/after table for changed/new only
+
+First PR run after a fresh main baseline shows all screenshots as **new**. Unchanged PR re-runs show "no changes compared to `{main_sha}`".
 
 ### 3. Trigger from your machine or a Cursor agent
 
@@ -68,9 +74,16 @@ What to test:
 - Settings sliders and wake time picker
 ```
 
-### 4. PR builds (zero extra trigger)
+### 4. Manual CLI
 
-If the workflow includes a **Pull request** start condition, every PR push already runs screenshots. Xcode Cloud sets `CI_PULL_REQUEST_NUMBER` and `CI_PULL_REQUEST_TARGET_REPO` — no manual `GITHUB_PULL_REQUEST` env var needed.
+```bash
+python3 scripts/fetch_xcode_cloud_screenshots.py comment-commit \
+  --repo owner/repo \
+  --commit-sha abc123def456 \
+  --baseline-commit mainsha789 \
+  --run-id build-1 \
+  --screenshots-dir ./screenshots
+```
 
 ## What generates the screenshots
 
