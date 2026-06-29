@@ -6,13 +6,12 @@
 //
 
 import SwiftUI
-import Charts
 
 struct SleepBankCard: View {
     let sleepBank: SleepBank
     
     private var chartBalanceBounds: ClosedRange<Double> {
-        let values = sleepBank.balanceCandles.flatMap { [$0.openingBalance, $0.closingBalance] }
+        let values = sleepBank.balanceImpacts.flatMap { [$0.priorBalance, $0.newBalance] }
         let magnitude = max(values.map(abs).max() ?? 0, 0.5)
         return (-magnitude - 0.25)...(magnitude + 0.25)
     }
@@ -109,37 +108,16 @@ struct SleepBankCard: View {
                     }
                 }
                 
-                if !sleepBank.balanceCandles.isEmpty {
-                    balanceChart
+                if !sleepBank.balanceImpacts.isEmpty {
+                    BalanceWaterfallChart(
+                        nights: sleepBank.recentNights,
+                        impacts: sleepBank.balanceImpacts,
+                        domain: chartBalanceBounds
+                    )
+                    .frame(height: 64)
                 }
             }
         }
-    }
-}
-
-private extension SleepBankCard {
-    var balanceChart: some View {
-        Chart {
-            ForEach(sleepBank.balanceCandles) { candle in
-                RectangleMark(
-                    x: .value("Night", candle.date, unit: .day),
-                    yStart: .value("Open", candle.openingBalance),
-                    yEnd: .value("Close", candle.closingBalance),
-                    width: .ratio(0.65)
-                )
-                .foregroundStyle(candle.isGain ? Color.green : Color.red)
-                .cornerRadius(2)
-            }
-            
-            RuleMark(y: .value("Even", 0))
-                .foregroundStyle(.secondary.opacity(0.6))
-                .lineStyle(StrokeStyle(lineWidth: 1))
-        }
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .chartYScale(domain: chartBalanceBounds)
-        .frame(height: 64)
-        .accessibilityLabel("Daily sleep balance changes over the last \(sleepBank.balanceCandles.count) nights")
     }
 }
 
