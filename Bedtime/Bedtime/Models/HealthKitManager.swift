@@ -158,4 +158,13 @@ class HealthKitManager: ObservableObject {
         
         self.sleepSessions = Dictionary(grouping: sessions) { $0.dateForGrouping }
     }
+
+    #if DEBUG
+    func prepareForUITestingIfNeeded() {
+        guard UITestingSupport.isActive else { return }
+        isAuthorized = true
+        sleepSessions = UITestingSupport.mockSleepSessions()
+        errorMessage = nil
+    }
+    #endif
 }

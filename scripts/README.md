@@ -1,25 +1,40 @@
-# Xcode Cloud screenshot fetcher
+# Xcode Cloud screenshots
 
-Fetch UI test screenshots from Xcode Cloud after a build completes.
+## What generates the screenshots
 
-## Recommended flow: Imgur upload from Xcode Cloud
+**`BedtimeUITests/ScreenshotTests.swift`** — XCUITest UI tests that capture PNG attachments for pull request previews.
 
-PR comments need **stable, public image URLs**. The simplest setup is **Imgur** — one free Client-ID, no AWS account, no bucket policies.
+The test launches the app with `-ui_testing` (mock sleep data, no HealthKit prompt) and saves screenshots with `XCTAttachment` lifetime `.keepAlways` so Xcode Cloud keeps them in the test result bundle.
 
-```text
-UI tests finish on Xcode Cloud (macOS)
-  → extract PNGs from CI_RESULT_BUNDLE_PATH   [macOS only]
-  → upload to Imgur (anonymous)                 [IMGUR_CLIENT_ID only]
-  → post PR comment with ![...](https://i.imgur.com/...)
+Add `BedtimeUITests` to your Xcode Cloud workflow's **Test** action. In the test plan, set **Screenshots** to **On, and keep all** if you want images even when tests pass.
+
+### Run locally
+
+```bash
+xcodebuild test \
+  -project Bedtime/Bedtime.xcodeproj \
+  -scheme Bedtime \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -only-testing:BedtimeUITests/ScreenshotTests
 ```
 
-Register an app at [api.imgur.com/oauth2/addclient](https://api.imgur.com/oauth2/addclient) (choose “anonymous usage without user authorization”), then add one Xcode Cloud secret:
+## What happens after tests (Xcode Cloud Mac)
+
+`Bedtime/ci_scripts/ci_post_xcodebuild.sh`:
+
+1. Extracts PNGs from `CI_RESULT_BUNDLE_PATH` via `xcresulttool`
+2. Uploads to **Imgur** (`IMGUR_CLIENT_ID`) or **S3** (`SCREENSHOTS_S3_BUCKET`)
+3. Optionally posts a PR comment with embedded image URLs
+
+### Simplest upload setup (Imgur)
+
+Register at [api.imgur.com/oauth2/addclient](https://api.imgur.com/oauth2/addclient), then add one Xcode Cloud secret:
 
 ```bash
 IMGUR_CLIENT_ID="your-client-id"
 ```
 
-Optional PR comment secrets:
+Optional PR comment:
 
 ```bash
 GITHUB_TOKEN="..."
@@ -27,81 +42,18 @@ GITHUB_REPOSITORY="owner/repo"
 GITHUB_PULL_REQUEST="123"
 ```
 
-`Bedtime/ci_scripts/ci_post_xcodebuild.sh` handles extract → upload → comment automatically.
+## Optional: fetch scripts (outside Xcode Cloud)
 
-### Imgur caveats
-
-- Images are **public** on Imgur
-- Free tier has **rate limits** (~1,250 uploads/day per Client-ID)
-- Imgur’s terms restrict **commercial** use on the free API — fine for side projects / internal CI, not for a production SaaS
-
-## macOS requirement (extraction)
-
-| Step | Runs on | Tool |
-|------|---------|------|
-| Trigger build | anywhere | App Store Connect API |
-| Wait / download `.xcresult` | anywhere | App Store Connect API |
-| **Extract PNGs** | **macOS only** | `xcresulttool` (ships with Xcode) |
-| Upload to Imgur | anywhere | `IMGUR_CLIENT_ID` |
-| Post PR comment | anywhere | `GITHUB_TOKEN` |
-
-On Linux agents, use `--skip-extract` and let `ci_post_xcodebuild.sh` do extraction on the Xcode Cloud Mac.
-
-## Alternatives to Imgur
-
-| Option | Auth needed | Notes |
-|--------|-------------|-------|
-| **Imgur** | Client-ID only | Easiest; recommended default |
-| **S3 / R2** | AWS keys + bucket policy | More control; set `SCREENSHOTS_S3_BUCKET` |
-| **GitHub drag-and-drop URLs** | Browser session | No stable API with `GITHUB_TOKEN` alone |
-
-S3 is still supported if you set `SCREENSHOTS_UPLOAD_BACKEND=s3` or only configure S3 env vars.
-
-## Xcode Cloud secrets (S3 alternative)
+`scripts/fetch_xcode_cloud_screenshots.py` can trigger builds, wait for completion, and download result bundles via the App Store Connect API. Extraction still requires macOS (`xcresulttool`).
 
 ```bash
-SCREENSHOTS_S3_BUCKET="my-public-screenshots"
-SCREENSHOTS_PUBLIC_BASE_URL="https://cdn.example.com"
-AWS_ACCESS_KEY_ID="..."
-AWS_SECRET_ACCESS_KEY="..."
-```
+export APP_STORE_CONNECT_KEY_ID=...
+export APP_STORE_CONNECT_ISSUER_ID=...
+export APP_STORE_CONNECT_PRIVATE_KEY='...'
 
-## App Store Connect API (trigger from outside Xcode Cloud)
-
-```bash
-export APP_STORE_CONNECT_KEY_ID="..."
-export APP_STORE_CONNECT_ISSUER_ID="..."
-export APP_STORE_CONNECT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
-```
-
-```bash
-# Trigger, block until done, fetch (use --skip-extract on Linux)
 python3 scripts/fetch_xcode_cloud_screenshots.py trigger-and-fetch \
   --workflow-id WORKFLOW_ID \
   --branch main
 ```
 
-## Manual upload + PR comment
-
-```bash
-export IMGUR_CLIENT_ID="..."
-
-python3 scripts/fetch_xcode_cloud_screenshots.py upload-screenshots \
-  --screenshots-dir ./xcode-cloud-output/screenshots \
-  --build-id BUILD_RUN_ID \
-  --backend imgur
-
-python3 scripts/fetch_xcode_cloud_screenshots.py comment-pr \
-  --repo owner/repo \
-  --pr-number 123 \
-  --run-id BUILD_RUN_ID \
-  --manifest ./xcode-cloud-output/screenshots-manifest.json
-```
-
-## Tests
-
-```bash
-cd scripts
-python3 -m pip install -r requirements-dev.txt
-python3 -m pytest
-```
+On Linux, use `--skip-extract` — let `ci_post_xcodebuild.sh` handle extraction on Apple's Mac.
