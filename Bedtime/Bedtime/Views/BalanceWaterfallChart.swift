@@ -42,15 +42,13 @@ struct BalanceWaterfallChart: View {
                 
                 let centerX = (CGFloat(index) + 0.5) * slotWidth
                 let boxWidth = max(slotWidth * 0.65, 4)
-                let topValue = min(day.priorBalance, day.newBalance)
-                let bottomValue = max(day.priorBalance, day.newBalance)
-                let topY = yPosition(for: topValue)
-                let bottomY = yPosition(for: bottomValue)
+                let priorY = yPosition(for: day.priorBalance)
+                let newY = yPosition(for: day.newBalance)
                 let rect = CGRect(
                     x: centerX - boxWidth / 2,
-                    y: topY,
+                    y: min(priorY, newY),
                     width: boxWidth,
-                    height: max(bottomY - topY, 2)
+                    height: abs(newY - priorY)
                 )
                 
                 context.fill(
