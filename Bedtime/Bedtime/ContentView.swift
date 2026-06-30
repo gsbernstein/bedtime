@@ -32,6 +32,7 @@ struct ContentView: View {
     
     private var userPreferences: UserPreferences {
         if let existing = preferences.first {
+            existing.migrateBedtimeLimitIfNeeded()
             return existing
         } else {
             let new = UserPreferences()
@@ -53,8 +54,7 @@ struct ContentView: View {
             wakeTime: userPreferences.wakeTime,
             sleepGoal: userPreferences.sleepGoalHours,
             sleepBank: sleepBank,
-            maxSleepHours: userPreferences.maxSleepHoursPerNight,
-            minSleepHours: userPreferences.minSleepHoursPerNight
+            maxSleepHours: userPreferences.effectiveMaxSleepHours
         )
     }
 

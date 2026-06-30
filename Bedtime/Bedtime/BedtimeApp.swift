@@ -11,7 +11,16 @@ import HealthKit
 
 @main
 struct BedtimeApp: App {
-    var sharedModelContainer: ModelContainer = {
+    var sharedModelContainer: ModelContainer = BedtimeApp.makeModelContainer()
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+        .modelContainer(sharedModelContainer)
+    }
+
+    private static func makeModelContainer() -> ModelContainer {
         let schema = Schema([
             UserPreferences.self,
         ])
@@ -20,14 +29,25 @@ struct BedtimeApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // A prior schema change may have left an incompatible store on disk.
+            removePersistedStore()
+            do {
+                return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            } catch {
+                fatalError("Could not create ModelContainer: \(error)")
+            }
         }
-    }()
+    }
 
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
+    private static func removePersistedStore() {
+        let fileManager = FileManager.default
+        guard let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return
         }
-        .modelContainer(sharedModelContainer)
+
+        for name in ["default.store", "default.store-shm", "default.store-wal"] {
+            let url = appSupport.appendingPathComponent(name)
+            try? fileManager.removeItem(at: url)
+        }
     }
 }

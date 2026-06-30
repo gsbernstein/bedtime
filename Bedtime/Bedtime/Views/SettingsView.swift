@@ -28,6 +28,13 @@ struct SettingsView: View {
     @State private var debugMessage: String?
     #endif
 
+    private var earliestBedtimeBinding: Binding<Date> {
+        Binding(
+            get: { preferences.resolvedEarliestBedtime },
+            set: { preferences.earliestReasonableBedtime = $0 }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -76,31 +83,15 @@ struct SettingsView: View {
                 }
                 
                 Section("Sleep Limits") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Max sleep hours per night")
-                            Spacer()
-                            Text("\(String(format: "%.0f", preferences.maxSleepHoursPerNight)) hours")
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Slider(value: $preferences.maxSleepHoursPerNight, in: 8...16, step: 1) {
-                            Text("Max")
-                        }
-                        .accentColor(.blue)
-                        
-                        HStack {
-                            Text("Min sleep hours per night")
-                            Spacer()
-                            Text("\(String(format: "%.0f", preferences.minSleepHoursPerNight)) hours")
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Slider(value: $preferences.minSleepHoursPerNight, in: 2...10, step: 1) {
-                            Text("Min")
-                        }
-                        .accentColor(.blue)
-                    }
+                    DatePicker(
+                        "Earliest reasonable bedtime",
+                        selection: earliestBedtimeBinding,
+                        displayedComponents: .hourAndMinute
+                    )
+
+                    Text("Won't recommend sleeping before this time — up to \(String(format: "%.1f", preferences.effectiveMaxSleepHours)) hours before your wake time.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 Section("Data Sources") {
