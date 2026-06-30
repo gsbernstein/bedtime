@@ -64,9 +64,14 @@ struct ContentView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     // HealthKit Authorization
-                    if !healthKitManager.hasRequestedAuthorization {
+                    switch healthKitManager.permissionsRequestState {
+                    case .loading:
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                    case .shouldRequest:
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
-                    } else {
+                    case .hasRequested:
                         if isBeforeEvening {
                             LastNightCard(sleepSessions: lastNightData,
                                           goal: userPreferences.sleepGoalHours)
