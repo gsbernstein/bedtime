@@ -154,6 +154,7 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier("settings_screen")
             .toolbar {
                 if horizontalSizeClass == .compact {
                     ToolbarItem(placement: .confirmationAction) {
