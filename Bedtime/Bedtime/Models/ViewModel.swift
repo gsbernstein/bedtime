@@ -56,12 +56,12 @@ class ViewModel {
         var totalSleepNeeded = sleepGoal - sleepBank.currentBalance
         
         // Generate reason
-        let reason: String
+        let reason: String?
         if sleepBank.averageHours == nil {
             reason = "No data so far, just aim for your goal"
         } else if totalSleepNeeded > maxSleepHours {
             totalSleepNeeded = maxSleepHours
-            reason = "You can't catch up in one night, so just get as much as possible."
+            reason = nil
         } else if totalSleepNeeded < minSleepHours {
             totalSleepNeeded = minSleepHours
             reason = "You're way ahead!"
