@@ -2,11 +2,30 @@
 
 from __future__ import annotations
 
+import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
 
-from scripts.xcode_cloud.github_comments import COMMENT_MARKER, github_headers, parse_screenshot_urls
+from scripts.xcode_cloud.github_comments import (
+    COMMENT_MARKER,
+    TERMINAL_BUILD_STATUSES,
+    BuildStatus,
+    github_headers,
+    parse_build_status,
+    parse_build_status_payload,
+    parse_screenshot_urls,
+)
+
+
+@dataclass(frozen=True)
+class CommitReportResult:
+    status: BuildStatus
+    comment_id: int
+    comment_url: str
+    body: str
+    payload: dict
 
 
 def find_commit_comment_id(
@@ -70,6 +89,70 @@ def upsert_commit_comment(
     finally:
         if close_client:
             http.close()
+
+
+def fetch_commit_report(
+    repo: str,
+    commit_sha: str,
+    *,
+    token: str,
+    client: httpx.Client | None = None,
+) -> CommitReportResult | None:
+    http = client or httpx.Client(timeout=30.0)
+    close_client = client is None
+    try:
+        response = http.get(
+            f"https://api.github.com/repos/{repo}/commits/{commit_sha}/comments",
+            headers=github_headers(token),
+        )
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        for comment in response.json():
+            body = comment.get("body", "")
+            if COMMENT_MARKER not in body:
+                continue
+            status = parse_build_status(body)
+            if status is None:
+                continue
+            return CommitReportResult(
+                status=status,
+                comment_id=comment["id"],
+                comment_url=comment["html_url"],
+                body=body,
+                payload=parse_build_status_payload(body),
+            )
+        return None
+    finally:
+        if close_client:
+            http.close()
+
+
+def wait_for_commit_report(
+    repo: str,
+    commit_sha: str,
+    *,
+    token: str,
+    timeout_seconds: int = 3600,
+    poll_interval_seconds: int = 30,
+    client: httpx.Client | None = None,
+) -> CommitReportResult:
+    http = client or httpx.Client(timeout=30.0)
+    close_client = client is None
+    deadline = time.time() + timeout_seconds
+    try:
+        while time.time() < deadline:
+            report = fetch_commit_report(repo, commit_sha, token=token, client=http)
+            if report is not None and report.status.value in TERMINAL_BUILD_STATUSES:
+                return report
+            time.sleep(poll_interval_seconds)
+    finally:
+        if close_client:
+            http.close()
+    raise TimeoutError(
+        f"Timed out after {timeout_seconds}s waiting for a terminal build report "
+        f"on {repo}@{commit_sha[:7]}"
+    )
 
 
 def fetch_screenshot_urls_from_commit(

@@ -108,11 +108,13 @@ run() {
 if [[ -n "$TAG" ]]; then
   run git tag -fa "$REF" -m "$MESSAGE"
   run git push origin "$REF" --force
+  POLL_SHA="$(git rev-parse "$REF^{commit}" 2>/dev/null || git rev-parse "$REF")"
   echo "Pushed tag $REF"
 else
   CURRENT_BRANCH="$(git branch --show-current)"
   run git checkout -B "$REF"
   run git commit --allow-empty -m "$MESSAGE"
+  POLL_SHA="$(git rev-parse HEAD)"
   run git push -u origin "$REF"
   if [[ -n "$CURRENT_BRANCH" ]]; then
     run git checkout "$CURRENT_BRANCH"
@@ -120,4 +122,18 @@ else
   echo "Pushed branch $REF"
 fi
 
+REMOTE_URL="$(git remote get-url origin 2>/dev/null || true)"
+REPO_SLUG=""
+if [[ "$REMOTE_URL" =~ github\.com[:/]([^/]+/[^/.]+) ]]; then
+  REPO_SLUG="${BASH_REMATCH[1]%.git}"
+fi
+
 echo "Xcode Cloud should start the screenshots workflow shortly."
+if [[ -n "$POLL_SHA" && -n "$REPO_SLUG" ]]; then
+  cat <<EOF
+Poll for the build report:
+  python3 scripts/fetch_xcode_cloud_screenshots.py wait-for-commit-report \\
+    --repo ${REPO_SLUG} \\
+    --commit-sha ${POLL_SHA}
+EOF
+fi

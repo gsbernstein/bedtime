@@ -4,14 +4,25 @@ from __future__ import annotations
 
 import json
 import re
+from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from scripts.xcode_cloud.compare import ScreenshotChange, ScreenshotComparison
 from scripts.xcode_cloud.upload import UploadedScreenshot
 
 COMMENT_MARKER = "<!-- bedtime-screenshot-report -->"
 URLS_MARKER_START = "<!-- bedtime-screenshot-urls"
-URLS_MARKER_END = "-->"
+STATUS_MARKER_START = "<!-- bedtime-build-status"
+MARKER_END = "-->"
+
+TERMINAL_BUILD_STATUSES = frozenset({"success", "failed", "no_screenshots"})
+
+
+class BuildStatus(str, Enum):
+    SUCCESS = "success"
+    FAILED = "failed"
+    NO_SCREENSHOTS = "no_screenshots"
 
 
 def github_headers(token: str) -> dict[str, str]:
@@ -26,24 +37,17 @@ def short_sha(commit_sha: str) -> str:
     return commit_sha[:7]
 
 
-def embed_screenshot_urls(body: str, urls: dict[str, str]) -> str:
-    stripped = strip_screenshot_urls_block(body).rstrip()
-    payload = json.dumps(urls, separators=(",", ":"), sort_keys=True)
-    block = f"{URLS_MARKER_START}\n{payload}\n{URLS_MARKER_END}"
-    return f"{stripped}\n\n{block}"
-
-
-def strip_screenshot_urls_block(body: str) -> str:
+def _strip_marker_block(body: str, marker_start: str) -> str:
     pattern = re.compile(
-        rf"\n*{re.escape(URLS_MARKER_START)}.*?{re.escape(URLS_MARKER_END)}",
+        rf"\n*{re.escape(marker_start)}.*?{re.escape(MARKER_END)}",
         flags=re.DOTALL,
     )
     return pattern.sub("", body)
 
 
-def parse_screenshot_urls(body: str) -> dict[str, str]:
+def _parse_marker_json(body: str, marker_start: str) -> dict[str, Any]:
     match = re.search(
-        rf"{re.escape(URLS_MARKER_START)}\s*(\{{.*?\}})\s*{re.escape(URLS_MARKER_END)}",
+        rf"{re.escape(marker_start)}\s*(\{{.*?\}})\s*{re.escape(MARKER_END)}",
         body,
         flags=re.DOTALL,
     )
@@ -53,9 +57,173 @@ def parse_screenshot_urls(body: str) -> dict[str, str]:
         payload = json.loads(match.group(1))
     except json.JSONDecodeError:
         return {}
-    if not isinstance(payload, dict):
-        return {}
-    return {str(name): str(url) for name, url in payload.items()}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _embed_marker_block(body: str, marker_start: str, payload: dict[str, Any]) -> str:
+    stripped = _strip_marker_block(body, marker_start).rstrip()
+    encoded = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+    block = f"{marker_start}\n{encoded}\n{MARKER_END}"
+    return f"{stripped}\n\n{block}"
+
+
+def strip_metadata_blocks(body: str) -> str:
+    return _strip_marker_block(_strip_marker_block(body, STATUS_MARKER_START), URLS_MARKER_START)
+
+
+def embed_screenshot_urls(body: str, urls: dict[str, str]) -> str:
+    return _embed_marker_block(body, URLS_MARKER_START, urls)
+
+
+def strip_screenshot_urls_block(body: str) -> str:
+    return _strip_marker_block(body, URLS_MARKER_START)
+
+
+def parse_screenshot_urls(body: str) -> dict[str, str]:
+    urls_payload = _parse_marker_json(body, URLS_MARKER_START)
+    if urls_payload and "status" not in urls_payload:
+        return {str(name): str(url) for name, url in urls_payload.items()}
+
+    status_payload = parse_build_status_payload(body)
+    screenshot_urls = status_payload.get("screenshot_urls", {})
+    if isinstance(screenshot_urls, dict):
+        return {str(name): str(url) for name, url in screenshot_urls.items()}
+    return {}
+
+
+def embed_build_status(body: str, payload: dict[str, Any]) -> str:
+    return _embed_marker_block(body, STATUS_MARKER_START, payload)
+
+
+def parse_build_status_payload(body: str) -> dict[str, Any]:
+    return _parse_marker_json(body, STATUS_MARKER_START)
+
+
+def parse_build_status(body: str) -> BuildStatus | None:
+    payload = parse_build_status_payload(body)
+    status = payload.get("status")
+    if status in TERMINAL_BUILD_STATUSES:
+        return BuildStatus(status)
+    return None
+
+
+def build_status_payload(
+    *,
+    status: BuildStatus,
+    build_run_id: str,
+    commit_sha: str | None = None,
+    exit_code: int | None = None,
+    errors: list[str] | None = None,
+    screenshot_urls: dict[str, str] | None = None,
+    baseline_commit_sha: str | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "status": status.value,
+        "build_id": build_run_id,
+    }
+    if commit_sha:
+        payload["commit_sha"] = commit_sha
+    if exit_code is not None:
+        payload["exit_code"] = exit_code
+    if errors:
+        payload["errors"] = errors
+    if screenshot_urls:
+        payload["screenshot_urls"] = screenshot_urls
+    if baseline_commit_sha:
+        payload["baseline_commit_sha"] = baseline_commit_sha
+    return payload
+
+
+def build_failure_comment(
+    *,
+    build_run_id: str,
+    commit_sha: str,
+    exit_code: int | None = None,
+    errors: list[str] | None = None,
+    log_excerpt: str | None = None,
+) -> str:
+    lines = [
+        COMMENT_MARKER,
+        "### Xcode Cloud: failed",
+        "",
+        f"Commit `{short_sha(commit_sha)}`",
+        f"Build `{build_run_id}`",
+        "",
+    ]
+    if exit_code is not None:
+        lines.append(f"`xcodebuild` exit code: `{exit_code}`")
+        lines.append("")
+    if errors:
+        lines.extend(["**Errors**", ""])
+        lines.extend(f"- {error}" for error in errors)
+        lines.append("")
+    if log_excerpt:
+        lines.extend(["**Log excerpt**", "", "```", log_excerpt.rstrip(), "```", ""])
+    lines.append("Fix the issues above and push again to re-run screenshots.")
+    body = "\n".join(lines).rstrip()
+    return embed_build_status(
+        body,
+        build_status_payload(
+            status=BuildStatus.FAILED,
+            build_run_id=build_run_id,
+            commit_sha=commit_sha,
+            exit_code=exit_code,
+            errors=errors or [],
+        ),
+    )
+
+
+def build_no_screenshots_comment(
+    *,
+    build_run_id: str,
+    commit_sha: str,
+    errors: list[str] | None = None,
+) -> str:
+    lines = [
+        COMMENT_MARKER,
+        "### Xcode Cloud: no screenshots",
+        "",
+        f"Commit `{short_sha(commit_sha)}`",
+        f"Build `{build_run_id}`",
+        "",
+        "The build finished but no screenshot PNGs were extracted from the test result bundle.",
+        "",
+    ]
+    if errors:
+        lines.extend(["**Details**", ""])
+        lines.extend(f"- {error}" for error in errors)
+        lines.append("")
+    body = "\n".join(lines).rstrip()
+    return embed_build_status(
+        body,
+        build_status_payload(
+            status=BuildStatus.NO_SCREENSHOTS,
+            build_run_id=build_run_id,
+            commit_sha=commit_sha,
+            errors=errors or [],
+        ),
+    )
+
+
+def finalize_success_comment(
+    body: str,
+    *,
+    build_run_id: str,
+    commit_sha: str,
+    screenshot_urls: dict[str, str],
+    baseline_commit_sha: str | None = None,
+) -> str:
+    body = embed_screenshot_urls(body, screenshot_urls)
+    return embed_build_status(
+        body,
+        build_status_payload(
+            status=BuildStatus.SUCCESS,
+            build_run_id=build_run_id,
+            commit_sha=commit_sha,
+            screenshot_urls=screenshot_urls,
+            baseline_commit_sha=baseline_commit_sha,
+        ),
+    )
 
 
 def build_screenshot_comment(
@@ -117,8 +285,16 @@ def build_screenshot_comment(
             lines.append(f"| `{path.name}` |")
         body = "\n".join(lines)
 
+    if screenshot_urls and commit_sha:
+        return finalize_success_comment(
+            body,
+            build_run_id=build_run_id,
+            commit_sha=commit_sha,
+            screenshot_urls=screenshot_urls,
+            baseline_commit_sha=baseline_commit_sha,
+        )
     if screenshot_urls:
-        body = embed_screenshot_urls(body, screenshot_urls)
+        return embed_screenshot_urls(body, screenshot_urls)
     return body
 
 

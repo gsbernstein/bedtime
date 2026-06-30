@@ -1,4 +1,4 @@
-"""Publish sticky commit screenshot reports with before/after diffs."""
+"""Publish sticky commit build reports for agent feedback loops."""
 
 from __future__ import annotations
 
@@ -8,13 +8,79 @@ from typing import Any
 import httpx
 
 from scripts.xcode_cloud.compare import compare_screenshot_sets
-from scripts.xcode_cloud.github_comments import attach_upload_urls, build_screenshot_comment
+from scripts.xcode_cloud.github_comments import (
+    BuildStatus,
+    attach_upload_urls,
+    build_failure_comment,
+    build_no_screenshots_comment,
+    build_screenshot_comment,
+)
 from scripts.xcode_cloud.github_commit import (
     download_baseline_images,
     fetch_screenshot_urls_from_commit,
     upsert_commit_comment,
 )
 from scripts.xcode_cloud.upload import UploadBackend, upload_screenshots
+
+
+def publish_build_failure_report(
+    repo: str,
+    commit_sha: str,
+    build_run_id: str,
+    *,
+    token: str,
+    exit_code: int | None = None,
+    errors: list[str] | None = None,
+    log_excerpt: str | None = None,
+) -> dict[str, Any]:
+    body = build_failure_comment(
+        build_run_id=build_run_id,
+        commit_sha=commit_sha,
+        exit_code=exit_code,
+        errors=errors,
+        log_excerpt=log_excerpt,
+    )
+    with httpx.Client(timeout=60.0) as client:
+        comment = upsert_commit_comment(
+            repo,
+            commit_sha,
+            body,
+            token=token,
+            client=client,
+        )
+    return {
+        "status": BuildStatus.FAILED.value,
+        "comment_id": comment["id"],
+        "comment_url": comment["html_url"],
+    }
+
+
+def publish_no_screenshots_report(
+    repo: str,
+    commit_sha: str,
+    build_run_id: str,
+    *,
+    token: str,
+    errors: list[str] | None = None,
+) -> dict[str, Any]:
+    body = build_no_screenshots_comment(
+        build_run_id=build_run_id,
+        commit_sha=commit_sha,
+        errors=errors,
+    )
+    with httpx.Client(timeout=60.0) as client:
+        comment = upsert_commit_comment(
+            repo,
+            commit_sha,
+            body,
+            token=token,
+            client=client,
+        )
+    return {
+        "status": BuildStatus.NO_SCREENSHOTS.value,
+        "comment_id": comment["id"],
+        "comment_url": comment["html_url"],
+    }
 
 
 def publish_screenshot_commit_report(
@@ -81,9 +147,11 @@ def publish_screenshot_commit_report(
         )
 
     return {
+        "status": BuildStatus.SUCCESS.value,
         "comment_id": comment["id"],
         "comment_url": comment["html_url"],
         "upload_count": len(uploads),
         "comparison_count": len(comparisons),
         "baseline_commit_sha": baseline_commit_sha,
+        "screenshot_urls": screenshot_urls,
     }
