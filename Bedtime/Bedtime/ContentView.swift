@@ -58,6 +58,14 @@ struct ContentView: View {
         )
     }
 
+    private var sleepBankInsight: SleepBankInsight? {
+        SleepInsightsEngine.generateInsight(
+            sleepSessions: healthKitManager.sleepSessions,
+            goalHours: userPreferences.sleepGoalHours,
+            maxSleepHours: userPreferences.maxSleepHoursPerNight
+        )
+    }
+
     var body: some View {
         let isBeforeEvening = Calendar.current.component(.hour, from: Date()) < 18
         NavigationStack {
@@ -75,6 +83,10 @@ struct ContentView: View {
                         }
 
                         SleepBankCard(sleepBank: sleepBank)
+
+                        if let sleepBankInsight {
+                            SleepInsightsCard(insight: sleepBankInsight)
+                        }
 
                         if isBeforeEvening {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)

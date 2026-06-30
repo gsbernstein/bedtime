@@ -65,12 +65,14 @@ struct BedtimeRecommendationCard: View {
                         }
                     }
                     
-                    // Reason text
-                    Text(recommendation.reason)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.leading)
-                        .padding(.top, 4)
+                    // Reason text (omitted when the sleep insight card covers it)
+                    if let reason = recommendation.reason {
+                        Text(reason)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.leading)
+                            .padding(.top, 4)
+                    }
                 }
             }
         }
