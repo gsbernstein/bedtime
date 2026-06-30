@@ -12,13 +12,20 @@ struct SleepBankCard: View {
     
     private var chartBalanceBounds: ClosedRange<Double> {
         let values = sleepBank.balanceImpacts.flatMap { [$0.priorBalance, $0.newBalance] }
-        let magnitude = max(values.map(abs).max() ?? 0, 0.5)
-        return (-magnitude - 0.25)...(magnitude + 0.25)
+        guard !values.isEmpty else { return -0.75...0.75 }
+        
+        let dataMin = values.min() ?? 0
+        let dataMax = values.max() ?? 0
+        let midpoint = (dataMin + dataMax) / 2
+        let visualSpan = max((dataMax - dataMin) / 0.85, 1.0)
+        let halfSpan = visualSpan / 2
+        
+        return (midpoint - halfSpan)...(midpoint + halfSpan)
     }
     
     var body: some View {
         CardComponent {
-            VStack(spacing: 16) {
+            VStack(spacing: 10) {
                 HStack {
                     Image(systemName: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill")
                         .font(.title2)
@@ -38,8 +45,8 @@ struct SleepBankCard: View {
                 }
                 
                 // Balance visualization
-                HStack {
-                    VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("Average")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -65,7 +72,7 @@ struct SleepBankCard: View {
                     
                     Spacer()
                     
-                    VStack(alignment: .center, spacing: 8) {
+                    VStack(alignment: .center, spacing: 4) {
                         Text("Status")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -90,7 +97,7 @@ struct SleepBankCard: View {
                     
                     Spacer()
                     
-                    VStack(alignment: .trailing, spacing: 8) {
+                    VStack(alignment: .trailing, spacing: 4) {
                         Text("Goal")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -114,7 +121,7 @@ struct SleepBankCard: View {
                         impacts: sleepBank.balanceImpacts,
                         domain: chartBalanceBounds
                     )
-                    .frame(height: 64)
+                    .frame(height: 56)
                 }
             }
         }

@@ -40,19 +40,18 @@ struct BalanceWaterfallChart: View {
             for (index, night) in nights.enumerated() {
                 guard let day = impactByDate[night.date] else { continue }
                 
-                let centerX = (CGFloat(index) + 0.5) * slotWidth
-                let boxWidth = max(slotWidth * 0.65, 4)
+                let boxX = CGFloat(index) * slotWidth
                 let priorY = yPosition(for: day.priorBalance)
                 let newY = yPosition(for: day.newBalance)
                 let rect = CGRect(
-                    x: centerX - boxWidth / 2,
+                    x: boxX,
                     y: min(priorY, newY),
-                    width: boxWidth,
+                    width: slotWidth,
                     height: abs(newY - priorY)
                 )
                 
                 context.fill(
-                    Path(roundedRect: rect, cornerRadius: 2),
+                    Path(rect),
                     with: .color(day.isGain ? .green : .red)
                 )
             }
