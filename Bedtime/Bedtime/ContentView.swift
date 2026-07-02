@@ -53,8 +53,7 @@ struct ContentView: View {
             wakeTime: userPreferences.wakeTime,
             sleepGoal: userPreferences.sleepGoalHours,
             sleepBank: sleepBank,
-            maxSleepHours: userPreferences.maxSleepHoursPerNight,
-            minSleepHours: userPreferences.minSleepHoursPerNight
+            maxSleepHours: userPreferences.effectiveMaxSleepHours
         )
     }
 
