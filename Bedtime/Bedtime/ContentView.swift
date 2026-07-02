@@ -32,7 +32,6 @@ struct ContentView: View {
     
     private var userPreferences: UserPreferences {
         if let existing = preferences.first {
-            existing.migrateBedtimeLimitIfNeeded()
             return existing
         } else {
             let new = UserPreferences()

@@ -29,10 +29,7 @@ struct SettingsView: View {
     #endif
 
     private var earliestBedtimeBinding: Binding<Date> {
-        Binding(
-            get: { preferences.resolvedEarliestBedtime },
-            set: { preferences.earliestReasonableBedtime = $0 }
-        )
+        $preferences.earliestReasonableBedtime
     }
 
     var body: some View {
