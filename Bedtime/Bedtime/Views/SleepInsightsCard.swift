@@ -29,23 +29,15 @@ struct SleepInsightsCard: View {
 
     var body: some View {
         CardComponent {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: iconName)
-                    .font(.title2)
-                    .foregroundColor(accentColor)
-                    .frame(width: Constants.iconWidth)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Sleep Insight")
-                        .font(.headline)
-
-                    Text(insight.message)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 0)
+            CardHeader(
+                icon: iconName,
+                iconColor: accentColor,
+                title: "Sleep Insight"
+            ) {
+                Text(insight.message)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
