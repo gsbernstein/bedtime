@@ -29,11 +29,13 @@ struct SleepInsightsCard: View {
 
     var body: some View {
         CardComponent {
-            CardHeader(
-                icon: iconName,
-                iconColor: accentColor,
-                title: "Sleep Insight"
-            ) {
+            VStack(alignment: .leading, spacing: 12) {
+                CardHeader(
+                    icon: iconName,
+                    iconColor: accentColor,
+                    title: "Sleep Insight"
+                )
+
                 Text(insight.message)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
