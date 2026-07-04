@@ -86,7 +86,7 @@ struct SettingsView: View {
                         displayedComponents: .hourAndMinute
                     )
 
-                    Text("Won't recommend sleeping before this time — up to \(String(format: "%.1f", preferences.effectiveMaxSleepHours)) hours before your wake time.")
+                    Text("Won't recommend sleeping before this time — allowing up to \(String(format: "%.1f", preferences.nominalMaxSleepHours)) hours per night based on your wake time (aside from DST adjustments).")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

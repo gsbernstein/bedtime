@@ -29,9 +29,17 @@ final class UserPreferences {
         self.earliestReasonableBedtime = earliestReasonableBedtime
     }
 
-    /// Longest sleep window allowed before hitting the earliest reasonable bedtime.
+    /// Real hours available on the current night — DST-aware, for the main-screen
+    /// recommendation where "how much can I actually get tonight" is what matters.
     var effectiveMaxSleepHours: Double {
         Self.maxSleepHours(earliestBedtime: earliestReasonableBedtime, wakeTime: wakeTime)
+    }
+
+    /// Nominal wall-clock length of the sleep window (a stable 10h for a 9pm–7am
+    /// schedule, ignoring DST). For settings/schedule display, where a value that
+    /// wobbles ±1h twice a year would just be confusing.
+    var nominalMaxSleepHours: Double {
+        Self.nominalWindowHours(earliestBedtime: earliestReasonableBedtime, wakeTime: wakeTime)
     }
 
     /// Real hours between the earliest reasonable bedtime and wake time for the
@@ -62,16 +70,16 @@ final class UserPreferences {
             )
         else {
             // Fall back to a nominal wall-clock window if a match can't be found.
-            return nominalMaxSleepHours(earliestBedtime: earliestBedtime, wakeTime: wakeTime, calendar: calendar)
+            return nominalWindowHours(earliestBedtime: earliestBedtime, wakeTime: wakeTime, calendar: calendar)
         }
 
         return wake.timeIntervalSince(bed) / 3600.0
     }
 
-    private static func nominalMaxSleepHours(
+    static func nominalWindowHours(
         earliestBedtime: Date,
         wakeTime: Date,
-        calendar: Calendar
+        calendar: Calendar = .current
     ) -> Double {
         let wakeMinutes = minutesSinceMidnight(wakeTime, calendar: calendar)
         let earliestMinutes = minutesSinceMidnight(earliestBedtime, calendar: calendar)
