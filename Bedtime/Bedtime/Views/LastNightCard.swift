@@ -24,17 +24,11 @@ struct LastNightCard: View {
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "calendar")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                        .frame(width: Constants.iconWidth)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Last Night")
-                            .font(.headline)
-                    }
-                    Spacer()
-                }
+                CardHeader(
+                    icon: "calendar",
+                    iconColor: .blue,
+                    title: "Last Night"
+                )
                 
                 if let sleepSessions {
                     HStack {

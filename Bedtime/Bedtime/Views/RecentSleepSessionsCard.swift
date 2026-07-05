@@ -30,19 +30,11 @@ struct RecentSleepSessionsCard: View {
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .font(.title2)
-                        .foregroundColor(.purple)
-                        .frame(width: Constants.iconWidth)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Recent Sleep")
-                            .font(.headline)
-                    }
-                    
-                    Spacer()
-                }
+                CardHeader(
+                    icon: "chart.line.uptrend.xyaxis",
+                    iconColor: .purple,
+                    title: "Recent Sleep"
+                )
                 
                 // Grouped sleep sessions
                 VStack(spacing: 8) {
