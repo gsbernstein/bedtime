@@ -57,7 +57,7 @@ struct SleepWindow {
         let earliestMinutes = minutesSinceMidnight(earliestBedtime, calendar: calendar)
 
         let sleepMinutes: Int
-        if earliestMinutes > wakeMinutes {
+        if earliestMinutes >= wakeMinutes {
             sleepMinutes = (24 * 60 - earliestMinutes) + wakeMinutes
         } else {
             sleepMinutes = wakeMinutes - earliestMinutes
