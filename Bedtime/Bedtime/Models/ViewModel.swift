@@ -44,13 +44,19 @@ class ViewModel {
     
     static func generateBedtimeRecommendation(
         wakeTime: Date,
+        earliestBedtime: Date,
         sleepGoal: Double,
         sleepBank: SleepBank,
-        maxSleepHours: Double,
-        minSleepHours: Double
+        referenceDate: Date = Date()
     ) -> BedtimeRecommendation {
         let calendar = Calendar.current
-        
+        let maxSleepHours = SleepWindow.maxSleepHours(
+            earliestBedtime: earliestBedtime,
+            wakeTime: wakeTime,
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+
         // Calculate how much sleep we need tonight
         // If we're in debt, we need extra sleep to catch up
         var totalSleepNeeded = sleepGoal - sleepBank.currentBalance
@@ -62,9 +68,6 @@ class ViewModel {
         } else if totalSleepNeeded > maxSleepHours {
             totalSleepNeeded = maxSleepHours
             reason = "You can't catch up in one night, so just get as much as possible."
-        } else if totalSleepNeeded < minSleepHours {
-            totalSleepNeeded = minSleepHours
-            reason = "You're way ahead!"
         } else if sleepBank.isInDebt {
             let debtHours = sleepBank.debtHours
             reason = "You need \(String(format: "%.1f", totalSleepNeeded)) hours tonight to catch up on your \(String(format: "%.1f", debtHours))-hour sleep debt."
