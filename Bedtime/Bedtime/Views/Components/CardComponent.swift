@@ -7,6 +7,50 @@
 
 import SwiftUI
 
+struct CardHeader<Subtitle: View>: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    @ViewBuilder var subtitle: () -> Subtitle
+
+    init(icon: String, iconColor: Color, title: String) where Subtitle == EmptyView {
+        self.icon = icon
+        self.iconColor = iconColor
+        self.title = title
+        self.subtitle = { EmptyView() }
+    }
+
+    init(
+        icon: String,
+        iconColor: Color,
+        title: String,
+        @ViewBuilder subtitle: @escaping () -> Subtitle
+    ) {
+        self.icon = icon
+        self.iconColor = iconColor
+        self.title = title
+        self.subtitle = subtitle
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: Constants.cardHeaderSpacing) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(iconColor)
+                .frame(width: Constants.iconWidth, alignment: .center)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+
+                subtitle()
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 struct CardComponent<Content: View>: View {
     let content: Content
     

@@ -19,22 +19,14 @@ struct BedtimeRecommendationCard: View {
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "bed.double.fill")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                        .frame(width: Constants.iconWidth)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Tonight's Recommendation")
-                            .font(.headline)
-                        
-                        Text("Based on your sleep bank")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
+                CardHeader(
+                    icon: "bed.double.fill",
+                    iconColor: .blue,
+                    title: "Tonight's Recommendation"
+                ) {
+                    Text("Based on your sleep bank")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
                 
                 // Recommendation details

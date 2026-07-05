@@ -13,22 +13,14 @@ struct SleepBankCard: View {
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill")
-                        .font(.title2)
-                        .foregroundColor(sleepBank.averageHours == nil ? .secondary : sleepBank.isInDebt ? .red : .green)
-                        .frame(width: Constants.iconWidth)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Sleep Balance")
-                            .font(.headline)
-                        
-                        Text(sleepBank.statusDescription)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
+                CardHeader(
+                    icon: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill",
+                    iconColor: sleepBank.averageHours == nil ? .secondary : sleepBank.isInDebt ? .red : .green,
+                    title: "Sleep Balance"
+                ) {
+                    Text(sleepBank.statusDescription)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
                 
                 // Balance visualization

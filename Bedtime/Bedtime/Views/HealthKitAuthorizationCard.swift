@@ -13,22 +13,14 @@ struct HealthKitAuthorizationCard: View {
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "heart.text.square")
-                        .font(.title2)
-                        .foregroundColor(.red)
-                        .frame(width: Constants.iconWidth)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("HealthKit Access Required")
-                            .font(.headline)
-                        
-                        Text("We need access to your sleep data")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
+                CardHeader(
+                    icon: "heart.text.square",
+                    iconColor: .red,
+                    title: "HealthKit Access Required"
+                ) {
+                    Text("We need access to your sleep data")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
                 
                 Text("To calculate your sleep bank and provide personalized bedtime recommendations, we need permission to read your sleep data from the Health app.")
