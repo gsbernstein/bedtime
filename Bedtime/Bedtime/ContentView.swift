@@ -61,7 +61,10 @@ struct ContentView: View {
         SleepInsightsEngine.generateInsight(
             sleepSessions: healthKitManager.sleepSessions,
             goalHours: userPreferences.sleepGoalHours,
-            maxSleepHours: userPreferences.maxSleepHoursPerNight
+            maxSleepHours: SleepWindow.maxSleepHours(
+                earliestBedtime: userPreferences.earliestReasonableBedtime,
+                wakeTime: userPreferences.wakeTime
+            )
         )
     }
 
