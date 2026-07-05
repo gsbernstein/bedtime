@@ -29,35 +29,9 @@ final class UserPreferences {
         self.earliestReasonableBedtime = earliestReasonableBedtime
     }
 
-    /// Nominal wall-clock length of the sleep window (a stable 10h for a 9pm–7am
-    /// schedule, ignoring DST). For settings/schedule display, where a value that
-    /// wobbles ±1h twice a year would just be confusing. The now-aware,
-    /// DST-adjusted window lives in `ViewModel.maxSleepHours`, since it depends
-    /// on the clock rather than on stored config.
+    /// Convenience accessor for the nominal sleep-window length from this
+    /// schedule's stored times. Now-aware/DST math lives in `SleepWindow`.
     var nominalMaxSleepHours: Double {
-        Self.nominalWindowHours(earliestBedtime: earliestReasonableBedtime, wakeTime: wakeTime)
-    }
-
-    static func nominalWindowHours(
-        earliestBedtime: Date,
-        wakeTime: Date,
-        calendar: Calendar = .current
-    ) -> Double {
-        let wakeMinutes = minutesSinceMidnight(wakeTime, calendar: calendar)
-        let earliestMinutes = minutesSinceMidnight(earliestBedtime, calendar: calendar)
-
-        let sleepMinutes: Int
-        if earliestMinutes > wakeMinutes {
-            sleepMinutes = (24 * 60 - earliestMinutes) + wakeMinutes
-        } else {
-            sleepMinutes = wakeMinutes - earliestMinutes
-        }
-
-        return Double(sleepMinutes) / 60.0
-    }
-
-    private static func minutesSinceMidnight(_ date: Date, calendar: Calendar) -> Int {
-        let components = calendar.dateComponents([.hour, .minute], from: date)
-        return (components.hour ?? 0) * 60 + (components.minute ?? 0)
+        SleepWindow.nominalWindowHours(earliestBedtime: earliestReasonableBedtime, wakeTime: wakeTime)
     }
 }
