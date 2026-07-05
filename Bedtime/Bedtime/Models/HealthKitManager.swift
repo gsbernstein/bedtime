@@ -121,29 +121,22 @@ class HealthKitManager: ObservableObject {
             sampleType: HKCategoryType.sleepAnalysis,
             predicate: nil
         ) { [weak self] _, completionHandler, error in
-            // HealthKit invokes this handler off the main thread. We must always call
+            // HealthKit invokes this handler off the main thread, so hop to the main
+            // actor to touch `errorMessage`/`loadSleepData`. Always call
             // `completionHandler()` so HealthKit releases its background assertion and
             // stops retrying the notification.
-            guard let self else {
-                completionHandler()
-                return
-            }
-
-            if let error {
-                Task { @MainActor in
-                    self.errorMessage = "Sleep data observer error: \(error.localizedDescription)"
-                }
-                completionHandler()
-                return
-            }
-
             Task { @MainActor in
+                defer { completionHandler() }
+                guard let self else { return }
+                if let error {
+                    self.errorMessage = "Sleep data observer error: \(error.localizedDescription)"
+                    return
+                }
                 do {
                     try await self.loadSleepData()
                 } catch {
                     self.errorMessage = "Failed to refresh sleep data: \(error.localizedDescription)"
                 }
-                completionHandler()
             }
         }
 
