@@ -9,12 +9,16 @@ import Foundation
 import HealthKit
 import Combine
 
-/// UI state for the HealthKit read-authorization flow.
-///
 /// HealthKit intentionally does **not** report whether read access was granted —
 /// `requestAuthorization` succeeding only means the sheet was dismissed. There is
 /// no separate "already has permission" case; returning users reach `.hasRequested`
 /// when the silent re-check completes without showing the sheet.
+///
+/// HealthKit intentionally does **not** report whether read access was granted —
+/// `requestAuthorization` succeeding only means the user chose
+/// whether or not to provide permission. We use this flag to avoid re-prompting,
+/// not as proof of access. Write/share permission (for debug) is handled separately by
+/// `requireWriteAuthorization(for:)`, which can re-prompt when needed.
 enum PermissionsRequestState: Equatable {
     case loading
     case shouldRequest
@@ -59,8 +63,8 @@ class HealthKitManager: ObservableObject {
     }
     
     /// Presents the HealthKit authorization sheet for read access if we haven't
-    /// already. No-op on subsequent calls — see `permissionsRequestState` for
-    /// why we can't verify read access was actually granted.
+    /// already. No-op on subsequent calls — see `PermissionsRequestState` for
+    /// why we can't verify if read access was actually granted.
     func requestAuthorization() async throws {
         guard permissionsRequestState != .hasRequested else { return }
         
