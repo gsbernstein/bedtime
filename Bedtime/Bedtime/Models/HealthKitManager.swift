@@ -31,6 +31,9 @@ class HealthKitManager: ObservableObject {
     private let sourcePreferences: SourcePreferences
     private var rawSleepSamples: [HKCategorySample] = []
     private var cancellables = Set<AnyCancellable>()
+    /// Long-lived query that re-loads data whenever HealthKit sleep samples change.
+    /// Registered once, after the first successful fetch; torn down in `deinit`.
+    private var observerQuery: HKObserverQuery?
     
     @Published private(set) var permissionsRequestState: PermissionsRequestState = .loading
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
@@ -56,6 +59,12 @@ class HealthKitManager: ObservableObject {
             .store(in: &cancellables)
     }
     
+    deinit {
+        if let observerQuery {
+            healthStore.stop(observerQuery)
+        }
+    }
+
     private func checkHealthKitAvailability() throws {
         guard HKHealthStore.isHealthDataAvailable() else {
             throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "HealthKit is not available on this device"])
@@ -90,6 +99,7 @@ class HealthKitManager: ObservableObject {
         do {
             try await requestAuthorization()
             try await loadSleepData()
+            startObservingSleepChanges()
         } catch {
             errorMessage = error.localizedDescription
             throw error
@@ -98,6 +108,57 @@ class HealthKitManager: ObservableObject {
     
     private func loadSleepData() async throws {
         _ = try await [fetchSleepDataForDisplay(), discoverAvailableSources()]
+    }
+    
+    /// Registers an `HKObserverQuery` so the app re-loads sleep data whenever
+    /// HealthKit gains new samples — no manual pull-to-refresh needed — and enables
+    /// background delivery so those updates arrive even while the app is suspended.
+    /// Idempotent: safe to call from every `fetchSleepData()`; only registers once.
+    private func startObservingSleepChanges() {
+        guard observerQuery == nil else { return }
+
+        let query = HKObserverQuery(
+            sampleType: HKCategoryType.sleepAnalysis,
+            predicate: nil
+        ) { [weak self] _, completionHandler, error in
+            // HealthKit invokes this handler off the main thread, so hop to the main
+            // actor to touch `errorMessage`/`loadSleepData`. Always call
+            // `completionHandler()` so HealthKit releases its background assertion and
+            // stops retrying the notification.
+            Task { @MainActor in
+                defer { completionHandler() }
+                guard let self else { return }
+                if let error {
+                    self.errorMessage = "Sleep data observer error: \(error.localizedDescription)"
+                    return
+                }
+                do {
+                    try await self.loadSleepData()
+                } catch {
+                    self.errorMessage = "Failed to refresh sleep data: \(error.localizedDescription)"
+                }
+            }
+        }
+
+        observerQuery = query
+        healthStore.execute(query)
+        enableBackgroundDelivery()
+    }
+
+    /// Asks HealthKit to wake the app (subject to system throttling) whenever new
+    /// sleep samples land, so the observer query fires while backgrounded. Requires
+    /// the `com.apple.developer.healthkit.background-delivery` entitlement.
+    private func enableBackgroundDelivery() {
+        healthStore.enableBackgroundDelivery(
+            for: HKCategoryType.sleepAnalysis,
+            frequency: .immediate
+        ) { [weak self] _, error in
+            guard let error else { return }
+            let message = "Failed to enable background updates: \(error.localizedDescription)"
+            Task { @MainActor [weak self] in
+                self?.errorMessage = message
+            }
+        }
     }
     
     private func fetchSleepDataForDisplay() async throws {
