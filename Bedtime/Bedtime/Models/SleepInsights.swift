@@ -26,7 +26,7 @@ struct SleepBankInsight: Equatable {
 }
 
 enum SleepInsightsEngine {
-    /// Lookback durations scanned for local minima / motivators (matches Settings range).
+    /// Lookback durations scanned for motivator windows (matches Settings range).
     static let windowRange = 3...14
 
     static func generateInsight(
@@ -85,14 +85,9 @@ enum SleepInsightsEngine {
 
     // MARK: - Selection heuristics
 
-    /// Among local minima with a non-negative balance, pick the longest lookback.
-    /// Falls back to the longest non-negative window when no local minimum qualifies.
+    /// Longest lookback where cumulative balance is still non-negative.
     static func selectCongratulation(from snapshots: [SleepWindowBalance]) -> SleepWindowBalance? {
-        let nonNegativeMinima = localMinima(in: snapshots).filter(\.isAhead)
-        if let longestMinimum = nonNegativeMinima.max(by: { $0.days < $1.days }) {
-            return longestMinimum
-        }
-        return snapshots.filter(\.isAhead).max(by: { $0.days < $1.days })
+        snapshots.filter(\.isAhead).max(by: { $0.days < $1.days })
     }
 
     /// Prefers the most behind lookback that can still be caught up in one night.
@@ -122,18 +117,6 @@ enum SleepInsightsEngine {
     ) -> Bool {
         let sleepNeeded = goalHours - balance
         return sleepNeeded <= maxSleepHours
-    }
-
-    /// A point lower than both neighbors (plateaus count as minima).
-    static func localMinima(in snapshots: [SleepWindowBalance]) -> [SleepWindowBalance] {
-        guard !snapshots.isEmpty else { return [] }
-        guard snapshots.count > 1 else { return snapshots }
-
-        return snapshots.enumerated().compactMap { index, snapshot in
-            let previous = index > 0 ? snapshots[index - 1].balance : .infinity
-            let next = index < snapshots.count - 1 ? snapshots[index + 1].balance : .infinity
-            return snapshot.balance <= previous && snapshot.balance <= next ? snapshot : nil
-        }
     }
 
     // MARK: - Narrative
