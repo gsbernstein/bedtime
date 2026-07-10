@@ -16,6 +16,10 @@ struct SleepSourceComparisonView: View {
         let name: String
         let sessions: [SleepSession]
         let isEnabled: Bool
+        
+        var totalDuration: TimeInterval {
+            sessions.reduce(0) { $0 + $1.duration }
+        }
     }
     
     private var sourceTracks: [SourceTrack] {
@@ -63,6 +67,12 @@ struct SleepSourceComparisonView: View {
                             rangeEnd: timeRange.end,
                             isDimmed: !track.isEnabled
                         )
+                        
+                        Text(TimeFormatter.formatDuration(track.totalDuration))
+                            .font(.caption2)
+                            .monospacedDigit()
+                            .foregroundStyle(track.isEnabled ? .secondary : .tertiary)
+                            .frame(width: 36, alignment: .trailing)
                     }
                 }
             }
