@@ -88,8 +88,13 @@ struct ContentView: View {
                         }
 
                         // Recent Sleep Sessions
-                        if !healthKitManager.sleepSessions.isEmpty {
-                            RecentSleepSessionsCard(sessions: healthKitManager.sleepSessions, sleepGoal: userPreferences.sleepGoalHours)
+                        if !healthKitManager.sleepSessions.isEmpty || !healthKitManager.allSleepSessions.isEmpty {
+                            RecentSleepSessionsCard(
+                                sessions: healthKitManager.sleepSessions,
+                                allSessions: healthKitManager.allSleepSessions,
+                                excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers,
+                                sleepGoal: userPreferences.sleepGoalHours
+                            )
                         }
                     }
                 }

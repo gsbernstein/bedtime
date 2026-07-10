@@ -9,20 +9,28 @@ import SwiftUI
 
 struct RecentSleepSessionsCard: View {
     
-    init(sessions: [Date: [SleepSession]], sleepGoal: Double, dayCount: Int = Constants.sleepHistoryDays) {
+    init(
+        sessions: [Date: [SleepSession]],
+        allSessions: [Date: [SleepSession]],
+        excludedSourceIDs: Set<String>,
+        sleepGoal: Double,
+        dayCount: Int = Constants.sleepHistoryDays
+    ) {
         self.sleepGoal = sleepGoal
+        self.excludedSourceIDs = excludedSourceIDs
         
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        self.sortedSessions = (0..<dayCount).compactMap { offset -> (Date, [SleepSession])? in
+        self.sortedSessions = (0..<dayCount).compactMap { offset -> (Date, [SleepSession], [SleepSession])? in
             guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
             let dayStart = calendar.startOfDay(for: day)
-            return (dayStart, sessions[dayStart] ?? [])
+            return (dayStart, sessions[dayStart] ?? [], allSessions[dayStart] ?? [])
         }
     }
     
-    let sortedSessions: [(Date, [SleepSession])]
+    let sortedSessions: [(Date, [SleepSession], [SleepSession])]
     let sleepGoal: Double
+    let excludedSourceIDs: Set<String>
     
     @State private var expandedNights: Set<Date> = []
     
@@ -38,10 +46,12 @@ struct RecentSleepSessionsCard: View {
                 
                 // Grouped sleep sessions
                 VStack(spacing: 8) {
-                    ForEach(sortedSessions, id: \.0) { night, nightSessions in
+                    ForEach(sortedSessions, id: \.0) { night, nightSessions, allNightSessions in
                         SleepDayGroup(
                             date: night,
                             sessions: nightSessions,
+                            allSessions: allNightSessions,
+                            excludedSourceIDs: excludedSourceIDs,
                             isExpanded: expandedNights.contains(night),
                             sleepGoal: sleepGoal,
                             onToggle: {

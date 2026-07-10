@@ -48,6 +48,13 @@ extension SleepSession {
 
 extension HKCategoryValueSleepAnalysis {
     
+    static let allAsleepValues: [HKCategoryValueSleepAnalysis] = [
+        .asleepUnspecified,
+        .asleepCore,
+        .asleepDeep,
+        .asleepREM,
+    ]
+    
     var displayName: String {
         switch self {
         case .asleepUnspecified: return "Asleep"
