@@ -189,7 +189,7 @@ class HealthKitManager: ObservableObject {
         self.allSleepSessions = Dictionary(grouping: allSessions) { $0.dateForGrouping }
         
         let includedSessions = allSessions.filter {
-            sourcePreferences.isSourceSelected($0.sourceRevision.source.bundleIdentifier)
+            sourcePreferences.isSourceSelected($0.source.source.bundleIdentifier)
         }
         self.sleepSessions = Dictionary(grouping: includedSessions) { $0.dateForGrouping }
     }
