@@ -45,7 +45,8 @@ struct ContentView: View {
         ViewModel.calculateSleepBank(
             sleepSessions: healthKitManager.sleepSessions,
             goalHours: userPreferences.sleepGoalHours,
-            recentDays: userPreferences.sleepBankDays
+            recentDays: userPreferences.sleepBankDays,
+            wakeTime: userPreferences.wakeTime
         )
     }
     
@@ -62,6 +63,7 @@ struct ContentView: View {
         SleepInsightsEngine.generateInsight(
             sleepSessions: healthKitManager.sleepSessions,
             goalHours: userPreferences.sleepGoalHours,
+            wakeTime: userPreferences.wakeTime,
             maxSleepHours: SleepWindow.maxSleepHours(
                 earliestBedtime: userPreferences.earliestReasonableBedtime,
                 wakeTime: userPreferences.wakeTime
