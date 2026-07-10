@@ -11,10 +11,17 @@ class ViewModel {
     static func calculateSleepBank(
         sleepSessions: [Date: [SleepSession]],
         goalHours: Double,
-        recentDays: Int
+        recentDays: Int,
+        wakeTime: Date,
+        referenceDate: Date = Date()
     ) -> SleepBank {
         let calendar = Calendar.current
-        let endDate = Date()
+        let endDate = SleepWindow.effectiveSleepBankEndDate(
+            now: referenceDate,
+            wakeTime: wakeTime,
+            sleepSessions: sleepSessions,
+            calendar: calendar
+        )
         let startDate = calendar.date(byAdding: .day, value: -recentDays, to: endDate) ?? endDate
         
         // Filter sessions from the last N days

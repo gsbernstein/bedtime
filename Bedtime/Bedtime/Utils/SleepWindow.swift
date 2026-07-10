@@ -70,4 +70,36 @@ struct SleepWindow {
         let components = calendar.dateComponents([.hour, .minute], from: date)
         return (components.hour ?? 0) * 60 + (components.minute ?? 0)
     }
+
+    /// End of the sleep-bank lookback window. Before today's wake time, if today has no
+    /// recorded sleep yet, the current calendar day is still in progress — use end of
+    /// yesterday so midnight doesn't shift the lookback window.
+    static func effectiveSleepBankEndDate(
+        now: Date = Date(),
+        wakeTime: Date,
+        sleepSessions: [Date: [SleepSession]],
+        calendar: Calendar = .current
+    ) -> Date {
+        let today = calendar.startOfDay(for: now)
+        let todayHasData = !(sleepSessions[today]?.isEmpty ?? true)
+        if todayHasData {
+            return now
+        }
+
+        let wakeComponents = calendar.dateComponents([.hour, .minute], from: wakeTime)
+        guard let todayWake = calendar.date(
+            bySettingHour: wakeComponents.hour ?? 0,
+            minute: wakeComponents.minute ?? 0,
+            second: 0,
+            of: today
+        ) else {
+            return now
+        }
+
+        if now < todayWake {
+            return calendar.date(byAdding: .second, value: -1, to: today) ?? now
+        }
+
+        return now
+    }
 }

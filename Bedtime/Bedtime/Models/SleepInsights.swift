@@ -32,9 +32,14 @@ enum SleepInsightsEngine {
     static func generateInsight(
         sleepSessions: [Date: [SleepSession]],
         goalHours: Double,
+        wakeTime: Date,
         maxSleepHours: Double
     ) -> SleepBankInsight? {
-        let snapshots = windowBalances(sleepSessions: sleepSessions, goalHours: goalHours)
+        let snapshots = windowBalances(
+            sleepSessions: sleepSessions,
+            goalHours: goalHours,
+            wakeTime: wakeTime
+        )
         guard snapshots.contains(where: { $0.sleepBank.averageHours != nil }) else {
             return nil
         }
@@ -71,13 +76,15 @@ enum SleepInsightsEngine {
 
     static func windowBalances(
         sleepSessions: [Date: [SleepSession]],
-        goalHours: Double
+        goalHours: Double,
+        wakeTime: Date
     ) -> [SleepWindowBalance] {
         windowRange.map { days in
             let bank = ViewModel.calculateSleepBank(
                 sleepSessions: sleepSessions,
                 goalHours: goalHours,
-                recentDays: days
+                recentDays: days,
+                wakeTime: wakeTime
             )
             return SleepWindowBalance(days: days, balance: bank.currentBalance, sleepBank: bank)
         }
