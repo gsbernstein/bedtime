@@ -72,6 +72,7 @@ class ViewModel {
             let debtHours = sleepBank.debtHours
             reason = "You need \(String(format: "%.1f", totalSleepNeeded)) hours tonight to catch up on your \(String(format: "%.1f", debtHours))-hour sleep debt."
         } else {
+            totalSleepNeeded = sleepGoal
             reason = "You're ahead of the game! Aim for at least \(String(format: "%.1f", sleepGoal)) hours tonight."
         }
         
