@@ -57,11 +57,9 @@ class ViewModel {
             calendar: calendar
         )
 
-        // Calculate how much sleep we need tonight.
-        // In debt: add extra time to catch up. Ahead: still aim for the full goal.
-        var totalSleepNeeded = sleepBank.isInDebt
-            ? sleepGoal + sleepBank.debtHours
-            : sleepGoal
+        // Calculate how much sleep we need tonight
+        // If we're in debt, we need extra sleep to catch up
+        var totalSleepNeeded = sleepGoal - sleepBank.currentBalance
         
         // Generate reason
         let reason: String
@@ -74,6 +72,7 @@ class ViewModel {
             let debtHours = sleepBank.debtHours
             reason = "You need \(String(format: "%.1f", totalSleepNeeded)) hours tonight to catch up on your \(String(format: "%.1f", debtHours))-hour sleep debt."
         } else {
+            totalSleepNeeded = sleepGoal
             reason = "You're ahead of the game! Aim for at least \(String(format: "%.1f", sleepGoal)) hours tonight."
         }
         
