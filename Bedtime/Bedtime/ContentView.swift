@@ -30,35 +30,46 @@ struct ContentView: View {
         return healthKitManager.sleepSessions[lastNight]
     }
     
-    private var userPreferences: UserPreferences {
-        if let existing = preferences.first {
-            return existing
-        } else {
-            let new = UserPreferences()
-            modelContext.insert(new)
-            return new
-        }
-    }
-    
-    private var sleepBank: SleepBank {
+    private func sleepBank(for preferences: UserPreferences) -> SleepBank {
         ViewModel.calculateSleepBank(
             sleepSessions: healthKitManager.sleepSessions,
-            goalHours: userPreferences.sleepGoalHours,
-            recentDays: userPreferences.sleepBankDays
+            goalHours: preferences.sleepGoalHours,
+            recentDays: preferences.sleepBankDays
         )
     }
     
-    private var bedtimeRecommendation: BedtimeRecommendation {
+    private func bedtimeRecommendation(
+        for preferences: UserPreferences,
+        sleepBank: SleepBank
+    ) -> BedtimeRecommendation {
         ViewModel.generateBedtimeRecommendation(
-            wakeTime: userPreferences.wakeTime,
-            earliestBedtime: userPreferences.earliestReasonableBedtime,
-            sleepGoal: userPreferences.sleepGoalHours,
+            wakeTime: preferences.wakeTime,
+            earliestBedtime: preferences.earliestReasonableBedtime,
+            sleepGoal: preferences.sleepGoalHours,
             sleepBank: sleepBank
         )
     }
 
     var body: some View {
+        Group {
+            if let userPreferences = preferences.first {
+                mainContent(userPreferences: userPreferences)
+            } else {
+                ProgressView()
+            }
+        }
+        .task {
+            seedDefaultPreferencesIfNeeded()
+            try? await healthKitManager.fetchSleepData()
+        }
+    }
+
+    @ViewBuilder
+    private func mainContent(userPreferences: UserPreferences) -> some View {
         let isBeforeEvening = Calendar.current.component(.hour, from: Date()) < 18
+        let sleepBank = sleepBank(for: userPreferences)
+        let bedtimeRecommendation = bedtimeRecommendation(for: userPreferences, sleepBank: sleepBank)
+
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
@@ -128,9 +139,11 @@ struct ContentView: View {
                 )
             }
         }
-        .task {
-            try? await healthKitManager.fetchSleepData()
-        }
+    }
+
+    private func seedDefaultPreferencesIfNeeded() {
+        guard preferences.isEmpty else { return }
+        modelContext.insert(UserPreferences())
     }
 }
 
@@ -158,4 +171,3 @@ private extension View {
         }
     }
 }
-
