@@ -51,16 +51,16 @@ struct ContentView: View {
     }
 
     var body: some View {
-        Group {
-            if let userPreferences = preferences.first {
-                mainContent(userPreferences: userPreferences)
-            } else {
-                ProgressView()
-            }
-        }
-        .task {
-            seedDefaultPreferencesIfNeeded()
-            try? await healthKitManager.fetchSleepData()
+        if let userPreferences = preferences.first {
+            mainContent(userPreferences: userPreferences)
+                .task {
+                    await healthKitManager.resumeLoadingIfNeeded()
+                }
+        } else {
+            ProgressView()
+                .task {
+                    seedDefaultPreferencesIfNeeded()
+                }
         }
     }
 
