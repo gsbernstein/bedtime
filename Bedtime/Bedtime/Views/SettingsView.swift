@@ -29,7 +29,6 @@ struct SettingsView: View {
     @State private var debugMessage: String?
     #endif
 
-    @State private var showingShareSheet = false
     @State private var copiedLogsConfirmation = false
     @State private var diagnosticsMessage: String?
     @State private var isRetryingHealthKit = false
@@ -168,7 +167,7 @@ struct SettingsView: View {
                     }
 
                     Button {
-                        showingShareSheet = true
+                        SharePresenter.present(items: [diagnosticLogger.exportText()])
                     } label: {
                         Label("Share Diagnostic Logs", systemImage: "square.and.arrow.up")
                     }
@@ -209,9 +208,6 @@ struct SettingsView: View {
                     Text("If sleep data isn't loading, share or copy these logs and send them to the developer.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                }
-                .sheet(isPresented: $showingShareSheet) {
-                    ShareSheet(items: [diagnosticLogger.exportText()])
                 }
 
                 #if DEBUG
