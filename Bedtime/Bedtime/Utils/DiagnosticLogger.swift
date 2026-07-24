@@ -8,7 +8,6 @@ import UIKit
 
 /// In-memory diagnostic log for TestFlight troubleshooting. Entries can be
 /// shared from Settings via the system share sheet (Messages, Mail, copy, etc.).
-@MainActor
 final class DiagnosticLogger: ObservableObject {
     static let shared = DiagnosticLogger()
 
@@ -21,22 +20,22 @@ final class DiagnosticLogger: ObservableObject {
         return formatter
     }()
 
-    private init() {
-        log("Diagnostic logger started")
-        log(deviceContext())
-    }
+    private init() {}
 
-    static func log(
+    /// Safe to call from any isolation context (including static initializers).
+    nonisolated static func log(
         _ message: String,
         file: String = #file,
         function: String = #function,
         line: Int = #line
     ) {
+        let filename = (file as NSString).lastPathComponent
         Task { @MainActor in
-            shared.append(message, file: file, function: function, line: line)
+            shared.record(message, filename: filename, line: line)
         }
     }
 
+    @MainActor
     func exportText() -> String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
@@ -56,22 +55,19 @@ final class DiagnosticLogger: ObservableObject {
         return text
     }
 
+    @MainActor
     func clear() {
         entries.removeAll()
-        log("Log cleared")
+        Self.log("Log cleared")
     }
 
-    private func append(_ message: String, file: String, function: String, line: Int) {
-        let filename = (file as NSString).lastPathComponent
+    @MainActor
+    private func record(_ message: String, filename: String, line: Int) {
         let entry = "[\(dateFormatter.string(from: Date()))] \(filename):\(line) — \(message)"
         entries.append(entry)
         if entries.count > maxEntries {
             entries.removeFirst(entries.count - maxEntries)
         }
         print(entry)
-    }
-
-    private func deviceContext() -> String {
-        "Device context — iOS \(UIDevice.current.systemVersion), model \(UIDevice.current.model)"
     }
 }

@@ -44,6 +44,9 @@ struct BedtimeApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    DiagnosticLogger.log("App window appeared")
+                }
         }
         .modelContainer(sharedModelContainer)
     }
