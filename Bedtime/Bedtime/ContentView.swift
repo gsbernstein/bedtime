@@ -22,6 +22,7 @@ struct ContentView: View {
         let sourcePrefs = SourcePreferences()
         _sourcePreferences = StateObject(wrappedValue: sourcePrefs)
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
+        DiagnosticLogger.log("ContentView initialized")
     }
     
     var lastNightData: [SleepSession]? {
@@ -30,39 +31,49 @@ struct ContentView: View {
         return healthKitManager.sleepSessions[lastNight]
     }
     
-    private var userPreferences: UserPreferences {
-        if let existing = preferences.first {
-            return existing
-        } else {
-            let new = UserPreferences()
-            modelContext.insert(new)
-            return new
-        }
-    }
-    
-    private var sleepBank: SleepBank {
+    private func sleepBank(for preferences: UserPreferences) -> SleepBank {
         ViewModel.calculateSleepBank(
             sleepSessions: healthKitManager.sleepSessions,
-            goalHours: userPreferences.sleepGoalHours,
-            recentDays: userPreferences.sleepBankDays
+            goalHours: preferences.sleepGoalHours,
+            recentDays: preferences.sleepBankDays
         )
     }
     
-    private var bedtimeRecommendation: BedtimeRecommendation {
+    private func bedtimeRecommendation(
+        for preferences: UserPreferences,
+        sleepBank: SleepBank
+    ) -> BedtimeRecommendation {
         ViewModel.generateBedtimeRecommendation(
-            wakeTime: userPreferences.wakeTime,
-            earliestBedtime: userPreferences.earliestReasonableBedtime,
-            sleepGoal: userPreferences.sleepGoalHours,
+            wakeTime: preferences.wakeTime,
+            earliestBedtime: preferences.earliestReasonableBedtime,
+            sleepGoal: preferences.sleepGoalHours,
             sleepBank: sleepBank
         )
     }
 
     var body: some View {
+        if let userPreferences = preferences.first {
+            mainContent(userPreferences: userPreferences)
+                .task {
+                    await healthKitManager.resumeLoadingIfNeeded()
+                }
+        } else {
+            ProgressView()
+                .task {
+                    seedDefaultPreferencesIfNeeded()
+                }
+        }
+    }
+
+    @ViewBuilder
+    private func mainContent(userPreferences: UserPreferences) -> some View {
         let isBeforeEvening = Calendar.current.component(.hour, from: Date()) < 18
+        let sleepBank = sleepBank(for: userPreferences)
+        let bedtimeRecommendation = bedtimeRecommendation(for: userPreferences, sleepBank: sleepBank)
+
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // HealthKit Authorization
                     switch healthKitManager.permissionsRequestState {
                     case .loading:
                         ProgressView()
@@ -87,7 +98,6 @@ struct ContentView: View {
                                           goal: userPreferences.sleepGoalHours)
                         }
 
-                        // Recent Sleep Sessions
                         if !healthKitManager.sleepSessions.isEmpty {
                             RecentSleepSessionsCard(sessions: healthKitManager.sleepSessions, sleepGoal: userPreferences.sleepGoalHours)
                         }
@@ -128,9 +138,15 @@ struct ContentView: View {
                 )
             }
         }
-        .task {
-            try? await healthKitManager.fetchSleepData()
+        .onChange(of: healthKitManager.permissionsRequestState) { _, newState in
+            DiagnosticLogger.log("permissionsRequestState → \(newState)")
         }
+    }
+
+    private func seedDefaultPreferencesIfNeeded() {
+        guard preferences.isEmpty else { return }
+        DiagnosticLogger.log("Seeding default UserPreferences")
+        modelContext.insert(UserPreferences())
     }
 }
 
@@ -140,8 +156,6 @@ struct ContentView: View {
 }
 
 private extension View {
-    /// Presents settings as an inspector pane when `useInspector` is true (iPad regular width)
-    /// and as a sheet otherwise (iPhone / iPad split-screen).
     @ViewBuilder
     func settingsPresentation<SettingsContent: View>(
         isPresented: Binding<Bool>,
@@ -158,4 +172,3 @@ private extension View {
         }
     }
 }
-

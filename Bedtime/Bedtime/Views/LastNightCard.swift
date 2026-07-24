@@ -30,7 +30,7 @@ struct LastNightCard: View {
                     title: "Last Night"
                 )
                 
-                if let sleepSessions {
+                if let sleepSessions, !sleepSessions.isEmpty {
                     HStack {
                         VStack(alignment: .leading) {
                             Text("In bed at")
