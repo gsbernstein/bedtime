@@ -87,9 +87,45 @@ struct SleepStageTimelineBar: View {
     let rangeStart: Date
     let rangeEnd: Date
     var isDimmed: Bool = false
+
+    private struct SessionGroup {
+        let sessions: [SleepSession]
+        let startDate: Date
+        let endDate: Date
+    }
     
     private var rangeDuration: TimeInterval {
         max(rangeEnd.timeIntervalSince(rangeStart), 1)
+    }
+
+    /// Groups touching or overlapping stages so only the outside edges are rounded.
+    private var sessionGroups: [SessionGroup] {
+        let sortedSessions = sessions
+            .filter { $0.duration > 0 }
+            .sorted { $0.startDate < $1.startDate }
+        var groups: [SessionGroup] = []
+
+        for session in sortedSessions {
+            guard let previousGroup = groups.last,
+                  session.startDate <= previousGroup.endDate else {
+                groups.append(
+                    SessionGroup(
+                        sessions: [session],
+                        startDate: session.startDate,
+                        endDate: session.endDate
+                    )
+                )
+                continue
+            }
+
+            groups[groups.count - 1] = SessionGroup(
+                sessions: previousGroup.sessions + [session],
+                startDate: previousGroup.startDate,
+                endDate: max(previousGroup.endDate, session.endDate)
+            )
+        }
+
+        return groups
     }
     
     var body: some View {
@@ -97,15 +133,29 @@ struct SleepStageTimelineBar: View {
             .fill(.foreground.quaternary)
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in
-                    ForEach(Array(sessions.enumerated()), id: \.offset) { _, session in
-                        let offset = session.startDate.timeIntervalSince(rangeStart) / rangeDuration
-                        let width = session.duration / rangeDuration
-                        
-                        Capsule()
-                            .fill(session.sleepType.color)
-                            .opacity(isDimmed ? 0.35 : 1)
-                            .frame(width: max(proxy.size.width * width, 1))
-                            .offset(x: proxy.size.width * offset)
+                    ForEach(Array(sessionGroups.enumerated()), id: \.offset) { _, group in
+                        let groupOffset = group.startDate.timeIntervalSince(rangeStart) / rangeDuration
+                        let groupWidth = group.endDate.timeIntervalSince(group.startDate) / rangeDuration
+
+                        ZStack(alignment: .leading) {
+                            ForEach(Array(group.sessions.enumerated()), id: \.offset) { _, session in
+                                let sessionOffset = session.startDate.timeIntervalSince(group.startDate) / rangeDuration
+                                let sessionWidth = session.duration / rangeDuration
+
+                                Rectangle()
+                                    .fill(session.sleepType.color)
+                                    .frame(width: max(proxy.size.width * sessionWidth, 1))
+                                    .offset(x: proxy.size.width * sessionOffset)
+                            }
+                        }
+                        .frame(
+                            width: max(proxy.size.width * groupWidth, 1),
+                            height: proxy.size.height,
+                            alignment: .leading
+                        )
+                        .clipShape(Capsule())
+                        .opacity(isDimmed ? 0.35 : 1)
+                        .offset(x: proxy.size.width * groupOffset)
                     }
                 }
             }
