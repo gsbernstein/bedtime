@@ -14,6 +14,15 @@ struct LastNightCard: View {
     var durationInHours: TimeInterval? {
         sleepSessions?.map(\.durationInHours).reduce(0, +)
     }
+
+    private var durationColor: Color {
+        guard let durationInHours else { return .secondary }
+        return Constants.sleepDurationColor(
+            hours: durationInHours,
+            goal: goal,
+            graceColor: .primary
+        )
+    }
     
     private var timeFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -58,7 +67,7 @@ struct LastNightCard: View {
                                 Text(String(format: "%.1f", durationInHours!))
                                     .font(.title2)
                                     .fontWeight(.bold)
-                                    .foregroundStyle(durationInHours! > goal ? .green : .red)
+                                    .foregroundStyle(durationColor)
                                 Text("hours")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
@@ -68,7 +77,7 @@ struct LastNightCard: View {
                     
                     // Progress bar
                     ProgressBar(value: durationInHours!, total: goal)
-                        .tint(durationInHours! > goal ? .green : .red)
+                        .tint(durationColor)
                     
                 } else {
                     Text("No sleep data available")

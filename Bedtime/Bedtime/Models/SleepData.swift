@@ -101,6 +101,11 @@ struct SleepBank: Equatable {
         return currentBalance < 0
     }
     
+    var statusColor: Color {
+        guard averageHours != nil else { return .secondary }
+        return Constants.sleepGoalColor(difference: currentBalance, graceColor: .primary)
+    }
+
     var debtHours: Double {
         return max(0, -currentBalance)
     }
