@@ -34,6 +34,8 @@ class HealthKitManager: ObservableObject {
     
     @Published private(set) var permissionsRequestState: PermissionsRequestState = .loading
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
+    /// All sessions regardless of source preferences — used for per-source comparison UI.
+    @Published private(set) var allSleepSessions: [Date: [SleepSession]] = [:]
     @Published var errorMessage: String?
     @Published var availableSources: [HKSource]?
     
@@ -183,14 +185,13 @@ class HealthKitManager: ObservableObject {
     }
     
     private func processSleepSamples(_ samples: [HKCategorySample]) {
-        // Filter based on user's source preferences
-        let sessions = samples
-            .filter {
-                sourcePreferences.isSourceSelected($0.sourceRevision.source.bundleIdentifier)
-            }
-            .compactMap { SleepSession(sample: $0) }
+        let allSessions = samples.compactMap { SleepSession(sample: $0) }
+        self.allSleepSessions = Dictionary(grouping: allSessions) { $0.dateForGrouping }
         
-        self.sleepSessions = Dictionary(grouping: sessions) { $0.dateForGrouping }
+        let includedSessions = allSessions.filter {
+            sourcePreferences.isSourceSelected($0.source.source.bundleIdentifier)
+        }
+        self.sleepSessions = Dictionary(grouping: includedSessions) { $0.dateForGrouping }
     }
     
     #if DEBUG

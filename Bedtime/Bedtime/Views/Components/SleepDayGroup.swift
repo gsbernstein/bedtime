@@ -10,6 +10,8 @@ import SwiftUI
 struct SleepDayGroup: View {
     let date: Date
     let sessions: [SleepSession]
+    let allSessions: [SleepSession]
+    let excludedSourceIDs: Set<String>
     let isExpanded: Bool
     let sleepGoal: Double
     let onToggle: () -> Void
@@ -90,6 +92,12 @@ struct SleepDayGroup: View {
             }
             .buttonStyle(PlainButtonStyle())
             .disabled(!hasSessions)
+            
+            SleepSourceComparisonView(
+                sessions: allSessions,
+                excludedSourceIDs: excludedSourceIDs
+            )
+            .padding(.leading, 4)
             
             // Session details (expandable)
             if isExpanded && hasSessions {
