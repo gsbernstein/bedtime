@@ -93,7 +93,7 @@ struct SleepStageTimelineBar: View {
     }
     
     var body: some View {
-        Rectangle()
+        Capsule()
             .fill(.foreground.quaternary)
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in
@@ -109,6 +109,7 @@ struct SleepStageTimelineBar: View {
                     }
                 }
             }
+            .clipShape(Capsule())
             .frame(height: 6)
     }
 }
