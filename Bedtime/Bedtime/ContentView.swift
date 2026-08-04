@@ -54,7 +54,8 @@ struct ContentView: View {
             wakeTime: userPreferences.wakeTime,
             earliestBedtime: userPreferences.earliestReasonableBedtime,
             sleepGoal: userPreferences.sleepGoalHours,
-            sleepBank: sleepBank
+            sleepBank: sleepBank,
+            durationStyle: userPreferences.durationDisplayStyle
         )
     }
 
@@ -118,6 +119,7 @@ struct ContentView: View {
                 .frame(maxWidth: 600)
                 .frame(maxWidth: .infinity)
             }
+            .environment(\.durationDisplayStyle, userPreferences.durationDisplayStyle)
             .background(Color.backgroundBehindCards)
             .navigationTitle("Bedger")
             .toolbar {

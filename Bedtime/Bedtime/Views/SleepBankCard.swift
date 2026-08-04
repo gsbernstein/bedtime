@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SleepBankCard: View {
     let sleepBank: SleepBank
+    @Environment(\.durationDisplayStyle) private var durationStyle
     
     var body: some View {
         CardComponent {
@@ -18,7 +19,7 @@ struct SleepBankCard: View {
                     iconColor: sleepBank.statusColor,
                     title: "Sleep Balance"
                 ) {
-                    Text(sleepBank.statusDescription)
+                    Text(sleepBank.statusDescription(style: durationStyle))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -31,17 +32,10 @@ struct SleepBankCard: View {
                             .foregroundColor(.secondary)
                         
                         if let averageHours = sleepBank.averageHours {
-                            
-                            HStack(alignment: .lastTextBaseline) {
-                                Text(String(format: "%.1f", averageHours))
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(sleepBank.statusColor)
-                                Text("hours")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            
+                            Text(TimeFormatter.formatHours(averageHours, style: durationStyle))
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(sleepBank.statusColor)
                         } else {
                             Text("no recent data")
                                 .font(.subheadline)
@@ -57,13 +51,13 @@ struct SleepBankCard: View {
                             .foregroundColor(.secondary)
                         
                         if sleepBank.averageHours != nil {
-                            HStack(alignment: .lastTextBaseline) {
-                                Text(String(format: "%.1f", abs(sleepBank.currentBalance)))
+                            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                                Text(TimeFormatter.formatHours(abs(sleepBank.currentBalance), style: durationStyle))
                                     .font(.title2)
                                     .fontWeight(.bold)
                                     .foregroundColor(sleepBank.statusColor)
                                 
-                                Text("hours \(sleepBank.isInDebt ? "behind" : "ahead")")
+                                Text(sleepBank.isInDebt ? "behind" : "ahead")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
@@ -81,16 +75,14 @@ struct SleepBankCard: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        HStack(alignment: .lastTextBaseline) {
-                            Text(String(format: "%.1f", sleepBank.goalHours))
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                            
-                            Text("hours")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
+                        Text(TimeFormatter.formatHours(
+                            sleepBank.goalHours,
+                            style: durationStyle,
+                            maxFractionDigits: 2
+                        ))
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
                     }
                 }
             }

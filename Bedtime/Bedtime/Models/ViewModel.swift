@@ -47,7 +47,8 @@ class ViewModel {
         earliestBedtime: Date,
         sleepGoal: Double,
         sleepBank: SleepBank,
-        referenceDate: Date = Date()
+        referenceDate: Date = Date(),
+        durationStyle: DurationDisplayStyle = .hoursAndMinutes
     ) -> BedtimeRecommendation {
         let calendar = Calendar.current
         let maxSleepHours = SleepWindow.maxSleepHours(
@@ -70,10 +71,17 @@ class ViewModel {
             reason = nil
         } else if sleepBank.isInDebt {
             let debtHours = sleepBank.debtHours
-            reason = "You need \(String(format: "%.1f", totalSleepNeeded)) hours tonight to catch up on your \(String(format: "%.1f", debtHours))-hour sleep debt."
+            let needed = TimeFormatter.formatHours(totalSleepNeeded, style: durationStyle)
+            let debt = TimeFormatter.formatHours(debtHours, style: durationStyle)
+            reason = "You need \(needed) tonight to catch up on your \(debt) sleep debt."
         } else {
             totalSleepNeeded = sleepGoal
-            reason = "You're ahead of the game! Aim for at least \(String(format: "%.1f", sleepGoal)) hours tonight."
+            let goal = TimeFormatter.formatHours(
+                sleepGoal,
+                style: durationStyle,
+                maxFractionDigits: 2
+            )
+            reason = "You're ahead of the game! Aim for at least \(goal) tonight."
         }
         
         // Calculate recommended bedtime

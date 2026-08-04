@@ -10,12 +10,6 @@ import SwiftUI
 struct BedtimeRecommendationCard: View {
     let recommendation: BedtimeRecommendation
     
-    private var timeFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
-    }
-    
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
@@ -37,7 +31,7 @@ struct BedtimeRecommendationCard: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
-                            Text(timeFormatter.string(from: recommendation.recommendedBedtime))
+                            Text(TimeFormatter.formatTimeOfDay(recommendation.recommendedBedtime))
                                 .font(.title)
                                 .fontWeight(.bold)
                                 .foregroundColor(.blue)
@@ -50,7 +44,7 @@ struct BedtimeRecommendationCard: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
-                            Text(timeFormatter.string(from: recommendation.wakeTime))
+                            Text(TimeFormatter.formatTimeOfDay(recommendation.wakeTime))
                                 .font(.title2)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)

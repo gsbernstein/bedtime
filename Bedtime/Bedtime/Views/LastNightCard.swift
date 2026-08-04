@@ -10,6 +10,7 @@ import SwiftUI
 struct LastNightCard: View {
     let sleepSessions: [SleepSession]?
     let goal: TimeInterval
+    @Environment(\.durationDisplayStyle) private var durationStyle
     
     var durationInHours: TimeInterval? {
         sleepSessions?.map(\.durationInHours).reduce(0, +)
@@ -22,12 +23,6 @@ struct LastNightCard: View {
             goal: goal,
             graceColor: .primary
         )
-    }
-    
-    private var timeFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
     }
     
     var body: some View {
@@ -45,7 +40,7 @@ struct LastNightCard: View {
                             Text("In bed at")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(timeFormatter.string(from: sleepSessions.last!.startDate))
+                            Text(TimeFormatter.formatTimeOfDay(sleepSessions.last!.startDate))
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }
@@ -54,7 +49,7 @@ struct LastNightCard: View {
                             Text("Woke up at")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(timeFormatter.string(from: sleepSessions.first!.endDate))
+                            Text(TimeFormatter.formatTimeOfDay(sleepSessions.first!.endDate))
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }
@@ -63,15 +58,10 @@ struct LastNightCard: View {
                             Text("Sleep duration")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            HStack(alignment: .lastTextBaseline) {
-                                Text(String(format: "%.1f", durationInHours!))
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(durationColor)
-                                Text("hours")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text(TimeFormatter.formatHours(durationInHours!, style: durationStyle))
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(durationColor)
                         }
                     }
                     
