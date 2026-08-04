@@ -15,10 +15,13 @@ class Constants {
     /// Hours under goal that still count as close enough to avoid a red status color.
     static let sleepGoalGraceHours: Double = 0.5
 
-    static func sleepDurationColor(hours: Double, goal: Double) -> Color {
-        let difference = hours - goal
+    static func sleepGoalColor(difference: Double) -> Color {
         if difference >= 0 { return .green }
         if difference < -sleepGoalGraceHours { return .red }
         return .secondary
+    }
+
+    static func sleepDurationColor(hours: Double, goal: Double) -> Color {
+        sleepGoalColor(difference: hours - goal)
     }
 }
