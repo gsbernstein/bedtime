@@ -11,6 +11,7 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var preferences: [UserPreferences]
     @StateObject private var sourcePreferences: SourcePreferences
     @StateObject private var healthKitManager: HealthKitManager
@@ -57,6 +58,17 @@ struct ContentView: View {
         )
     }
 
+    private var sleepBankInsight: SleepBankInsight? {
+        SleepInsightsEngine.generateInsight(
+            sleepSessions: healthKitManager.sleepSessions,
+            goalHours: userPreferences.sleepGoalHours,
+            maxSleepHours: SleepWindow.maxSleepHours(
+                earliestBedtime: userPreferences.earliestReasonableBedtime,
+                wakeTime: userPreferences.wakeTime
+            )
+        )
+    }
+
     var body: some View {
         let isBeforeEvening = Calendar.current.component(.hour, from: Date()) < 18
         NavigationStack {
@@ -79,6 +91,10 @@ struct ContentView: View {
                         }
 
                         SleepBankCard(sleepBank: sleepBank)
+
+                        if let sleepBankInsight {
+                            SleepInsightsCard(insight: sleepBankInsight)
+                        }
 
                         if isBeforeEvening {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
@@ -135,6 +151,13 @@ struct ContentView: View {
         }
         .task {
             try? await healthKitManager.fetchSleepData()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Refresh on return from background: the observer query's background
+            // delivery is throttled, and `.task` doesn't re-run on resume, so this
+            // covers data added in the Health app while we were suspended.
+            guard newPhase == .active else { return }
+            Task { try? await healthKitManager.fetchSleepData() }
         }
     }
 }

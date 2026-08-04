@@ -92,7 +92,7 @@ extension HKCategoryValueSleepAnalysis {
     }
 }
 
-struct SleepBank {
+struct SleepBank: Equatable {
     let currentBalance: Double // in hours
     let goalHours: Double
     let averageHours: Double?
@@ -125,5 +125,5 @@ struct BedtimeRecommendation {
     let recommendedBedtime: Date
     let wakeTime: Date
     let targetSleepDuration: Double // in hours
-    let reason: String
+    let reason: String?
 }
