@@ -75,19 +75,13 @@ struct ContentView: View {
                             LastNightCard(sleepSessions: lastNightData,
                                           goal: userPreferences.sleepGoalHours)
                         } else {
-                            BedtimeRecommendationCard(
-                                recommendation: bedtimeRecommendation,
-                                sleepBank: sleepBank
-                            )
+                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         }
 
                         SleepBankCard(sleepBank: sleepBank)
 
                         if isBeforeEvening {
-                            BedtimeRecommendationCard(
-                                recommendation: bedtimeRecommendation,
-                                sleepBank: sleepBank
-                            )
+                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         } else {
                             LastNightCard(sleepSessions: lastNightData,
                                           goal: userPreferences.sleepGoalHours)

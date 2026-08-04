@@ -25,9 +25,16 @@ struct SleepDayGroup: View {
         formatter.dateFormat = "EEE, MMM d"
         return formatter
     }
+
+    private var totalSleepHours: Double {
+        sessions.map(\.durationInHours).reduce(0, +)
+    }
+
+    private var durationColor: Color {
+        totalSleepHours > sleepGoal ? .green : .red
+    }
     
     private var balanceImpact: (value: Double, isPositive: Bool, color: Color) {
-        let totalSleepHours = sessions.map(\.durationInHours).reduce(0, +)
         let difference = totalSleepHours - sleepGoal
         let color = difference >= 0 ? Color.green : difference < -0.5 ? Color.red : Color.secondary
         return (abs(difference), difference >= 0, color)
@@ -65,7 +72,7 @@ struct SleepDayGroup: View {
                             Text(TimeFormatter.formatDuration(sessions.reduce(0) { $0 + $1.duration }))
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.primary)
+                                .foregroundColor(durationColor)
                             
                             HStack(spacing: 2) {
                                 Text(balanceImpact.isPositive ? "+" : "-")
