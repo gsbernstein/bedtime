@@ -24,8 +24,9 @@ struct SleepBankCard: View {
                         .foregroundColor(.secondary)
                 }
                 
-                // Balance visualization
-                HStack {
+                // Equal-width columns so Status stays centered regardless of
+                // how wide Average / Goal strings are (e.g. "6h 35m" vs "7h").
+                HStack(alignment: .top, spacing: 0) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Average")
                             .font(.caption)
@@ -42,8 +43,7 @@ struct SleepBankCard: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
-                    Spacer()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     VStack(alignment: .center, spacing: 8) {
                         Text("Status")
@@ -67,8 +67,7 @@ struct SleepBankCard: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
-                    Spacer()
+                    .frame(maxWidth: .infinity, alignment: .center)
                     
                     VStack(alignment: .trailing, spacing: 8) {
                         Text("Goal")
@@ -84,6 +83,7 @@ struct SleepBankCard: View {
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                     }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
         }
