@@ -15,7 +15,7 @@ struct SleepBankCard: View {
             VStack(spacing: 16) {
                 CardHeader(
                     icon: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill",
-                    iconColor: sleepBank.averageHours == nil ? .secondary : sleepBank.isInDebt ? .red : .green,
+                    iconColor: sleepBank.statusColor,
                     title: "Sleep Balance"
                 ) {
                     Text(sleepBank.statusDescription)
@@ -36,7 +36,7 @@ struct SleepBankCard: View {
                                 Text(String(format: "%.1f", averageHours))
                                     .font(.title2)
                                     .fontWeight(.bold)
-                                    .foregroundColor(sleepBank.isInDebt ? .red : .green)
+                                    .foregroundColor(sleepBank.statusColor)
                                 Text("hours")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
@@ -61,7 +61,7 @@ struct SleepBankCard: View {
                                 Text(String(format: "%.1f", abs(sleepBank.currentBalance)))
                                     .font(.title2)
                                     .fontWeight(.bold)
-                                    .foregroundColor(sleepBank.isInDebt ? .red : .green)
+                                    .foregroundColor(sleepBank.statusColor)
                                 
                                 Text("hours \(sleepBank.isInDebt ? "behind" : "ahead")")
                                     .font(.subheadline)

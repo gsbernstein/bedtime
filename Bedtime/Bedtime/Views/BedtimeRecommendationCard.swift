@@ -9,6 +9,7 @@ import SwiftUI
 
 struct BedtimeRecommendationCard: View {
     let recommendation: BedtimeRecommendation
+    let sleepBank: SleepBank
     
     private var timeFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -40,7 +41,7 @@ struct BedtimeRecommendationCard: View {
                             Text(timeFormatter.string(from: recommendation.recommendedBedtime))
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundColor(.blue)
+                                .foregroundColor(sleepBank.statusColor)
                         }
                         
                         Spacer()
@@ -76,6 +77,7 @@ struct BedtimeRecommendationCard: View {
             wakeTime: Date(),
             targetSleepDuration: 8,
             reason: "Yo"
-        )
+        ),
+        sleepBank: SleepBank(currentBalance: -0.8, goalHours: 8, averageHours: 7.5)
     )
 }

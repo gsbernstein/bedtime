@@ -93,6 +93,11 @@ struct SleepBank {
     var isInDebt: Bool {
         return currentBalance < 0
     }
+
+    var statusColor: Color {
+        guard averageHours != nil else { return .secondary }
+        return isInDebt ? .red : .green
+    }
     
     var debtHours: Double {
         return max(0, -currentBalance)
