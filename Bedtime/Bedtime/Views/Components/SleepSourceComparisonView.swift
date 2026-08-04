@@ -100,8 +100,8 @@ struct SleepStageTimelineBar: View {
                     ForEach(Array(sessions.enumerated()), id: \.offset) { _, session in
                         let offset = session.startDate.timeIntervalSince(rangeStart) / rangeDuration
                         let width = session.duration / rangeDuration
-                        
-                        Capsule()
+
+                        Rectangle()
                             .fill(session.sleepType.color)
                             .opacity(isDimmed ? 0.35 : 1)
                             .frame(width: max(proxy.size.width * width, 1))
