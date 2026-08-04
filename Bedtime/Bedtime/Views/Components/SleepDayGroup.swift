@@ -35,7 +35,11 @@ struct SleepDayGroup: View {
         return (
             abs(difference),
             difference >= 0,
-            Constants.sleepDurationColor(hours: totalSleepHours, goal: sleepGoal)
+            Constants.sleepDurationColor(
+                hours: totalSleepHours,
+                goal: sleepGoal,
+                graceColor: .secondary
+            )
         )
     }
     

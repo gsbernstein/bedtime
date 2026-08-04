@@ -17,7 +17,11 @@ struct LastNightCard: View {
 
     private var durationColor: Color {
         guard let durationInHours else { return .secondary }
-        return Constants.sleepDurationColor(hours: durationInHours, goal: goal)
+        return Constants.sleepDurationColor(
+            hours: durationInHours,
+            goal: goal,
+            graceColor: .primary
+        )
     }
     
     private var timeFormatter: DateFormatter {

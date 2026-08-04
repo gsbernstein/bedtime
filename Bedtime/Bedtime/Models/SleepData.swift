@@ -96,7 +96,7 @@ struct SleepBank {
     
     var statusColor: Color {
         guard averageHours != nil else { return .secondary }
-        return Constants.sleepGoalColor(difference: currentBalance)
+        return Constants.sleepGoalColor(difference: currentBalance, graceColor: .primary)
     }
 
     var debtHours: Double {
