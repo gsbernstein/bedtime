@@ -89,7 +89,11 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                         
-                        Slider(value: sleepBankDaysBinding, in: 3...14, step: 1) {
+                        Slider(
+                            value: sleepBankDaysBinding,
+                            in: Double(Constants.sleepBankDaysRange.lowerBound)...Double(Constants.sleepBankDaysRange.upperBound),
+                            step: 1
+                        ) {
                             EmptyView()
                         }
                         .accentColor(.blue)

@@ -9,6 +9,8 @@ import SwiftUI
 
 struct SleepInsightsCard: View {
     let insight: SleepBankInsight
+    var currentSleepBankDays: Int = 7
+    var onApplyDays: ((Int) -> Void)? = nil
 
     private var accentColor: Color {
         if insight.congratulationWindow != nil {
@@ -27,6 +29,17 @@ struct SleepInsightsCard: View {
         return "bolt.fill"
     }
 
+    /// The behind window is the only actionable suggestion. "Motivator" is an
+    /// internal selection concept, so the UI describes only the date range.
+    private var suggestedDays: Int? {
+        guard let window = insight.motivatorWindow,
+              !window.isAhead,
+              window.days != currentSleepBankDays else {
+            return nil
+        }
+        return window.days
+    }
+
     var body: some View {
         CardComponent {
             VStack(alignment: .leading, spacing: 12) {
@@ -40,6 +53,19 @@ struct SleepInsightsCard: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if let suggestedDays, let onApplyDays {
+                    Button {
+                        onApplyDays(suggestedDays)
+                    } label: {
+                        Label("Use the last \(suggestedDays) days", systemImage: "calendar")
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity)
+                        }
+                    .buttonStyle(.bordered)
+                    .tint(.orange)
+                    .padding(.top, 4)
+                }
             }
         }
     }
@@ -68,7 +94,7 @@ struct SleepInsightsCard: View {
         motivatorIsCatchable: true
     )
 
-    SleepInsightsCard(insight: insight)
+    SleepInsightsCard(insight: insight, currentSleepBankDays: 7) { _ in }
         .padding()
         .background(Color.backgroundBehindCards)
 }
@@ -91,7 +117,7 @@ struct SleepInsightsCard: View {
         motivatorIsCatchable: true
     )
 
-    SleepInsightsCard(insight: insight)
+    SleepInsightsCard(insight: insight, currentSleepBankDays: 7) { _ in }
         .padding()
         .background(Color.backgroundBehindCards)
 }
