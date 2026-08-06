@@ -9,6 +9,8 @@ import SwiftUI
 
 struct SleepInsightsCard: View {
     let insight: SleepBankInsight
+    var currentSleepBankDays: Int = 7
+    var onApplyDays: ((Int) -> Void)? = nil
 
     private var accentColor: Color {
         if insight.congratulationWindow != nil {
@@ -27,6 +29,30 @@ struct SleepInsightsCard: View {
         return "bolt.fill"
     }
 
+    /// Suggested windows that differ from the current sleep-bank lookback, congrats then motivator.
+    private var applyableWindows: [(label: String, days: Int, tint: Color)] {
+        var windows: [(label: String, days: Int, tint: Color)] = []
+        var seenDays = Set<Int>()
+
+        if let congrats = insight.congratulationWindow,
+           congrats.days != currentSleepBankDays,
+           seenDays.insert(congrats.days).inserted {
+            windows.append(("Use last \(congrats.days) days", congrats.days, .green))
+        }
+
+        if let motivator = insight.motivatorWindow,
+           !motivator.isAhead,
+           motivator.days != currentSleepBankDays,
+           seenDays.insert(motivator.days).inserted {
+            let label = insight.congratulationWindow == nil
+                ? "Use last \(motivator.days) days"
+                : "Use motivator range (\(motivator.days) days)"
+            windows.append((label, motivator.days, .orange))
+        }
+
+        return windows
+    }
+
     var body: some View {
         CardComponent {
             VStack(alignment: .leading, spacing: 12) {
@@ -40,6 +66,23 @@ struct SleepInsightsCard: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if let onApplyDays, !applyableWindows.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(applyableWindows, id: \.days) { window in
+                            Button {
+                                onApplyDays(window.days)
+                            } label: {
+                                Label(window.label, systemImage: "calendar")
+                                    .font(.subheadline.weight(.medium))
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(window.tint)
+                        }
+                    }
+                    .padding(.top, 4)
+                }
             }
         }
     }
@@ -68,7 +111,7 @@ struct SleepInsightsCard: View {
         motivatorIsCatchable: true
     )
 
-    SleepInsightsCard(insight: insight)
+    SleepInsightsCard(insight: insight, currentSleepBankDays: 7) { _ in }
         .padding()
         .background(Color.backgroundBehindCards)
 }
@@ -91,7 +134,7 @@ struct SleepInsightsCard: View {
         motivatorIsCatchable: true
     )
 
-    SleepInsightsCard(insight: insight)
+    SleepInsightsCard(insight: insight, currentSleepBankDays: 7) { _ in }
         .padding()
         .background(Color.backgroundBehindCards)
 }

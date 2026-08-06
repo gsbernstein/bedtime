@@ -12,6 +12,8 @@ class Constants {
     static let iconWidth: CGFloat = 30
     static let cardHeaderSpacing: CGFloat = 12
     static let sleepHistoryDays = 30
+    /// Allowed lookback for sleep-bank / insight window selection (Settings slider, insights, list handle).
+    static let sleepBankDaysRange = 3...14
     /// Hours under goal that still count as close enough to avoid a red status color.
     static let sleepGoalGraceHours: Double = 0.5
 

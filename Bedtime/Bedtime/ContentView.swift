@@ -94,7 +94,15 @@ struct ContentView: View {
                         SleepBankCard(sleepBank: sleepBank)
 
                         if let sleepBankInsight {
-                            SleepInsightsCard(insight: sleepBankInsight)
+                            SleepInsightsCard(
+                                insight: sleepBankInsight,
+                                currentSleepBankDays: userPreferences.sleepBankDays,
+                                onApplyDays: { days in
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        userPreferences.sleepBankDays = days
+                                    }
+                                }
+                            )
                         }
 
                         if isBeforeEvening {
@@ -110,7 +118,11 @@ struct ContentView: View {
                                 sessions: healthKitManager.sleepSessions,
                                 allSessions: healthKitManager.allSleepSessions,
                                 excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers,
-                                sleepGoal: userPreferences.sleepGoalHours
+                                sleepGoal: userPreferences.sleepGoalHours,
+                                sleepBankDays: Binding(
+                                    get: { userPreferences.sleepBankDays },
+                                    set: { userPreferences.sleepBankDays = $0 }
+                                )
                             )
                         }
                     }

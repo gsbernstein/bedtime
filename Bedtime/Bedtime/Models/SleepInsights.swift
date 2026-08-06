@@ -27,7 +27,7 @@ struct SleepBankInsight: Equatable {
 
 enum SleepInsightsEngine {
     /// Lookback durations scanned for motivator windows (matches Settings range).
-    static let windowRange = 3...14
+    static var windowRange: ClosedRange<Int> { Constants.sleepBankDaysRange }
 
     static func generateInsight(
         sleepSessions: [Date: [SleepSession]],

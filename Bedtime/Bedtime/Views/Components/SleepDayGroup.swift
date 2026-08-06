@@ -14,6 +14,8 @@ struct SleepDayGroup: View {
     let excludedSourceIDs: Set<String>
     let isExpanded: Bool
     let sleepGoal: Double
+    /// Whether this night counts toward the sleep-bank lookback window.
+    var isIncludedInSleepBank: Bool = true
     let onToggle: () -> Void
     @Environment(\.durationDisplayStyle) private var durationStyle
     
@@ -45,82 +47,92 @@ struct SleepDayGroup: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Day header (always visible)
-            Button(action: onToggle) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(dateFormatter.string(from: date))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        
+        HStack(alignment: .top, spacing: 8) {
+            Capsule()
+                .fill(isIncludedInSleepBank ? Color.accentColor : Color.secondary.opacity(0.2))
+                .frame(width: 3)
+                .padding(.vertical, 4)
+                .accessibilityHidden(true)
+
+            VStack(spacing: 0) {
+                // Day header (always visible)
+                Button(action: onToggle) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(dateFormatter.string(from: date))
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+
+                            if hasSessions {
+                                Text("\(TimeFormatter.formatTimeOfDay(sessions.last!.startDate)) - \(TimeFormatter.formatTimeOfDay(sessions.first!.endDate))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("No sleep data")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 2) {
+                            if hasSessions {
+                                Text(TimeFormatter.formatDuration(
+                                    sessions.reduce(0) { $0 + $1.duration },
+                                    style: durationStyle
+                                ))
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+
+                                HStack(spacing: 2) {
+                                    Text(balanceImpact.isPositive ? "+" : "-")
+                                        .font(.caption)
+                                        .foregroundColor(balanceImpact.color)
+
+                                    Text(TimeFormatter.formatHours(balanceImpact.value, style: durationStyle))
+                                        .font(.caption)
+                                        .foregroundColor(balanceImpact.color)
+                                }
+                            }
+                        }
+
                         if hasSessions {
-                            Text("\(TimeFormatter.formatTimeOfDay(sessions.last!.startDate)) - \(TimeFormatter.formatTimeOfDay(sessions.first!.endDate))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("No sleep data")
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 2) {
-                        if hasSessions {
-                            Text(TimeFormatter.formatDuration(
-                                sessions.reduce(0) { $0 + $1.duration },
-                                style: durationStyle
-                            ))
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-                            
-                            HStack(spacing: 2) {
-                                Text(balanceImpact.isPositive ? "+" : "-")
-                                    .font(.caption)
-                                    .foregroundColor(balanceImpact.color)
-                                
-                                Text(TimeFormatter.formatHours(balanceImpact.value, style: durationStyle))
-                                    .font(.caption)
-                                    .foregroundColor(balanceImpact.color)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(!hasSessions)
+
+                SleepSourceComparisonView(
+                    sessions: allSessions,
+                    excludedSourceIDs: excludedSourceIDs
+                )
+                .padding(.leading, 4)
+
+                // Session details (expandable)
+                if isExpanded && hasSessions {
+                    VStack(spacing: 4) {
+                        ForEach(Array(sessions.enumerated()), id: \.offset) { index, session in
+                            SleepSessionRow(session: session)
+
+                            if index < sessions.count - 1 {
+                                Divider()
                             }
                         }
                     }
-                    
-                    if hasSessions {
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    .padding(.leading, 16)
+                    .padding(.bottom, 8)
                 }
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(PlainButtonStyle())
-            .disabled(!hasSessions)
-            
-            SleepSourceComparisonView(
-                sessions: allSessions,
-                excludedSourceIDs: excludedSourceIDs
-            )
-            .padding(.leading, 4)
-            
-            // Session details (expandable)
-            if isExpanded && hasSessions {
-                VStack(spacing: 4) {
-                    ForEach(Array(sessions.enumerated()), id: \.offset) { index, session in
-                        SleepSessionRow(session: session)
-                        
-                        if index < sessions.count - 1 {
-                            Divider()
-                        }
-                    }
-                }
-                .padding(.leading, 16)
-                .padding(.bottom, 8)
             }
         }
+        .opacity(isIncludedInSleepBank ? 1 : 0.45)
+        .accessibilityHint(isIncludedInSleepBank ? "Included in sleep balance" : "Not included in sleep balance")
     }
 }
