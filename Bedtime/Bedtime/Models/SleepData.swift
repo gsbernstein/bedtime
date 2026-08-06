@@ -92,10 +92,29 @@ extension HKCategoryValueSleepAnalysis {
     }
 }
 
+struct NightSummary: Identifiable, Equatable {
+    let date: Date
+    let totalHours: Double
+    let hasData: Bool
+    
+    var id: Date { date }
+}
+
+struct BalanceDayImpact: Identifiable {
+    let date: Date
+    let priorBalance: Double
+    let impact: Double
+    
+    var id: Date { date }
+    var newBalance: Double { priorBalance + impact }
+    var isGain: Bool { impact > 0 }
+}
+
 struct SleepBank: Equatable {
     let currentBalance: Double // in hours
     let goalHours: Double
     let averageHours: Double?
+    let recentNights: [NightSummary]
     
     var isInDebt: Bool {
         return currentBalance < 0
@@ -123,6 +142,17 @@ struct SleepBank: Equatable {
         } else {
             let amount = TimeFormatter.formatHours(creditHours, style: style)
             return "You're \(amount) ahead of your sleep goal"
+        }
+    }
+    
+    var balanceImpacts: [BalanceDayImpact] {
+        var runningBalance = 0.0
+        return recentNights.compactMap { night in
+            guard night.hasData else { return nil }
+            let priorBalance = runningBalance
+            let impact = night.totalHours - goalHours
+            runningBalance += impact
+            return BalanceDayImpact(date: night.date, priorBalance: priorBalance, impact: impact)
         }
     }
     
