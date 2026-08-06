@@ -35,10 +35,19 @@ class ViewModel {
         
         let averageHours = daysWithData > 0 ? totalSleepHours / Double(daysWithData) : nil
         
+        let recentNights: [NightSummary] = (0..<recentDays).reversed().map { offset in
+            let referenceDay = calendar.date(byAdding: .day, value: -offset, to: endDate) ?? endDate
+            let day = calendar.startOfDay(for: referenceDay)
+            let sessions = sleepSessions[day] ?? []
+            let total = sessions.map(\.durationInHours).reduce(0, +)
+            return NightSummary(date: day, totalHours: total, hasData: !sessions.isEmpty)
+        }
+        
         return SleepBank(
             currentBalance: currentBalance,
             goalHours: goalHours,
-            averageHours: averageHours
+            averageHours: averageHours,
+            recentNights: recentNights
         )
     }
     
