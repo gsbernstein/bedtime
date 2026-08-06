@@ -74,7 +74,7 @@ struct RecentSleepSessionsCard: View {
                         .foregroundColor(.secondary)
                 }
                 
-                VStack(spacing: 8) {
+                VStack(spacing: 0) {
                     ForEach(0..<sortedSessions.count, id: \.self) { index in
                         let entry = sortedSessions[index]
                         let night = entry.0
@@ -105,6 +105,12 @@ struct RecentSleepSessionsCard: View {
                             Divider()
                                 .opacity(isIncluded ? 1 : 0.5)
                                 .padding(.leading, 11)
+                                .overlay(alignment: .leading) {
+                                    Rectangle()
+                                        .fill(isIncluded ? Color.accentColor : Color.secondary.opacity(0.2))
+                                        .frame(width: 3)
+                                        .accessibilityHidden(true)
+                                }
                         }
                     }
                 }

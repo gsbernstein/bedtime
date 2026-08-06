@@ -29,28 +29,15 @@ struct SleepInsightsCard: View {
         return "bolt.fill"
     }
 
-    /// Suggested windows that differ from the current sleep-bank lookback, congrats then motivator.
-    private var applyableWindows: [(label: String, days: Int, tint: Color)] {
-        var windows: [(label: String, days: Int, tint: Color)] = []
-        var seenDays = Set<Int>()
-
-        if let congrats = insight.congratulationWindow,
-           congrats.days != currentSleepBankDays,
-           seenDays.insert(congrats.days).inserted {
-            windows.append(("Use last \(congrats.days) days", congrats.days, .green))
+    /// The behind window is the only actionable suggestion. "Motivator" is an
+    /// internal selection concept, so the UI describes only the date range.
+    private var suggestedDays: Int? {
+        guard let window = insight.motivatorWindow,
+              !window.isAhead,
+              window.days != currentSleepBankDays else {
+            return nil
         }
-
-        if let motivator = insight.motivatorWindow,
-           !motivator.isAhead,
-           motivator.days != currentSleepBankDays,
-           seenDays.insert(motivator.days).inserted {
-            let label = insight.congratulationWindow == nil
-                ? "Use last \(motivator.days) days"
-                : "Use motivator range (\(motivator.days) days)"
-            windows.append((label, motivator.days, .orange))
-        }
-
-        return windows
+        return window.days
     }
 
     var body: some View {
@@ -67,20 +54,16 @@ struct SleepInsightsCard: View {
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if let onApplyDays, !applyableWindows.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(applyableWindows, id: \.days) { window in
-                            Button {
-                                onApplyDays(window.days)
-                            } label: {
-                                Label(window.label, systemImage: "calendar")
-                                    .font(.subheadline.weight(.medium))
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(window.tint)
+                if let suggestedDays, let onApplyDays {
+                    Button {
+                        onApplyDays(suggestedDays)
+                    } label: {
+                        Label("Use the last \(suggestedDays) days", systemImage: "calendar")
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity)
                         }
-                    }
+                    .buttonStyle(.bordered)
+                    .tint(.orange)
                     .padding(.top, 4)
                 }
             }

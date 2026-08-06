@@ -48,10 +48,9 @@ struct SleepDayGroup: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Capsule()
+            Rectangle()
                 .fill(isIncludedInSleepBank ? Color.accentColor : Color.secondary.opacity(0.2))
                 .frame(width: 3)
-                .padding(.vertical, 4)
                 .accessibilityHidden(true)
 
             VStack(spacing: 0) {
