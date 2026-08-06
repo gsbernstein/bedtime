@@ -15,12 +15,7 @@ struct SleepDayGroup: View {
     let isExpanded: Bool
     let sleepGoal: Double
     let onToggle: () -> Void
-    
-    private var timeFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
-    }
+    @Environment(\.durationDisplayStyle) private var durationStyle
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -60,7 +55,7 @@ struct SleepDayGroup: View {
                             .fontWeight(.medium)
                         
                         if hasSessions {
-                            Text("\(timeFormatter.string(from: sessions.last!.startDate)) - \(timeFormatter.string(from: sessions.first!.endDate))")
+                            Text("\(TimeFormatter.formatTimeOfDay(sessions.last!.startDate)) - \(TimeFormatter.formatTimeOfDay(sessions.first!.endDate))")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         } else {
@@ -74,7 +69,10 @@ struct SleepDayGroup: View {
                     
                     VStack(alignment: .trailing, spacing: 2) {
                         if hasSessions {
-                            Text(TimeFormatter.formatDuration(sessions.reduce(0) { $0 + $1.duration }))
+                            Text(TimeFormatter.formatDuration(
+                                sessions.reduce(0) { $0 + $1.duration },
+                                style: durationStyle
+                            ))
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
@@ -84,7 +82,7 @@ struct SleepDayGroup: View {
                                     .font(.caption)
                                     .foregroundColor(balanceImpact.color)
                                 
-                                Text(String(format: "%.1fh", balanceImpact.value))
+                                Text(TimeFormatter.formatHours(balanceImpact.value, style: durationStyle))
                                     .font(.caption)
                                     .foregroundColor(balanceImpact.color)
                             }

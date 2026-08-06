@@ -114,13 +114,15 @@ struct SleepBank: Equatable {
         return max(0, currentBalance)
     }
     
-    var statusDescription: String {
+    func statusDescription(style: DurationDisplayStyle = .hoursAndMinutes) -> String {
         if averageHours == nil {
             return "Track some sleep in apple health to get insights."
         } else if isInDebt {
-            return "You're \(String(format: "%.1f", debtHours)) hours behind your sleep goal"
+            let amount = TimeFormatter.formatHours(debtHours, style: style)
+            return "You're \(amount) behind your sleep goal"
         } else {
-            return "You're \(String(format: "%.1f", creditHours)) hours ahead of your sleep goal"
+            let amount = TimeFormatter.formatHours(creditHours, style: style)
+            return "You're \(amount) ahead of your sleep goal"
         }
     }
     

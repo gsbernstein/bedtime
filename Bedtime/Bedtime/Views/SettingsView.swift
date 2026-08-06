@@ -40,7 +40,11 @@ struct SettingsView: View {
                         HStack {
                             Text("Target Sleep Duration")
                             Spacer()
-                            Text(TimeFormatter.formatDuration(preferences.sleepGoalHours*60*60))
+                            Text(TimeFormatter.formatHours(
+                                preferences.sleepGoalHours,
+                                style: preferences.durationDisplayStyle,
+                                maxFractionDigits: 2
+                            ))
                                 .foregroundStyle(.secondary)
                         }
                         
@@ -57,6 +61,23 @@ struct SettingsView: View {
                         selection: $preferences.wakeTime,
                         displayedComponents: .hourAndMinute
                     )
+                }
+
+                Section {
+                    Toggle(isOn: $preferences.useDecimalDurations) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Decimal durations")
+                            Text(preferences.useDecimalDurations
+                                 ? "Example: \(DurationDisplayStyle.decimal.settingsExample)"
+                                 : "Example: \(DurationDisplayStyle.hoursAndMinutes.settingsExample)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Display")
+                } footer: {
+                    Text("Off uses hours and minutes (5h 6m). On uses decimal hours (5.1h); sleep goals can show quarter hours like 7.25h.")
                 }
                 
                 Section("Sleep Bank Calculation") {
@@ -86,7 +107,7 @@ struct SettingsView: View {
                         displayedComponents: .hourAndMinute
                     )
 
-                    Text("Won't recommend sleeping before this time — allowing up to \(String(format: "%.1f", preferences.nominalMaxSleepHours)) hours per night based on your wake time (aside from DST adjustments).")
+                    Text("Won't recommend sleeping before this time — allowing up to \(TimeFormatter.formatHours(preferences.nominalMaxSleepHours, style: preferences.durationDisplayStyle, maxFractionDigits: 2)) per night based on your wake time (aside from DST adjustments).")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -193,6 +214,8 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            // Force 12-hour clock labels in DatePickers to match app-wide time formatting.
+            .environment(\.locale, Locale(identifier: "en_US"))
             .toolbar {
                 if horizontalSizeClass == .compact {
                     ToolbarItem(placement: .confirmationAction) {

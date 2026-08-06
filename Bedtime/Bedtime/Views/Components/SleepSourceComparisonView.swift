@@ -10,6 +10,7 @@ import HealthKit
 struct SleepSourceComparisonView: View {
     let sessions: [SleepSession]
     let excludedSourceIDs: Set<String>
+    @Environment(\.durationDisplayStyle) private var durationStyle
     
     private struct SourceTrack: Identifiable {
         let id: String
@@ -68,11 +69,11 @@ struct SleepSourceComparisonView: View {
                             isDimmed: !track.isEnabled
                         )
                         
-                        Text(TimeFormatter.formatDuration(track.totalDuration))
+                        Text(TimeFormatter.formatDuration(track.totalDuration, style: durationStyle))
                             .font(.caption2)
                             .monospacedDigit()
                             .foregroundStyle(track.isEnabled ? .secondary : .tertiary)
-                            .frame(width: 36, alignment: .trailing)
+                            .frame(minWidth: 56, alignment: .trailing)
                     }
                 }
             }
