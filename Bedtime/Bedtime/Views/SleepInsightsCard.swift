@@ -54,7 +54,7 @@ struct SleepInsightsCard: View {
     let behind = SleepWindowBalance(
         days: 3,
         balance: -0.75,
-        sleepBank: SleepBank(currentBalance: -0.75, goalHours: 8, averageHours: 7.75)
+        sleepBank: SleepBank(currentBalance: -0.75, goalHours: 8, averageHours: 7.75, recentNights: [])
     )
     let insight = SleepBankInsight(
         message: SleepInsightsEngine.buildNarrative(
@@ -77,7 +77,7 @@ struct SleepInsightsCard: View {
     let behind = SleepWindowBalance(
         days: 5,
         balance: -1.25,
-        sleepBank: SleepBank(currentBalance: -1.25, goalHours: 8, averageHours: 7.75)
+        sleepBank: SleepBank(currentBalance: -1.25, goalHours: 8, averageHours: 7.75, recentNights: [])
     )
     let insight = SleepBankInsight(
         message: SleepInsightsEngine.buildNarrative(
