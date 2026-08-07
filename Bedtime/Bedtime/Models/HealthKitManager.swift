@@ -133,11 +133,11 @@ class HealthKitManager: ObservableObject {
     }
 
     private func performLoad() async throws {
-        // Source discovery is a separate query, so start it alongside the display
-        // fetch instead of after it. Only the display fetch is load-bearing.
+        // Source discovery is a separate query, so start it alongside the sample fetch
+        // instead of after it. Only the sample fetch is load-bearing.
         async let discoveredSources = discoverAvailableSources()
 
-        let predicate = try displayWindowPredicate()
+        let predicate = try sleepHistoryPredicate()
         let samples = try await fetchSleepSamples(matching: predicate)
         rawSleepSamples = samples
         processSleepSamples(samples)
@@ -198,8 +198,8 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    /// Predicate covering the window the UI can display.
-    private func displayWindowPredicate() throws -> NSPredicate {
+    /// Matches the span of sleep history the UI can show, up to now.
+    private func sleepHistoryPredicate() throws -> NSPredicate {
         let calendar = Calendar.current
         let endDate = Date()
         let today = calendar.startOfDay(for: endDate)
@@ -211,6 +211,17 @@ class HealthKitManager: ObservableObject {
         }
         
         return HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+    }
+    
+    /// Newest-first, which is the order `LastNightCard` and `SleepDayGroup` rely on to
+    /// read a night's bed and wake times off the ends of its session list.
+    private func fetchSleepSamples(matching predicate: NSPredicate) async throws -> [HKCategorySample] {
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.categorySample(type: HKCategoryType.sleepAnalysis, predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)]
+        )
+        
+        return try await descriptor.result(for: healthStore)
     }
     
     /// Every source that has ever written sleep data, or `nil` when discovery failed.
@@ -231,17 +242,6 @@ class HealthKitManager: ObservableObject {
             errorMessage = "Failed to discover sleep sources: \(error.localizedDescription)"
             return nil
         }
-    }
-    
-    /// Newest-first, which is the order `LastNightCard` and `SleepDayGroup` rely on to
-    /// read a night's bed and wake times off the ends of its session list.
-    private func fetchSleepSamples(matching predicate: NSPredicate) async throws -> [HKCategorySample] {
-        let descriptor = HKSampleQueryDescriptor(
-            predicates: [.categorySample(type: HKCategoryType.sleepAnalysis, predicate: predicate)],
-            sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)]
-        )
-        
-        return try await descriptor.result(for: healthStore)
     }
     
     private func reprocessStoredSamples() {
