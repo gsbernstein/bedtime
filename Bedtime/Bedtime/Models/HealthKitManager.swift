@@ -217,7 +217,7 @@ class HealthKitManager: ObservableObject {
     /// read a night's bed and wake times off the ends of its session list.
     private func fetchSleepSamples(matching predicate: NSPredicate) async throws -> [HKCategorySample] {
         let descriptor = HKSampleQueryDescriptor(
-            predicates: [.categorySample(type: HKCategoryType.sleepAnalysis, predicate: predicate)],
+            predicates: [.categorySample(type: .sleepAnalysis, predicate: predicate)],
             sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)]
         )
         
@@ -233,7 +233,7 @@ class HealthKitManager: ObservableObject {
         // Omitting a sample predicate covers all of history, so sources that stopped
         // writing recently are still offered in Settings.
         let descriptor = HKSourceQueryDescriptor(
-            predicate: .categorySample(type: HKCategoryType.sleepAnalysis)
+            predicate: .categorySample(type: .sleepAnalysis)
         )
         
         do {
