@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import HealthKit
 
 class ViewModel {
     private struct SourceAppDestination {
