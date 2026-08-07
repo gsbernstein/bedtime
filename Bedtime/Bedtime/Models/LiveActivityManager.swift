@@ -32,6 +32,7 @@ final class LiveActivityManager: ObservableObject {
 
         let schedule = upcomingSchedule(for: recommendation)
         let state = BedtimeActivityAttributes.ContentState(
+            activityStart: Date(),
             bedtime: schedule.bedtime,
             wakeTime: schedule.wakeTime,
             targetSleepHours: recommendation.targetSleepDuration

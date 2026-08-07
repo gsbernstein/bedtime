@@ -3,6 +3,7 @@ import Foundation
 
 struct BedtimeActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
+        let activityStart: Date
         let bedtime: Date
         let wakeTime: Date
         let targetSleepHours: Double
