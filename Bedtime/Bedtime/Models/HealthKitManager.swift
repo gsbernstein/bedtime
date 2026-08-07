@@ -133,18 +133,10 @@ class HealthKitManager: ObservableObject {
     }
 
     private func performLoad() async throws {
-        // Source discovery is a separate query, so start it alongside the sample fetch
-        // instead of after it. Only the sample fetch is load-bearing.
-        async let discoveredSources = discoverAvailableSources()
-
         let predicate = try sleepHistoryPredicate()
         let samples = try await fetchSleepSamples(matching: predicate)
         rawSleepSamples = samples
         processSleepSamples(samples)
-
-        if let discoveredSources = await discoveredSources {
-            availableSources = discoveredSources
-        }
     }
     
     /// Registers an `HKObserverQuery` so the app re-loads sleep data whenever
@@ -224,12 +216,9 @@ class HealthKitManager: ObservableObject {
         return try await descriptor.result(for: healthStore)
     }
     
-    /// Every source that has ever written sleep data, or `nil` when discovery failed.
-    ///
-    /// Best-effort by design: the app still works without the source list (it only
-    /// drives the Settings filter), so a failure here leaves any previously
-    /// discovered sources in place rather than failing the surrounding refresh.
-    private func discoverAvailableSources() async -> [HKSource]? {
+    /// Loads every source that has ever written sleep data for the Settings filter.
+    /// Best-effort by design: a failure leaves any previously loaded list in place.
+    func loadAvailableSources() async {
         // Omitting a sample predicate covers all of history, so sources that stopped
         // writing recently are still offered in Settings.
         let descriptor = HKSourceQueryDescriptor(
@@ -237,10 +226,10 @@ class HealthKitManager: ObservableObject {
         )
         
         do {
-            return try await descriptor.result(for: healthStore).sorted { $0.name < $1.name }
+            availableSources = try await descriptor.result(for: healthStore)
+                .sorted { $0.name < $1.name }
         } catch {
             errorMessage = "Failed to discover sleep sources: \(error.localizedDescription)"
-            return nil
         }
     }
     
