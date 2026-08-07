@@ -34,6 +34,9 @@ class HealthKitManager: ObservableObject {
     /// Long-lived query that re-loads data whenever HealthKit sleep samples change.
     /// Registered once, after the first successful fetch; torn down in `deinit`.
     private var observerQuery: HKObserverQuery?
+    /// In-flight load, if any. A new load cancels it so the latest refresh wins
+    /// rather than an older query overwriting it in whatever order they finish.
+    private var currentLoad: Task<Void, Error>?
     
     @Published private(set) var permissionsRequestState: PermissionsRequestState = .loading
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
@@ -99,17 +102,51 @@ class HealthKitManager: ObservableObject {
             }
         }
         do {
+            // Authorization errors already describe themselves.
             try await requestAuthorization()
-            try await loadSleepData()
-            startObservingSleepChanges()
         } catch {
             errorMessage = error.localizedDescription
             throw error
         }
+        
+        do {
+            try await loadSleepData()
+            startObservingSleepChanges()
+        } catch is CancellationError {
+            // A newer refresh superseded this one; its results (or error) stand.
+        } catch {
+            errorMessage = "Failed to fetch sleep data: \(error.localizedDescription)"
+            throw error
+        }
     }
     
+    /// Loads sleep data, keeping only the newest request's results.
+    ///
+    /// Launch, scene resume, pull-to-refresh and observer notifications all refresh
+    /// independently, so loads can overlap. Without coordination they'd publish in
+    /// whatever order their queries finished, letting an older fetch overwrite newer
+    /// data. Each new load cancels the one in flight so the latest request wins.
     private func loadSleepData() async throws {
-        _ = try await [fetchSleepDataForDisplay(), discoverAvailableSources()]
+        currentLoad?.cancel()
+
+        let load = Task { @MainActor in
+            let predicate = try sleepHistoryPredicate()
+            let samples = try await fetchSleepSamples(matching: predicate)
+            // HealthKit may not honor cancellation, so guard the publish itself:
+            // a superseded load must not overwrite the newer one's results.
+            try Task.checkCancellation()
+            rawSleepSamples = samples
+            processSleepSamples(samples)
+        }
+
+        currentLoad = load
+        defer {
+            if currentLoad == load {
+                currentLoad = nil
+            }
+        }
+
+        try await load.value
     }
     
     /// Registers an `HKObserverQuery` so the app re-loads sleep data whenever
@@ -136,6 +173,8 @@ class HealthKitManager: ObservableObject {
                 }
                 do {
                     try await self.loadSleepData()
+                } catch is CancellationError {
+                    // A newer refresh superseded this one; let its outcome stand.
                 } catch {
                     self.errorMessage = "Failed to refresh sleep data: \(error.localizedDescription)"
                 }
@@ -163,7 +202,8 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    private func fetchSleepDataForDisplay() async throws {
+    /// Matches the span of sleep history the UI can show, up to now.
+    private func sleepHistoryPredicate() throws -> NSPredicate {
         let calendar = Calendar.current
         let endDate = Date()
         let today = calendar.startOfDay(for: endDate)
@@ -174,71 +214,35 @@ class HealthKitManager: ObservableObject {
             throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate start date"])
         }
         
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
-        
-        let query = HKSampleQuery(
-            sampleType: HKCategoryType.sleepAnalysis,
-            predicate: predicate,
-            limit: HKObjectQueryNoLimit,
-            sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
-        ) { [weak self] _, samples, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self?.errorMessage = "Failed to fetch sleep data: \(error.localizedDescription)"
-                    return
-                }
-                
-                guard let samples = samples as? [HKCategorySample] else {
-                    self?.errorMessage = "No sleep data found"
-                    return
-                }
-                
-                self?.rawSleepSamples = samples
-                self?.processSleepSamples(samples)
-            }
-        }
-        
-        healthStore.execute(query)
+        return HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
     }
     
-    private func discoverAvailableSources() async throws {
-        // Query all time to discover all sources that have ever provided sleep data
-        // Use a very old start date to get all historical data
-        let predicate = HKQuery.predicateForSamples(
-            withStart: Date.distantPast,
-            end: Date(),
-            options: .strictStartDate
+    /// Newest-first, which is the order `LastNightCard` and `SleepDayGroup` rely on to
+    /// read a night's bed and wake times off the ends of its session list.
+    private func fetchSleepSamples(matching predicate: NSPredicate) async throws -> [HKCategorySample] {
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.categorySample(type: .sleepAnalysis, predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)]
         )
         
-        let query = HKSampleQuery(
-            sampleType: HKCategoryType.sleepAnalysis,
-            predicate: predicate,
-            limit: HKObjectQueryNoLimit,
-            sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
-        ) { [weak self] _, samples, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    // Don't fail if we can't discover sources, just log it
-                    print("Failed to discover sources: \(error.localizedDescription)")
-                    return
-                }
-                
-                guard let samples = samples as? [HKCategorySample] else {
-                    return
-                }
-                
-                // Extract unique sources from all samples
-                let uniqueSources = Dictionary(grouping: samples) { $0.sourceRevision.source.bundleIdentifier }
-                    .compactMap { _, samples -> HKSource? in
-                        samples.first?.sourceRevision.source
-                    }
-                    .sorted { $0.name < $1.name }
-                
-                self?.availableSources = uniqueSources
-            }
-        }
+        return try await descriptor.result(for: healthStore)
+    }
+    
+    /// Loads every source that has ever written sleep data for the Settings filter.
+    /// Best-effort by design: a failure leaves any previously loaded list in place.
+    func loadAvailableSources() async {
+        // Omitting a sample predicate covers all of history, so sources that stopped
+        // writing recently are still offered in Settings.
+        let descriptor = HKSourceQueryDescriptor(
+            predicate: .categorySample(type: .sleepAnalysis)
+        )
         
-        healthStore.execute(query)
+        do {
+            availableSources = try await descriptor.result(for: healthStore)
+                .sorted { $0.name < $1.name }
+        } catch {
+            errorMessage = "Failed to discover sleep sources: \(error.localizedDescription)"
+        }
     }
     
     private func reprocessStoredSamples() {
