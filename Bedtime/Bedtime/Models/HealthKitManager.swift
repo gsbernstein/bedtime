@@ -219,58 +219,29 @@ class HealthKitManager: ObservableObject {
     /// drives the Settings filter), so a failure here leaves any previously
     /// discovered sources in place rather than failing the surrounding refresh.
     private func discoverAvailableSources() async -> [HKSource]? {
+        // Omitting a sample predicate covers all of history, so sources that stopped
+        // writing recently are still offered in Settings.
+        let descriptor = HKSourceQueryDescriptor(
+            predicate: .categorySample(type: HKCategoryType.sleepAnalysis)
+        )
+        
         do {
-            return try await fetchSleepSources().sorted { $0.name < $1.name }
+            return try await descriptor.result(for: healthStore).sorted { $0.name < $1.name }
         } catch {
             errorMessage = "Failed to discover sleep sources: \(error.localizedDescription)"
             return nil
         }
     }
     
-    /// Asks HealthKit which sources have ever written sleep data. A nil sample
-    /// predicate covers all of history, so sources that stopped writing recently are
-    /// still offered in Settings.
-    private func fetchSleepSources() async throws -> Set<HKSource> {
-        let healthStore = self.healthStore
-        return try await withCheckedThrowingContinuation { continuation in
-            let query = HKSourceQuery(
-                sampleType: HKCategoryType.sleepAnalysis,
-                samplePredicate: nil
-            ) { _, sources, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                
-                continuation.resume(returning: sources ?? [])
-            }
-            
-            healthStore.execute(query)
-        }
-    }
-    
-    /// Bridges `HKSampleQuery`'s completion handler to async/await so callers actually
-    /// await the samples — and see query errors — instead of resuming as soon as the
-    /// query has been handed to HealthKit.
+    /// Newest-first, which is the order `LastNightCard` and `SleepDayGroup` rely on to
+    /// read a night's bed and wake times off the ends of its session list.
     private func fetchSleepSamples(matching predicate: NSPredicate) async throws -> [HKCategorySample] {
-        let healthStore = self.healthStore
-        return try await withCheckedThrowingContinuation { continuation in
-            let query = HKSampleQuery(
-                sampleType: HKCategoryType.sleepAnalysis,
-                predicate: predicate,
-                limit: HKObjectQueryNoLimit,
-                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
-            ) { _, samples, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                
-                continuation.resume(returning: samples?.compactMap { $0 as? HKCategorySample } ?? [])
-            }
-            
-            healthStore.execute(query)
-        }
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.categorySample(type: HKCategoryType.sleepAnalysis, predicate: predicate)],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)]
+        )
+        
+        return try await descriptor.result(for: healthStore)
     }
     
     private func reprocessStoredSamples() {
