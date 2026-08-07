@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		37B0000072E91B7E900D8ED8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 373AAED52E91B7E900D8ED84 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 373AAEDC2E91B7E900D8ED84;
+			remoteInfo = Bedtime;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		373AAEDD2E91B7E900D8ED84 /* Bedger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bedger.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		37B0000012E91B7E900D8ED8 /* BedtimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BedtimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +27,22 @@
 			path = Bedtime;
 			sourceTree = "<group>";
 		};
+		37B0000022E91B7E900D8ED8 /* BedtimeTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BedtimeTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		373AAEDA2E91B7E900D8ED84 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		37B0000042E91B7E900D8ED8 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				373AAEDF2E91B7E900D8ED84 /* Bedtime */,
+				37B0000022E91B7E900D8ED8 /* BedtimeTests */,
 				373AAEDE2E91B7E900D8ED84 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				373AAEDD2E91B7E900D8ED84 /* Bedger.app */,
+				37B0000012E91B7E900D8ED8 /* BedtimeTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +95,29 @@
 			productReference = 373AAEDD2E91B7E900D8ED84 /* Bedger.app */;
 			productType = "com.apple.product-type.application";
 		};
+		37B0000062E91B7E900D8ED8 /* BedtimeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 37B0000092E91B7E900D8ED8 /* Build configuration list for PBXNativeTarget "BedtimeTests" */;
+			buildPhases = (
+				37B0000032E91B7E900D8ED8 /* Sources */,
+				37B0000042E91B7E900D8ED8 /* Frameworks */,
+				37B0000052E91B7E900D8ED8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				37B0000082E91B7E900D8ED8 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				37B0000022E91B7E900D8ED8 /* BedtimeTests */,
+			);
+			name = BedtimeTests;
+			packageProductDependencies = (
+			);
+			productName = BedtimeTests;
+			productReference = 37B0000012E91B7E900D8ED8 /* BedtimeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +130,10 @@
 				TargetAttributes = {
 					373AAEDC2E91B7E900D8ED84 = {
 						CreatedOnToolsVersion = 26.0;
+					};
+					37B0000062E91B7E900D8ED8 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 373AAEDC2E91B7E900D8ED84;
 					};
 				};
 			};
@@ -100,12 +152,20 @@
 			projectRoot = "";
 			targets = (
 				373AAEDC2E91B7E900D8ED84 /* Bedtime */,
+				37B0000062E91B7E900D8ED8 /* BedtimeTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		373AAEDB2E91B7E900D8ED84 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		37B0000052E91B7E900D8ED8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +182,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		37B0000032E91B7E900D8ED8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		37B0000082E91B7E900D8ED8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 373AAEDC2E91B7E900D8ED84 /* Bedtime */;
+			targetProxy = 37B0000072E91B7E900D8ED8 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		373AAEEC2E91B7EA00D8ED84 /* Debug */ = {
@@ -322,6 +397,48 @@
 			};
 			name = Release;
 		};
+		37B00000A2E91B7E900D8ED8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9J44X82D53;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.burnsides.bedtime.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Bedger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Bedger";
+			};
+			name = Debug;
+		};
+		37B00000B2E91B7E900D8ED8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9J44X82D53;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.burnsides.bedtime.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Bedger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Bedger";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -339,6 +456,15 @@
 			buildConfigurations = (
 				373AAEEC2E91B7EA00D8ED84 /* Debug */,
 				373AAEED2E91B7EA00D8ED84 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		37B0000092E91B7E900D8ED8 /* Build configuration list for PBXNativeTarget "BedtimeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				37B00000A2E91B7E900D8ED8 /* Debug */,
+				37B00000B2E91B7E900D8ED8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

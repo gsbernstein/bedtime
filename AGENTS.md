@@ -7,8 +7,10 @@ SwiftUI, SwiftData, and HealthKit and targets iOS 17+. See `README.md` for the p
 - No third‑party dependencies: there is no Swift Package Manager manifest, no CocoaPods/Carthage,
   and no package manager. The app uses only Apple system frameworks (`SwiftUI`, `SwiftData`,
   `HealthKit`, `Combine`, `Foundation`).
-- There are currently **no test targets** and **no lint config** (no `.swiftlint.yml` /
-  `.swift-format`) checked in.
+- Unit tests live in `Bedtime/BedtimeTests` (target `BedtimeTests`, Swift Testing). They cover
+ pure logic only — date/window math and formatting — and inject a fixed calendar rather than
+ relying on the machine's time zone. There is **no lint config** (no `.swiftlint.yml` /
+ `.swift-format`) checked in.
 
 ## Standard development (macOS + Xcode)
 
@@ -16,7 +18,9 @@ On a macOS machine with Xcode 15+ installed:
 
 - Open and run: open `Bedtime/Bedtime.xcodeproj` in Xcode, select the `Bedtime` scheme, and run.
 - Build from CLI:
-  `xcodebuild -project Bedtime/Bedtime.xcodeproj -scheme Bedtime -destination 'platform=iOS Simulator,name=iPhone 15' build`
+ `xcodebuild -project Bedtime/Bedtime.xcodeproj -scheme Bedtime -destination 'platform=iOS Simulator,name=iPhone 15' build`
+- Run tests:
+ `xcodebuild -project Bedtime/Bedtime.xcodeproj -scheme Bedtime -destination 'platform=iOS Simulator,name=iPhone 15' test`
 - Run HealthKit features in the iOS Simulator. The Simulator starts with no sleep data, so seed it
   first: in a DEBUG build, use the debug buttons in `SettingsView` (backed by
   `DebugDataGenerator` / `HealthKitManager.generateFakeSleepData`), which write synthetic sleep‑stage
