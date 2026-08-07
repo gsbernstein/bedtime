@@ -22,12 +22,18 @@ struct BedtimeApp: App {
             DiagnosticLogger.log("ModelContainer opened successfully")
             return container
         } catch {
+            // The store on disk can be incompatible with the current schema after a
+            // model change that SwiftData can't lightweight-migrate (e.g. the max-hours
+            // → earliestReasonableBedtime refactor). Rather than crash on open for
+            // anyone upgrading, discard the stale store and rebuild it. UserPreferences
+            // only holds user settings, which fall back to sensible defaults.
             DiagnosticLogger.log("ModelContainer failed: \(error.localizedDescription) — resetting store")
-            let storeURL = modelConfiguration.url
-            let fileManager = FileManager.default
-            for suffix in ["", "-shm", "-wal"] {
-                let url = URL(fileURLWithPath: storeURL.path + suffix)
-                try? fileManager.removeItem(at: url)
+            if let storeURL = modelConfiguration.url as URL? {
+                let fileManager = FileManager.default
+                for suffix in ["", "-shm", "-wal"] {
+                    let url = URL(fileURLWithPath: storeURL.path + suffix)
+                    try? fileManager.removeItem(at: url)
+                }
             }
 
             do {

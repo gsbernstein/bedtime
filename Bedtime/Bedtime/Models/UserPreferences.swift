@@ -15,18 +15,26 @@ final class UserPreferences {
     var sleepBankDays: Int
     var lastUpdated: Date
     var earliestReasonableBedtime: Date
+    /// When true, durations use decimal hours ("5.1h"); otherwise "5h 6m".
+    var useDecimalDurations: Bool = false
+
+    var durationDisplayStyle: DurationDisplayStyle {
+        useDecimalDurations ? .decimal : .hoursAndMinutes
+    }
 
     init(
         sleepGoalHours: Double = 8.0,
         wakeTime: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date(),
         sleepBankDays: Int = 7,
-        earliestReasonableBedtime: Date = Calendar.current.date(from: DateComponents(hour: 21, minute: 0)) ?? Date()
+        earliestReasonableBedtime: Date = Calendar.current.date(from: DateComponents(hour: 21, minute: 0)) ?? Date(),
+        useDecimalDurations: Bool = false
     ) {
         self.sleepGoalHours = sleepGoalHours
         self.wakeTime = wakeTime
         self.sleepBankDays = sleepBankDays
         self.lastUpdated = Date()
         self.earliestReasonableBedtime = earliestReasonableBedtime
+        self.useDecimalDurations = useDecimalDurations
     }
 
     /// Convenience accessor for the nominal sleep-window length from this

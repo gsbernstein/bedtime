@@ -35,6 +35,13 @@ struct SleepSession {
     }
 }
 
+struct SleepSourceAppLink: Identifiable {
+    let id: String
+    let name: String
+    let destination: URL
+    let lastDataDate: Date
+}
+
 extension SleepSession {
     init?(sample: HKCategorySample) {
         guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return nil }
@@ -47,6 +54,13 @@ extension SleepSession {
 }
 
 extension HKCategoryValueSleepAnalysis {
+    
+    static let allAsleepValues: [HKCategoryValueSleepAnalysis] = [
+        .asleepUnspecified,
+        .asleepCore,
+        .asleepDeep,
+        .asleepREM,
+    ]
     
     var displayName: String {
         switch self {
@@ -85,15 +99,39 @@ extension HKCategoryValueSleepAnalysis {
     }
 }
 
-struct SleepBank {
+struct NightSummary: Identifiable, Equatable {
+    let date: Date
+    let totalHours: Double
+    let hasData: Bool
+    
+    var id: Date { date }
+}
+
+struct BalanceDayImpact: Identifiable {
+    let date: Date
+    let priorBalance: Double
+    let impact: Double
+    
+    var id: Date { date }
+    var newBalance: Double { priorBalance + impact }
+    var isGain: Bool { impact > 0 }
+}
+
+struct SleepBank: Equatable {
     let currentBalance: Double // in hours
     let goalHours: Double
     let averageHours: Double?
+    let recentNights: [NightSummary]
     
     var isInDebt: Bool {
         return currentBalance < 0
     }
     
+    var statusColor: Color {
+        guard averageHours != nil else { return .secondary }
+        return Constants.sleepGoalColor(difference: currentBalance, graceColor: .primary)
+    }
+
     var debtHours: Double {
         return max(0, -currentBalance)
     }
@@ -102,13 +140,26 @@ struct SleepBank {
         return max(0, currentBalance)
     }
     
-    var statusDescription: String {
+    func statusDescription(style: DurationDisplayStyle = .hoursAndMinutes) -> String {
         if averageHours == nil {
             return "Track some sleep in apple health to get insights."
         } else if isInDebt {
-            return "You're \(String(format: "%.1f", debtHours)) hours behind your sleep goal"
+            let amount = TimeFormatter.formatHours(debtHours, style: style)
+            return "You're \(amount) behind your sleep goal"
         } else {
-            return "You're \(String(format: "%.1f", creditHours)) hours ahead of your sleep goal"
+            let amount = TimeFormatter.formatHours(creditHours, style: style)
+            return "You're \(amount) ahead of your sleep goal"
+        }
+    }
+    
+    var balanceImpacts: [BalanceDayImpact] {
+        var runningBalance = 0.0
+        return recentNights.compactMap { night in
+            guard night.hasData else { return nil }
+            let priorBalance = runningBalance
+            let impact = night.totalHours - goalHours
+            runningBalance += impact
+            return BalanceDayImpact(date: night.date, priorBalance: priorBalance, impact: impact)
         }
     }
     
@@ -118,5 +169,5 @@ struct BedtimeRecommendation {
     let recommendedBedtime: Date
     let wakeTime: Date
     let targetSleepDuration: Double // in hours
-    let reason: String
+    let reason: String?
 }

@@ -16,6 +16,7 @@ struct SettingsView: View {
     var healthKitManager: HealthKitManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var isLoadingSources = true
 
     private var sleepBankDaysBinding: Binding<Double> {
         Binding(
@@ -46,7 +47,11 @@ struct SettingsView: View {
                         HStack {
                             Text("Target Sleep Duration")
                             Spacer()
-                            Text(TimeFormatter.formatDuration(preferences.sleepGoalHours*60*60))
+                            Text(TimeFormatter.formatHours(
+                                preferences.sleepGoalHours,
+                                style: preferences.durationDisplayStyle,
+                                maxFractionDigits: 2
+                            ))
                                 .foregroundStyle(.secondary)
                         }
                         
@@ -64,6 +69,23 @@ struct SettingsView: View {
                         displayedComponents: .hourAndMinute
                     )
                 }
+
+                Section {
+                    Toggle(isOn: $preferences.useDecimalDurations) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Decimal durations")
+                            Text(preferences.useDecimalDurations
+                                 ? "Example: \(DurationDisplayStyle.decimal.settingsExample)"
+                                 : "Example: \(DurationDisplayStyle.hoursAndMinutes.settingsExample)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Display")
+                } footer: {
+                    Text("Off uses hours and minutes (5h 6m). On uses decimal hours (5.1h); sleep goals can show quarter hours like 7.25h.")
+                }
                 
                 Section("Sleep Bank Calculation") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -74,7 +96,11 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                         
-                        Slider(value: sleepBankDaysBinding, in: 3...14, step: 1) {
+                        Slider(
+                            value: sleepBankDaysBinding,
+                            in: Double(Constants.sleepBankDaysRange.lowerBound)...Double(Constants.sleepBankDaysRange.upperBound),
+                            step: 1
+                        ) {
                             EmptyView()
                         }
                         .accentColor(.blue)
@@ -92,7 +118,7 @@ struct SettingsView: View {
                         displayedComponents: .hourAndMinute
                     )
 
-                    Text("Won't recommend sleeping before this time — allowing up to \(String(format: "%.1f", preferences.nominalMaxSleepHours)) hours per night based on your wake time (aside from DST adjustments).")
+                    Text("Won't recommend sleeping before this time — allowing up to \(TimeFormatter.formatHours(preferences.nominalMaxSleepHours, style: preferences.durationDisplayStyle, maxFractionDigits: 2)) per night based on your wake time (aside from DST adjustments).")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -143,6 +169,8 @@ struct SettingsView: View {
                                 .foregroundColor(.orange)
                         }
                         
+                    } else if isLoadingSources {
+                        ProgressView("Loading sources…")
                     } else {
                         Text("No sources discovered yet. Please log some sleep data to Apple Health.")
                             .font(.caption)
@@ -259,6 +287,8 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            // Force 12-hour clock labels in DatePickers to match app-wide time formatting.
+            .environment(\.locale, Locale(identifier: "en_US"))
             .toolbar {
                 if horizontalSizeClass == .compact {
                     ToolbarItem(placement: .confirmationAction) {
@@ -269,6 +299,10 @@ struct SettingsView: View {
                 }
             }
         }
+        .task {
+            defer { isLoadingSources = false }
+            await healthKitManager.loadAvailableSources()
+        }
     }
     
     private func retryHealthKitAccess() {
@@ -276,6 +310,7 @@ struct SettingsView: View {
         diagnosticsMessage = nil
         Task { @MainActor in
             await healthKitManager.requestAccessFromUser()
+            await healthKitManager.loadAvailableSources()
             diagnosticsMessage = healthKitManager.errorMessage ?? "HealthKit access retry finished."
             isRetryingHealthKit = false
         }

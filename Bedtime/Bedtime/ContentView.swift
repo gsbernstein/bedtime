@@ -11,6 +11,7 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var preferences: [UserPreferences]
     @StateObject private var sourcePreferences: SourcePreferences
     @StateObject private var healthKitManager: HealthKitManager
@@ -22,58 +23,93 @@ struct ContentView: View {
         let sourcePrefs = SourcePreferences()
         _sourcePreferences = StateObject(wrappedValue: sourcePrefs)
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
-        DiagnosticLogger.log("ContentView initialized")
     }
     
-    var lastNightData: [SleepSession]? {
+    private var lastNightKey: Date {
         let calendar = Calendar.current
-        let lastNight = calendar.startOfDay(for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date())
-        return healthKitManager.sleepSessions[lastNight]
+        return calendar.startOfDay(
+            for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date()
+        )
+    }
+
+    var lastNightData: [SleepSession]? {
+        healthKitManager.sleepSessions[lastNightKey]
+    }
+
+    private var recentSourceAppLinks: [SleepSourceAppLink] {
+        guard healthKitManager.allSleepSessions[lastNightKey] == nil else { return [] }
+        return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
     }
     
-    private func sleepBank(for preferences: UserPreferences) -> SleepBank {
+    private var userPreferences: UserPreferences {
+        if let existing = preferences.first {
+            return existing
+        } else {
+            let new = UserPreferences()
+            modelContext.insert(new)
+            return new
+        }
+    }
+    
+    private var sleepBank: SleepBank {
         ViewModel.calculateSleepBank(
             sleepSessions: healthKitManager.sleepSessions,
-            goalHours: preferences.sleepGoalHours,
-            recentDays: preferences.sleepBankDays
+            goalHours: userPreferences.sleepGoalHours,
+            recentDays: userPreferences.sleepBankDays
         )
     }
     
-    private func bedtimeRecommendation(
-        for preferences: UserPreferences,
-        sleepBank: SleepBank
-    ) -> BedtimeRecommendation {
+    /// Balance over the widest selectable lookback, independent of the current range, so the
+    /// balance chart can show every night the range start can be moved to.
+    private var fullWindowSleepBank: SleepBank {
+        ViewModel.calculateSleepBank(
+            sleepSessions: healthKitManager.sleepSessions,
+            goalHours: userPreferences.sleepGoalHours,
+            recentDays: Constants.sleepBankDaysRange.upperBound
+        )
+    }
+    
+    private var sleepBankDaysBinding: Binding<Int> {
+        Binding(
+            get: { userPreferences.sleepBankDays },
+            set: { userPreferences.sleepBankDays = $0 }
+        )
+    }
+    
+    private var bedtimeRecommendation: BedtimeRecommendation {
         ViewModel.generateBedtimeRecommendation(
-            wakeTime: preferences.wakeTime,
-            earliestBedtime: preferences.earliestReasonableBedtime,
-            sleepGoal: preferences.sleepGoalHours,
-            sleepBank: sleepBank
+            wakeTime: userPreferences.wakeTime,
+            earliestBedtime: userPreferences.earliestReasonableBedtime,
+            sleepGoal: userPreferences.sleepGoalHours,
+            sleepBank: sleepBank,
+            durationStyle: userPreferences.durationDisplayStyle
+        )
+    }
+
+    private var wakeTimeBinding: Binding<Date> {
+        Binding(
+            get: { userPreferences.wakeTime },
+            set: { userPreferences.wakeTime = $0 }
+        )
+    }
+
+    private var sleepBankInsight: SleepBankInsight? {
+        SleepInsightsEngine.generateInsight(
+            sleepSessions: healthKitManager.sleepSessions,
+            goalHours: userPreferences.sleepGoalHours,
+            maxSleepHours: SleepWindow.maxSleepHours(
+                earliestBedtime: userPreferences.earliestReasonableBedtime,
+                wakeTime: userPreferences.wakeTime
+            )
         )
     }
 
     var body: some View {
-        if let userPreferences = preferences.first {
-            mainContent(userPreferences: userPreferences)
-                .task {
-                    await healthKitManager.resumeLoadingIfNeeded()
-                }
-        } else {
-            ProgressView()
-                .task {
-                    seedDefaultPreferencesIfNeeded()
-                }
-        }
-    }
-
-    @ViewBuilder
-    private func mainContent(userPreferences: UserPreferences) -> some View {
         let isBeforeEvening = Calendar.current.component(.hour, from: Date()) < 18
-        let sleepBank = sleepBank(for: userPreferences)
-        let bedtimeRecommendation = bedtimeRecommendation(for: userPreferences, sleepBank: sleepBank)
-
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    // HealthKit Authorization
                     switch healthKitManager.permissionsRequestState {
                     case .loading:
                         ProgressView()
@@ -84,22 +120,53 @@ struct ContentView: View {
                     case .hasRequested:
                         if isBeforeEvening {
                             LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours)
+                                          goal: userPreferences.sleepGoalHours,
+                                          sourceAppLinks: recentSourceAppLinks)
                         } else {
-                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                            BedtimeRecommendationCard(
+                                recommendation: bedtimeRecommendation,
+                                wakeTime: wakeTimeBinding
+                            )
                         }
 
-                        SleepBankCard(sleepBank: sleepBank)
+                        SleepBankCard(
+                            sleepBank: sleepBank,
+                            fullWindowBank: fullWindowSleepBank,
+                            sleepBankDays: sleepBankDaysBinding
+                        )
+
+                        if let sleepBankInsight {
+                            SleepInsightsCard(
+                                insight: sleepBankInsight,
+                                currentSleepBankDays: userPreferences.sleepBankDays,
+                                onApplyDays: { days in
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        userPreferences.sleepBankDays = days
+                                    }
+                                }
+                            )
+                        }
 
                         if isBeforeEvening {
-                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                            BedtimeRecommendationCard(
+                                recommendation: bedtimeRecommendation,
+                                wakeTime: wakeTimeBinding
+                            )
                         } else {
                             LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours)
+                                          goal: userPreferences.sleepGoalHours,
+                                          sourceAppLinks: recentSourceAppLinks)
                         }
 
-                        if !healthKitManager.sleepSessions.isEmpty {
-                            RecentSleepSessionsCard(sessions: healthKitManager.sleepSessions, sleepGoal: userPreferences.sleepGoalHours)
+                        // Recent Sleep Sessions
+                        if !healthKitManager.sleepSessions.isEmpty || !healthKitManager.allSleepSessions.isEmpty {
+                            RecentSleepSessionsCard(
+                                sessions: healthKitManager.sleepSessions,
+                                allSessions: healthKitManager.allSleepSessions,
+                                excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers,
+                                sleepGoal: userPreferences.sleepGoalHours,
+                                sleepBankDays: sleepBankDaysBinding
+                            )
                         }
                     }
                 }
@@ -107,6 +174,7 @@ struct ContentView: View {
                 .frame(maxWidth: 600)
                 .frame(maxWidth: .infinity)
             }
+            .environment(\.durationDisplayStyle, userPreferences.durationDisplayStyle)
             .background(Color.backgroundBehindCards)
             .navigationTitle("Bedger")
             .toolbar {
@@ -138,15 +206,19 @@ struct ContentView: View {
                 )
             }
         }
+        .task {
+            try? await healthKitManager.fetchSleepData()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Refresh on return from background: the observer query's background
+            // delivery is throttled, and `.task` doesn't re-run on resume, so this
+            // covers data added in the Health app while we were suspended.
+            guard newPhase == .active else { return }
+            Task { try? await healthKitManager.fetchSleepData() }
+        }
         .onChange(of: healthKitManager.permissionsRequestState) { _, newState in
             DiagnosticLogger.log("permissionsRequestState → \(newState)")
         }
-    }
-
-    private func seedDefaultPreferencesIfNeeded() {
-        guard preferences.isEmpty else { return }
-        DiagnosticLogger.log("Seeding default UserPreferences")
-        modelContext.insert(UserPreferences())
     }
 }
 
@@ -156,6 +228,8 @@ struct ContentView: View {
 }
 
 private extension View {
+    /// Presents settings as an inspector pane when `useInspector` is true (iPad regular width)
+    /// and as a sheet otherwise (iPhone / iPad split-screen).
     @ViewBuilder
     func settingsPresentation<SettingsContent: View>(
         isPresented: Binding<Bool>,
@@ -172,3 +246,4 @@ private extension View {
         }
     }
 }
+

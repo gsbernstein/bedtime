@@ -10,12 +10,7 @@ import HealthKit
 
 struct SleepSessionRow: View {
     let session: SleepSession
-    
-    private var timeFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
-    }
+    @Environment(\.durationDisplayStyle) private var durationStyle
     
     var body: some View {
         HStack(spacing: 6) {
@@ -24,7 +19,7 @@ struct SleepSessionRow: View {
                 .foregroundColor(Color(session.sleepType.color))
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(timeFormatter.string(from: session.startDate)) - \(timeFormatter.string(from: session.endDate))")
+                Text("\(TimeFormatter.formatTimeOfDay(session.startDate)) - \(TimeFormatter.formatTimeOfDay(session.endDate))")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -36,7 +31,7 @@ struct SleepSessionRow: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 2) {
-                Text(TimeFormatter.formatDuration(session.duration))
+                Text(TimeFormatter.formatDuration(session.duration, style: durationStyle))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
