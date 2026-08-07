@@ -109,7 +109,7 @@ class HealthKitManager: ObservableObject {
     }
     
     private func loadSleepData() async throws {
-        // Source discovery scans all of history, so start it alongside the display
+        // Source discovery is a separate query, so start it alongside the display
         // fetch instead of after it. Only the display fetch is load-bearing.
         async let discoveredSources = discoverAvailableSources()
 
@@ -195,23 +195,33 @@ class HealthKitManager: ObservableObject {
     /// drives the Settings filter), so a failure here leaves any previously
     /// discovered sources in place rather than failing the surrounding refresh.
     private func discoverAvailableSources() async -> [HKSource]? {
-        // Query all of history so sources that stopped writing recently still appear.
-        let predicate = HKQuery.predicateForSamples(
-            withStart: Date.distantPast,
-            end: Date(),
-            options: .strictStartDate
-        )
-        
         do {
-            let samples = try await fetchSleepSamples(matching: predicate)
-            var seenBundleIDs = Set<String>()
-            return samples
-                .map(\.sourceRevision.source)
-                .filter { seenBundleIDs.insert($0.bundleIdentifier).inserted }
-                .sorted { $0.name < $1.name }
+            return try await fetchSleepSources().sorted { $0.name < $1.name }
         } catch {
             errorMessage = "Failed to discover sleep sources: \(error.localizedDescription)"
             return nil
+        }
+    }
+    
+    /// Asks HealthKit which sources have ever written sleep data. A nil sample
+    /// predicate covers all of history, so sources that stopped writing recently are
+    /// still offered in Settings.
+    private func fetchSleepSources() async throws -> Set<HKSource> {
+        let healthStore = self.healthStore
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSourceQuery(
+                sampleType: HKCategoryType.sleepAnalysis,
+                samplePredicate: nil
+            ) { _, sources, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                continuation.resume(returning: sources ?? [])
+            }
+            
+            healthStore.execute(query)
         }
     }
     
