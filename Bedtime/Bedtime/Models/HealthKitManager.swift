@@ -34,6 +34,9 @@ class HealthKitManager: ObservableObject {
     /// Long-lived query that re-loads data whenever HealthKit sleep samples change.
     /// Registered once, after the first successful fetch; torn down in `deinit`.
     private var observerQuery: HKObserverQuery?
+    /// Most recently started load. New loads queue behind it so overlapping
+    /// refreshes can't publish results out of order.
+    private var lastLoad: Task<Void, Error>?
     
     @Published private(set) var permissionsRequestState: PermissionsRequestState = .loading
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
@@ -108,7 +111,28 @@ class HealthKitManager: ObservableObject {
         }
     }
     
+    /// Loads sleep data, one load at a time.
+    ///
+    /// Launch, scene resume, pull-to-refresh and observer notifications all refresh
+    /// independently, so loads would otherwise overlap and publish results in
+    /// whatever order their queries happened to finish. Chaining each load behind the
+    /// previous one keeps published state in request order, and means a queued load
+    /// still queries HealthKit *after* the one before it finished rather than
+    /// reporting data that was already stale when it started.
     private func loadSleepData() async throws {
+        let previousLoad = lastLoad
+        let load = Task { @MainActor in
+            // A previous load that already finished resumes immediately; its failure
+            // isn't this load's failure, so the outcome is deliberately ignored.
+            _ = await previousLoad?.result
+            try await performLoad()
+        }
+
+        lastLoad = load
+        try await load.value
+    }
+
+    private func performLoad() async throws {
         // Source discovery is a separate query, so start it alongside the display
         // fetch instead of after it. Only the display fetch is load-bearing.
         async let discoveredSources = discoverAvailableSources()
