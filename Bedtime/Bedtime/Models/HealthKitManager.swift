@@ -19,10 +19,18 @@ import Combine
 /// whether or not to provide permission. We use this flag to avoid re-prompting,
 /// not as proof of access. Write/share permission (for debug) is handled separately by
 /// `requireWriteAuthorization(for:)`, which can re-prompt when needed.
-enum PermissionsRequestState: Equatable {
+enum PermissionsRequestState: Equatable, CustomStringConvertible {
     case loading
     case shouldRequest
     case hasRequested
+
+    var description: String {
+        switch self {
+        case .loading: return "loading"
+        case .shouldRequest: return "shouldRequest"
+        case .hasRequested: return "hasRequested"
+        }
+    }
 }
 
 @MainActor
@@ -39,6 +47,8 @@ class HealthKitManager: ObservableObject {
     private var currentLoad: Task<Void, Error>?
     
     @Published private(set) var permissionsRequestState: PermissionsRequestState = .loading
+    /// Drives the Grant Access button's spinner so repeat taps can't stack prompts.
+    @Published private(set) var isRequestingAccess = false
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
     /// All sessions regardless of source preferences — used for per-source comparison UI.
     @Published private(set) var allSleepSessions: [Date: [SleepSession]] = [:]
@@ -50,9 +60,11 @@ class HealthKitManager: ObservableObject {
         
         do {
             try checkHealthKitAvailability()
+            DiagnosticLogger.log("HealthKit is available")
         } catch {
             errorMessage = error.localizedDescription
             permissionsRequestState = .shouldRequest
+            DiagnosticLogger.log("HealthKit unavailable: \(error.localizedDescription)")
         }
         
         // Listen for preference changes to re-filter data immediately
@@ -96,6 +108,7 @@ class HealthKitManager: ObservableObject {
     }
     
     func fetchSleepData() async throws {
+        DiagnosticLogger.log("fetchSleepData — state=\(permissionsRequestState)")
         defer {
             if permissionsRequestState == .loading {
                 permissionsRequestState = .shouldRequest
@@ -106,18 +119,88 @@ class HealthKitManager: ObservableObject {
             try await requestAuthorization()
         } catch {
             errorMessage = error.localizedDescription
+            DiagnosticLogger.log("fetchSleepData authorization failed: \(error.localizedDescription)")
             throw error
         }
         
         do {
             try await loadSleepData()
             startObservingSleepChanges()
+            logLoadResults(context: "fetchSleepData")
         } catch is CancellationError {
             // A newer refresh superseded this one; its results (or error) stand.
+            DiagnosticLogger.log("fetchSleepData superseded by a newer refresh")
         } catch {
             errorMessage = "Failed to fetch sleep data: \(error.localizedDescription)"
+            DiagnosticLogger.log("fetchSleepData load failed: \(error.localizedDescription)")
             throw error
         }
+    }
+
+    /// Backs the "Grant Access" button and the Settings retry.
+    ///
+    /// Unlike `requestAuthorization()`, this always re-presents the HealthKit prompt
+    /// rather than short-circuiting once the app has asked before. HealthKit silently
+    /// no-ops the prompt when the user already answered, so the button would otherwise
+    /// appear to do nothing; reloading afterwards is what actually surfaces whether
+    /// read access was granted.
+    func requestAccessFromUser() async {
+        guard !isRequestingAccess else {
+            DiagnosticLogger.log("requestAccessFromUser ignored — already in progress")
+            return
+        }
+
+        isRequestingAccess = true
+        errorMessage = nil
+        DiagnosticLogger.log("User tapped Grant Access — state=\(permissionsRequestState)")
+        defer { isRequestingAccess = false }
+
+        do {
+            try checkHealthKitAvailability()
+            logAuthorizationHints()
+            DiagnosticLogger.log("Calling requestAuthorization for sleep analysis…")
+            try await healthStore.requestAuthorization(
+                toShare: [],
+                read: [HKCategoryType.sleepAnalysis]
+            )
+            DiagnosticLogger.log("requestAuthorization returned")
+            permissionsRequestState = .hasRequested
+
+            try await loadSleepData()
+            startObservingSleepChanges()
+            logLoadResults(context: "after user grant")
+
+            if rawSleepSamples.isEmpty {
+                errorMessage = Self.noDataAfterGrantMessage
+            }
+        } catch is CancellationError {
+            DiagnosticLogger.log("requestAccessFromUser superseded by a newer refresh")
+        } catch {
+            permissionsRequestState = .shouldRequest
+            errorMessage = error.localizedDescription
+            DiagnosticLogger.log("requestAccessFromUser failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// HealthKit reports no error when read access is denied — queries just come back
+    /// empty — so an empty result right after granting is the only signal we can offer.
+    private static let noDataAfterGrantMessage = "No sleep data was returned from Apple Health. If you previously denied access, open Settings → Health → Data Access & Devices → Bedger and turn on Sleep."
+
+    private func logLoadResults(context: String) {
+        let sourceNames = availableSources?.map(\.name).joined(separator: ", ") ?? "none"
+        DiagnosticLogger.log(
+            "\(context): rawSamples=\(rawSleepSamples.count), " +
+            "groupedDays=\(sleepSessions.count), " +
+            "sources=\(availableSources?.count ?? 0) [\(sourceNames)]"
+        )
+    }
+
+    private func logAuthorizationHints() {
+        let writeStatus = healthStore.authorizationStatus(for: HKCategoryType.sleepAnalysis)
+        DiagnosticLogger.log(
+            "Sleep analysis write/share authorizationStatus=\(writeStatus.rawValue) " +
+            "(HealthKit does not expose read authorization status)"
+        )
     }
     
     /// Loads sleep data, keeping only the newest request's results.
@@ -225,7 +308,14 @@ class HealthKitManager: ObservableObject {
             sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)]
         )
         
-        return try await descriptor.result(for: healthStore)
+        do {
+            let samples = try await descriptor.result(for: healthStore)
+            DiagnosticLogger.log("Sleep sample query returned \(samples.count) samples")
+            return samples
+        } catch {
+            DiagnosticLogger.log("Sleep sample query failed: \(error.localizedDescription)")
+            throw error
+        }
     }
     
     /// Loads every source that has ever written sleep data for the Settings filter.
@@ -238,10 +328,13 @@ class HealthKitManager: ObservableObject {
         )
         
         do {
-            availableSources = try await descriptor.result(for: healthStore)
+            let sources = try await descriptor.result(for: healthStore)
                 .sorted { $0.name < $1.name }
+            availableSources = sources
+            DiagnosticLogger.log("Discovered \(sources.count) sleep sources: \(sources.map(\.name).joined(separator: ", "))")
         } catch {
             errorMessage = "Failed to discover sleep sources: \(error.localizedDescription)"
+            DiagnosticLogger.log("Source discovery failed: \(error.localizedDescription)")
         }
     }
     
@@ -257,6 +350,11 @@ class HealthKitManager: ObservableObject {
             sourcePreferences.isSourceSelected($0.source.source.bundleIdentifier)
         }
         self.sleepSessions = Dictionary(grouping: includedSessions) { $0.dateForGrouping }
+
+        DiagnosticLogger.log(
+            "Processed \(samples.count) samples → \(allSessions.count) sessions, " +
+            "\(includedSessions.count) after source filtering"
+        )
     }
     
     #if DEBUG

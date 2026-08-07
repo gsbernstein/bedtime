@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import HealthKit
+import UIKit
 
 struct SettingsView: View {
     @Bindable var preferences: UserPreferences
@@ -28,6 +29,11 @@ struct SettingsView: View {
     @State private var debugIsWorking = false
     @State private var debugMessage: String?
     #endif
+
+    @State private var copiedLogsConfirmation = false
+    @State private var diagnosticsMessage: String?
+    @State private var isRetryingHealthKit = false
+    @ObservedObject private var diagnosticLogger = DiagnosticLogger.shared
 
     private var earliestBedtimeBinding: Binding<Date> {
         $preferences.earliestReasonableBedtime
@@ -172,6 +178,66 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section("Diagnostics") {
+                    LabeledContent("HealthKit state") {
+                        Text(String(describing: healthKitManager.permissionsRequestState))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    LabeledContent("Sleep samples") {
+                        Text("\(healthKitManager.sleepSessions.values.flatMap { $0 }.count)")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    LabeledContent("Log entries") {
+                        Text("\(diagnosticLogger.entries.count)")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Button {
+                        SharePresenter.present(items: [diagnosticLogger.exportText()])
+                    } label: {
+                        Label("Share Diagnostic Logs", systemImage: "square.and.arrow.up")
+                    }
+
+                    Button {
+                        UIPasteboard.general.string = diagnosticLogger.exportText()
+                        copiedLogsConfirmation = true
+                    } label: {
+                        Label("Copy Logs to Clipboard", systemImage: "doc.on.doc")
+                    }
+
+                    Button {
+                        retryHealthKitAccess()
+                    } label: {
+                        if isRetryingHealthKit {
+                            HStack {
+                                ProgressView()
+                                Text("Retrying…")
+                            }
+                        } else {
+                            Label("Retry HealthKit Access", systemImage: "arrow.clockwise")
+                        }
+                    }
+                    .disabled(isRetryingHealthKit)
+
+                    if copiedLogsConfirmation {
+                        Text("Logs copied. Paste into a message or email to send to the developer.")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+
+                    if let diagnosticsMessage {
+                        Text(diagnosticsMessage)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Text("If sleep data isn't loading, share or copy these logs and send them to the developer.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
                 #if DEBUG
                 Section("Developer") {
                     Button {
@@ -239,6 +305,17 @@ struct SettingsView: View {
         }
     }
     
+    private func retryHealthKitAccess() {
+        isRetryingHealthKit = true
+        diagnosticsMessage = nil
+        Task { @MainActor in
+            await healthKitManager.requestAccessFromUser()
+            await healthKitManager.loadAvailableSources()
+            diagnosticsMessage = healthKitManager.errorMessage ?? "HealthKit access retry finished."
+            isRetryingHealthKit = false
+        }
+    }
+
     #if DEBUG
     /// Runs a debug action while toggling the working state and surfacing
     /// either a success message or the error description in the UI.

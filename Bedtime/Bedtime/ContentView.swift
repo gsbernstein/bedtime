@@ -216,6 +216,9 @@ struct ContentView: View {
             guard newPhase == .active else { return }
             Task { try? await healthKitManager.fetchSleepData() }
         }
+        .onChange(of: healthKitManager.permissionsRequestState) { _, newState in
+            DiagnosticLogger.log("permissionsRequestState → \(newState)")
+        }
     }
 }
 

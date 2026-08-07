@@ -35,13 +35,22 @@ struct HealthKitAuthorizationCard: View {
                         .multilineTextAlignment(.leading)
                 }
                 
-                Button("Grant Access") {
+                Button {
                     Task {
-                        try await healthKitManager.fetchSleepData()
+                        await healthKitManager.requestAccessFromUser()
+                    }
+                } label: {
+                    if healthKitManager.isRequestingAccess {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text("Grant Access")
+                            .frame(maxWidth: .infinity)
                     }
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .disabled(healthKitManager.isRequestingAccess)
             }
         }
     }
