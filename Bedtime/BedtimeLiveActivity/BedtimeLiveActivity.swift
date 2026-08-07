@@ -41,8 +41,7 @@ struct BedtimeLiveActivity: Widget {
             } compactTrailing: {
                 CountdownText(
                     state: context.state,
-                    phase: BedtimePhase(isStale: context.isStale),
-                    maxFieldCount: 1
+                    phase: BedtimePhase(isStale: context.isStale)
                 )
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -72,10 +71,11 @@ private enum BedtimePhase {
         }
     }
 
+    /// `DateReference` supplies its own "in …", so this is only the subject.
     var countdownLabel: String {
         switch self {
-        case .windDown: "Bedtime in"
-        case .sleeping: "Wake in"
+        case .windDown: "Bedtime"
+        case .sleeping: "Wake"
         }
     }
 
@@ -100,19 +100,21 @@ private enum BedtimePhase {
 
 /// Only the system format styles keep counting while the app is suspended, so the
 /// remaining time is rendered by the system rather than formatted by the app.
+///
+/// Limiting the fields to hours and minutes keeps the phrasing at "in 8 hours" /
+/// "in 20 minutes" rather than reaching for "tomorrow", and the hour threshold means
+/// only a gap wider than a day would fall back to an absolute date.
 private struct CountdownText: View {
     let state: BedtimeActivityAttributes.ContentState
     let phase: BedtimePhase
-    var maxFieldCount: Int = 2
 
     var body: some View {
         Text(
             .currentDate,
-            format: .offset(
+            format: .reference(
                 to: phase.target(in: state),
                 allowedFields: [.hour, .minute],
-                maxFieldCount: maxFieldCount,
-                sign: .never
+                thresholdField: .hour
             )
         )
     }
@@ -132,9 +134,10 @@ private struct BedtimeSummaryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 Image(systemName: phase.symbol)
                     .foregroundStyle(.indigo)
+                    .padding(.trailing, 2)
 
                 Text(phase.countdownLabel)
 
