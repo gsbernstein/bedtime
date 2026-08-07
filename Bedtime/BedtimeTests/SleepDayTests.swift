@@ -82,8 +82,8 @@ struct FeaturedNightTests {
     /// Stands in for a night's sessions; only the presence of a key matters here.
     private let recorded = ["session"]
 
-    @Test("Waking in the small hours features tonight's sleep so far")
-    func smallHoursPrefersNightUnderway() {
+    @Test("Waking in the wee hours features tonight's sleep so far")
+    func weeHoursPrefersNightUnderway() {
         let nights = [sleepDay(6, 10): recorded, sleepDay(6, 11): recorded]
 
         let featured = SleepDay.featured(
@@ -95,8 +95,8 @@ struct FeaturedNightTests {
         #expect(featured == sleepDay(6, 11))
     }
 
-    @Test("The small hours fall back when tonight has nothing recorded yet")
-    func smallHoursFallsBack() {
+    @Test("The wee hours fall back when tonight has nothing recorded yet")
+    func weeHoursFallsBack() {
         let nights = [sleepDay(6, 10): recorded]
 
         let featured = SleepDay.featured(
@@ -164,21 +164,21 @@ struct FeaturedNightTests {
         #expect(featured == sleepDay(6, 12))
     }
 
-    @Test("Falling back stops once the small hours are over")
-    func fallbackStopsAfterSmallHours() {
+    @Test("Falling back stops once the wee hours are over")
+    func fallbackStopsAfterWeeHours() {
         let nights = [sleepDay(6, 10): recorded]
         let justBefore = SleepDay.featured(
             in: nights,
-            now: moment(6, 11, hour: Constants.smallHours.upperBound - 1, minute: 59),
+            now: moment(6, 11, hour: Constants.weeHours.upperBound - 1, minute: 59),
             calendar: testCalendar
         )
-        let afterSmallHours = SleepDay.featured(
+        let afterWeeHours = SleepDay.featured(
             in: nights,
-            now: moment(6, 11, hour: Constants.smallHours.upperBound),
+            now: moment(6, 11, hour: Constants.weeHours.upperBound),
             calendar: testCalendar
         )
 
         #expect(justBefore == sleepDay(6, 10))
-        #expect(afterSmallHours == sleepDay(6, 11))
+        #expect(afterWeeHours == sleepDay(6, 11))
     }
 }

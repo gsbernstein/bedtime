@@ -29,7 +29,7 @@ enum SleepDay {
     /// The sleep day a summary should feature, given the nights that have data.
     ///
     /// Prefers the day underway, so waking briefly at 2am shows tonight's sleep so far
-    /// rather than yesterday's total. During `Constants.smallHours` that day can have
+    /// rather than yesterday's total. During `Constants.weeHours` that day can have
     /// nothing recorded yet — sleep is still in progress, or the tracker hasn't synced —
     /// so it falls back to the night before. Later in the day an empty night stays
     /// empty, leaving the no-data state free to prompt a sync instead of resurrecting
@@ -41,10 +41,10 @@ enum SleepDay {
     ) -> Date {
         let nightUnderway = containing(now, calendar: calendar)
         let nothingRecordedYet = nights[nightUnderway] == nil
-        let stillTheSmallHours = Constants.smallHours.contains(calendar.component(.hour, from: now))
+        let stillTheWeeHours = Constants.weeHours.contains(calendar.component(.hour, from: now))
 
         if nothingRecordedYet,
-           stillTheSmallHours,
+           stillTheWeeHours,
            let previousNight = previous(before: nightUnderway, calendar: calendar) {
             return previousNight
         }
