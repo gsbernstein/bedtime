@@ -25,19 +25,35 @@ struct ContentView: View {
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
     }
     
-    private var lastNightKey: Date {
+    /// The night the summary card features: the sleep day currently underway, so waking
+    /// briefly at 2am shows tonight's sleep so far rather than yesterday's total.
+    ///
+    /// In the small hours that day can have nothing recorded yet — sleep is still in
+    /// progress, or the tracker hasn't synced — so it falls back to the night before.
+    /// Later in the day an empty night stays empty, leaving the no-data state free to
+    /// prompt a sync instead of resurrecting older sleep.
+    private var featuredNight: Date {
+        let now = Date()
         let calendar = Calendar.current
-        return calendar.startOfDay(
-            for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date()
-        )
+        let nightUnderway = SleepDay.containing(now, calendar: calendar)
+
+        guard
+            healthKitManager.sleepSessions[nightUnderway] == nil,
+            calendar.component(.hour, from: now) < Constants.smallHoursEndHour,
+            let previousNight = SleepDay.previous(before: nightUnderway, calendar: calendar)
+        else {
+            return nightUnderway
+        }
+
+        return previousNight
     }
 
-    var lastNightData: [SleepSession]? {
-        healthKitManager.sleepSessions[lastNightKey]
+    var featuredNightData: [SleepSession]? {
+        healthKitManager.sleepSessions[featuredNight]
     }
 
     private var recentSourceAppLinks: [SleepSourceAppLink] {
-        guard healthKitManager.allSleepSessions[lastNightKey] == nil else { return [] }
+        guard healthKitManager.allSleepSessions[featuredNight] == nil else { return [] }
         return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
     }
     
@@ -119,7 +135,7 @@ struct ContentView: View {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     case .hasRequested:
                         if isBeforeEvening {
-                            LastNightCard(sleepSessions: lastNightData,
+                            LastNightCard(sleepSessions: featuredNightData,
                                           goal: userPreferences.sleepGoalHours,
                                           sourceAppLinks: recentSourceAppLinks)
                         } else {
@@ -153,7 +169,7 @@ struct ContentView: View {
                                 wakeTime: wakeTimeBinding
                             )
                         } else {
-                            LastNightCard(sleepSessions: lastNightData,
+                            LastNightCard(sleepSessions: featuredNightData,
                                           goal: userPreferences.sleepGoalHours,
                                           sourceAppLinks: recentSourceAppLinks)
                         }

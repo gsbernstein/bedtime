@@ -12,6 +12,9 @@ class Constants {
     static let iconWidth: CGFloat = 30
     static let cardHeaderSpacing: CGFloat = 12
     static let sleepHistoryDays = 30
+    /// Before this hour, a night with no sleep recorded yet falls back to the night
+    /// before: sleep may still be in progress, or the tracker may not have synced.
+    static let smallHoursEndHour = 4
     /// Only suggest opening source apps that have written sleep data within this window.
     static let recentSourceAppLookbackDays = 7
     /// Allowed lookback for sleep-bank / insight window selection (Settings slider, insights, list handle).
