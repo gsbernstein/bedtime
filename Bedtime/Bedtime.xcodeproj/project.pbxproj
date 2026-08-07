@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		4C4956450000000000000001 /* BedtimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000010 /* BedtimeActivityAttributes.swift */; };
 		4C4956450000000000000002 /* BedtimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000010 /* BedtimeActivityAttributes.swift */; };
-		4C4956450000000000000003 /* BedtimeLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000011 /* BedtimeLiveActivity.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4C4956450000000000000003 /* BedtimeLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000011 /* BedtimeLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -23,15 +23,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		4C4956450000000000000040 /* Embed App Extensions */ = {
+		4C4956450000000000000040 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				4C4956450000000000000003 /* BedtimeLiveActivity.appex in Embed App Extensions */,
+				4C4956450000000000000003 /* BedtimeLiveActivity.appex in Embed Foundation Extensions */,
 			);
-			name = "Embed App Extensions";
+			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -110,7 +110,7 @@
 				373AAED92E91B7E900D8ED84 /* Sources */,
 				373AAEDA2E91B7E900D8ED84 /* Frameworks */,
 				373AAEDB2E91B7E900D8ED84 /* Resources */,
-				4C4956450000000000000040 /* Embed App Extensions */,
+				4C4956450000000000000040 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -434,13 +434,14 @@
 		4C49564500000000000000C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9J44X82D53;
-				GENERATE_INFOPLIST_FILE = NO;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "BedtimeLiveActivity-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_CFBundleDisplayName = Bedger;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -450,10 +451,12 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.burnsides.bedtime.liveactivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -462,13 +465,14 @@
 		4C49564500000000000000D0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9J44X82D53;
-				GENERATE_INFOPLIST_FILE = NO;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "BedtimeLiveActivity-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_CFBundleDisplayName = Bedger;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -478,9 +482,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.burnsides.bedtime.liveactivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
