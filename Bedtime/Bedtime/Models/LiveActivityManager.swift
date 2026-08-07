@@ -20,7 +20,10 @@ final class LiveActivityManager: ObservableObject {
         activeActivityID = Activity<BedtimeActivityAttributes>.activities.first?.id
     }
 
-    func startOrUpdate(with recommendation: BedtimeRecommendation) async {
+    func startOrUpdate(
+        with recommendation: BedtimeRecommendation,
+        durationStyle: DurationDisplayStyle
+    ) async {
         guard areActivitiesEnabled else {
             lastErrorMessage = "Live Activities are disabled for Bedger in system settings."
             return
@@ -35,11 +38,14 @@ final class LiveActivityManager: ObservableObject {
             activityStart: Date(),
             bedtime: schedule.bedtime,
             wakeTime: schedule.wakeTime,
-            targetSleepHours: recommendation.targetSleepDuration
+            targetSleepHours: recommendation.targetSleepDuration,
+            durationStyle: durationStyle
         )
+        // Going stale at bedtime is what flips the card from the wind-down
+        // countdown to the sleeping one while the app is suspended.
         let content = ActivityContent(
             state: state,
-            staleDate: schedule.wakeTime
+            staleDate: schedule.bedtime
         )
 
         if let activity = currentActivity {
@@ -50,7 +56,7 @@ final class LiveActivityManager: ObservableObject {
 
         do {
             let activity = try Activity.request(
-                attributes: BedtimeActivityAttributes(title: "Tonight’s sleep plan"),
+                attributes: BedtimeActivityAttributes(title: "Bedger"),
                 content: content,
                 pushType: nil
             )

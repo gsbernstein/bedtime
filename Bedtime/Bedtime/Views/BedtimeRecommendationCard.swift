@@ -10,6 +10,7 @@ import SwiftUI
 struct BedtimeRecommendationCard: View {
     let recommendation: BedtimeRecommendation
     @ObservedObject var liveActivityManager: LiveActivityManager
+    @Environment(\.durationDisplayStyle) private var durationStyle
     
     var body: some View {
         CardComponent {
@@ -75,7 +76,10 @@ struct BedtimeRecommendationCard: View {
             HStack(spacing: 12) {
                 Button {
                     Task {
-                        await liveActivityManager.startOrUpdate(with: recommendation)
+                        await liveActivityManager.startOrUpdate(
+                            with: recommendation,
+                            durationStyle: durationStyle
+                        )
                     }
                 } label: {
                     Label(

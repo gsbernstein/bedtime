@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		4C4956450000000000000001 /* BedtimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000010 /* BedtimeActivityAttributes.swift */; };
 		4C4956450000000000000002 /* BedtimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000010 /* BedtimeActivityAttributes.swift */; };
+		4C4956450000000000000004 /* TimeFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000012 /* TimeFormatter.swift */; };
+		4C4956450000000000000005 /* TimeFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000012 /* TimeFormatter.swift */; };
 		4C4956450000000000000003 /* BedtimeLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000011 /* BedtimeLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -39,6 +41,7 @@
 /* Begin PBXFileReference section */
 		373AAEDD2E91B7E900D8ED84 /* Bedger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bedger.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C4956450000000000000010 /* BedtimeActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BedtimeActivityAttributes.swift; sourceTree = "<group>"; };
+		4C4956450000000000000012 /* TimeFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatter.swift; sourceTree = "<group>"; };
 		4C4956450000000000000011 /* BedtimeLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BedtimeLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -96,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				4C4956450000000000000010 /* BedtimeActivityAttributes.swift */,
+				4C4956450000000000000012 /* TimeFormatter.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -210,6 +214,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C4956450000000000000001 /* BedtimeActivityAttributes.swift in Sources */,
+				4C4956450000000000000004 /* TimeFormatter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +223,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C4956450000000000000002 /* BedtimeActivityAttributes.swift in Sources */,
+				4C4956450000000000000005 /* TimeFormatter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
