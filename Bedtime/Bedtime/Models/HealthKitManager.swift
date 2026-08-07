@@ -109,7 +109,18 @@ class HealthKitManager: ObservableObject {
     }
     
     private func loadSleepData() async throws {
-        _ = try await [fetchSleepDataForDisplay(), discoverAvailableSources()]
+        // Source discovery scans all of history, so start it alongside the display
+        // fetch instead of after it. Only the display fetch is load-bearing.
+        async let discoveredSources = discoverAvailableSources()
+
+        let predicate = try displayWindowPredicate()
+        let samples = try await fetchSleepSamples(matching: predicate)
+        rawSleepSamples = samples
+        processSleepSamples(samples)
+
+        if let discoveredSources = await discoveredSources {
+            availableSources = discoveredSources
+        }
     }
     
     /// Registers an `HKObserverQuery` so the app re-loads sleep data whenever
@@ -163,7 +174,8 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    private func fetchSleepDataForDisplay() async throws {
+    /// Predicate covering the window the UI can display.
+    private func displayWindowPredicate() throws -> NSPredicate {
         let calendar = Calendar.current
         let endDate = Date()
         let today = calendar.startOfDay(for: endDate)
@@ -174,71 +186,57 @@ class HealthKitManager: ObservableObject {
             throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to calculate start date"])
         }
         
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
-        
-        let query = HKSampleQuery(
-            sampleType: HKCategoryType.sleepAnalysis,
-            predicate: predicate,
-            limit: HKObjectQueryNoLimit,
-            sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
-        ) { [weak self] _, samples, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self?.errorMessage = "Failed to fetch sleep data: \(error.localizedDescription)"
-                    return
-                }
-                
-                guard let samples = samples as? [HKCategorySample] else {
-                    self?.errorMessage = "No sleep data found"
-                    return
-                }
-                
-                self?.rawSleepSamples = samples
-                self?.processSleepSamples(samples)
-            }
-        }
-        
-        healthStore.execute(query)
+        return HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
     }
     
-    private func discoverAvailableSources() async throws {
-        // Query all time to discover all sources that have ever provided sleep data
-        // Use a very old start date to get all historical data
+    /// Every source that has ever written sleep data, or `nil` when discovery failed.
+    ///
+    /// Best-effort by design: the app still works without the source list (it only
+    /// drives the Settings filter), so a failure here leaves any previously
+    /// discovered sources in place rather than failing the surrounding refresh.
+    private func discoverAvailableSources() async -> [HKSource]? {
+        // Query all of history so sources that stopped writing recently still appear.
         let predicate = HKQuery.predicateForSamples(
             withStart: Date.distantPast,
             end: Date(),
             options: .strictStartDate
         )
         
-        let query = HKSampleQuery(
-            sampleType: HKCategoryType.sleepAnalysis,
-            predicate: predicate,
-            limit: HKObjectQueryNoLimit,
-            sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
-        ) { [weak self] _, samples, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    // Don't fail if we can't discover sources, just log it
-                    print("Failed to discover sources: \(error.localizedDescription)")
-                    return
-                }
-                
-                guard let samples = samples as? [HKCategorySample] else {
-                    return
-                }
-                
-                // Extract unique sources from all samples
-                let uniqueSources = Dictionary(grouping: samples) { $0.sourceRevision.source.bundleIdentifier }
-                    .compactMap { _, samples -> HKSource? in
-                        samples.first?.sourceRevision.source
-                    }
-                    .sorted { $0.name < $1.name }
-                
-                self?.availableSources = uniqueSources
-            }
+        do {
+            let samples = try await fetchSleepSamples(matching: predicate)
+            var seenBundleIDs = Set<String>()
+            return samples
+                .map(\.sourceRevision.source)
+                .filter { seenBundleIDs.insert($0.bundleIdentifier).inserted }
+                .sorted { $0.name < $1.name }
+        } catch {
+            errorMessage = "Failed to discover sleep sources: \(error.localizedDescription)"
+            return nil
         }
-        
-        healthStore.execute(query)
+    }
+    
+    /// Bridges `HKSampleQuery`'s completion handler to async/await so callers actually
+    /// await the samples — and see query errors — instead of resuming as soon as the
+    /// query has been handed to HealthKit.
+    private func fetchSleepSamples(matching predicate: NSPredicate) async throws -> [HKCategorySample] {
+        let healthStore = self.healthStore
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: HKCategoryType.sleepAnalysis,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+            ) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                continuation.resume(returning: samples?.compactMap { $0 as? HKCategorySample } ?? [])
+            }
+            
+            healthStore.execute(query)
+        }
     }
     
     private func reprocessStoredSamples() {
