@@ -102,13 +102,20 @@ class HealthKitManager: ObservableObject {
             }
         }
         do {
+            // Authorization errors already describe themselves.
             try await requestAuthorization()
+        } catch {
+            errorMessage = error.localizedDescription
+            throw error
+        }
+        
+        do {
             try await loadSleepData()
             startObservingSleepChanges()
         } catch is CancellationError {
             // A newer refresh superseded this one; its results (or error) stand.
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "Failed to fetch sleep data: \(error.localizedDescription)"
             throw error
         }
     }
