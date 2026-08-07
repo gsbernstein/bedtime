@@ -8,6 +8,57 @@
 import Foundation
 
 class ViewModel {
+    private struct SourceAppDestination {
+        let name: String
+        let url: URL
+    }
+
+    /// HealthKit identifies writers by bundle ID. Only add destinations that the
+    /// source app publicly supports so the no-data state never offers a dead link.
+    private static let sourceAppDestinations: [String: SourceAppDestination] = [
+        "com.ouraring.oura": SourceAppDestination(
+            name: "Oura",
+            url: URL(string: "https://cloud.ouraring.com/app/v1/home")!
+        )
+    ]
+
+    static func recentSourceAppLinks(
+        sleepSessions: [Date: [SleepSession]],
+        referenceDate: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [SleepSourceAppLink] {
+        let cutoff = calendar.date(
+            byAdding: .day,
+            value: -Constants.recentSourceAppLookbackDays,
+            to: referenceDate
+        ) ?? referenceDate
+
+        var linksByBundleID: [String: SleepSourceAppLink] = [:]
+        let recentSessions = sleepSessions.values
+            .flatMap { $0 }
+            .filter { $0.endDate >= cutoff && $0.endDate <= referenceDate }
+            .sorted { $0.endDate > $1.endDate }
+
+        for session in recentSessions {
+            let bundleID = session.source.source.bundleIdentifier.lowercased()
+            guard
+                linksByBundleID[bundleID] == nil,
+                let app = sourceAppDestinations[bundleID]
+            else {
+                continue
+            }
+
+            linksByBundleID[bundleID] = SleepSourceAppLink(
+                id: bundleID,
+                name: app.name,
+                destination: app.url,
+                lastDataDate: session.endDate
+            )
+        }
+
+        return linksByBundleID.values.sorted { $0.lastDataDate > $1.lastDataDate }
+    }
+
     static func calculateSleepBank(
         sleepSessions: [Date: [SleepSession]],
         goalHours: Double,

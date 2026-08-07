@@ -30,6 +30,10 @@ struct ContentView: View {
         let lastNight = calendar.startOfDay(for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date())
         return healthKitManager.sleepSessions[lastNight]
     }
+
+    private var recentSourceAppLinks: [SleepSourceAppLink] {
+        ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
+    }
     
     private var userPreferences: UserPreferences {
         if let existing = preferences.first {
@@ -86,7 +90,8 @@ struct ContentView: View {
                     case .hasRequested:
                         if isBeforeEvening {
                             LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours)
+                                          goal: userPreferences.sleepGoalHours,
+                                          sourceAppLinks: recentSourceAppLinks)
                         } else {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         }
@@ -109,7 +114,8 @@ struct ContentView: View {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         } else {
                             LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours)
+                                          goal: userPreferences.sleepGoalHours,
+                                          sourceAppLinks: recentSourceAppLinks)
                         }
 
                         // Recent Sleep Sessions

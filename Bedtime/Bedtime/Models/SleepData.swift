@@ -35,6 +35,13 @@ struct SleepSession {
     }
 }
 
+struct SleepSourceAppLink: Identifiable {
+    let id: String
+    let name: String
+    let destination: URL
+    let lastDataDate: Date
+}
+
 extension SleepSession {
     init?(sample: HKCategorySample) {
         guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return nil }
