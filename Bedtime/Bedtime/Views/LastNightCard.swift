@@ -10,6 +10,7 @@ import SwiftUI
 struct LastNightCard: View {
     let sleepSessions: [SleepSession]?
     let goal: TimeInterval
+    let sourceAppLinks: [SleepSourceAppLink]
     @Environment(\.durationDisplayStyle) private var durationStyle
     
     var durationInHours: TimeInterval? {
@@ -70,10 +71,29 @@ struct LastNightCard: View {
                         .tint(durationColor)
                     
                 } else {
-                    Text("No sleep data available")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding()
+                    VStack(spacing: 12) {
+                        Text("No sleep data available")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+
+                        if !sourceAppLinks.isEmpty {
+                            Text("Open a recent source app to sync last night's sleep.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+
+                            ForEach(sourceAppLinks) { sourceApp in
+                                Link(destination: sourceApp.destination) {
+                                    Label(
+                                        "Open \(sourceApp.name)",
+                                        systemImage: "arrow.up.forward.app"
+                                    )
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                    }
+                    .padding()
                 }
                 
             }
@@ -91,10 +111,19 @@ import HealthKit
             sleepType: .asleepUnspecified,
             source: .init(source: .default(), version: nil)
         )],
-        goal: 8
+        goal: 8,
+        sourceAppLinks: []
     )
     LastNightCard(
         sleepSessions: nil,
-        goal: 8
+        goal: 8,
+        sourceAppLinks: [
+            SleepSourceAppLink(
+                id: "com.ouraring.oura",
+                name: "Oura",
+                destination: URL(string: "https://cloud.ouraring.com/app/v1/home")!,
+                lastDataDate: .now
+            )
+        ]
     )
 }

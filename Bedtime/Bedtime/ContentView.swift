@@ -25,10 +25,20 @@ struct ContentView: View {
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
     }
     
-    var lastNightData: [SleepSession]? {
+    private var lastNightKey: Date {
         let calendar = Calendar.current
-        let lastNight = calendar.startOfDay(for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date())
-        return healthKitManager.sleepSessions[lastNight]
+        return calendar.startOfDay(
+            for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date()
+        )
+    }
+
+    var lastNightData: [SleepSession]? {
+        healthKitManager.sleepSessions[lastNightKey]
+    }
+
+    private var recentSourceAppLinks: [SleepSourceAppLink] {
+        guard healthKitManager.allSleepSessions[lastNightKey] == nil else { return [] }
+        return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
     }
     
     private var userPreferences: UserPreferences {
@@ -86,7 +96,8 @@ struct ContentView: View {
                     case .hasRequested:
                         if isBeforeEvening {
                             LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours)
+                                          goal: userPreferences.sleepGoalHours,
+                                          sourceAppLinks: recentSourceAppLinks)
                         } else {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         }
@@ -109,7 +120,8 @@ struct ContentView: View {
                             BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
                         } else {
                             LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours)
+                                          goal: userPreferences.sleepGoalHours,
+                                          sourceAppLinks: recentSourceAppLinks)
                         }
 
                         // Recent Sleep Sessions
