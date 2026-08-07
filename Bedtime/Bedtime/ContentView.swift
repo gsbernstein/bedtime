@@ -69,6 +69,13 @@ struct ContentView: View {
         )
     }
 
+    private var wakeTimeBinding: Binding<Date> {
+        Binding(
+            get: { userPreferences.wakeTime },
+            set: { userPreferences.wakeTime = $0 }
+        )
+    }
+
     private var sleepBankInsight: SleepBankInsight? {
         SleepInsightsEngine.generateInsight(
             sleepSessions: healthKitManager.sleepSessions,
@@ -99,7 +106,10 @@ struct ContentView: View {
                                           goal: userPreferences.sleepGoalHours,
                                           sourceAppLinks: recentSourceAppLinks)
                         } else {
-                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                            BedtimeRecommendationCard(
+                                recommendation: bedtimeRecommendation,
+                                wakeTime: wakeTimeBinding
+                            )
                         }
 
                         SleepBankCard(sleepBank: sleepBank)
@@ -117,7 +127,10 @@ struct ContentView: View {
                         }
 
                         if isBeforeEvening {
-                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                            BedtimeRecommendationCard(
+                                recommendation: bedtimeRecommendation,
+                                wakeTime: wakeTimeBinding
+                            )
                         } else {
                             LastNightCard(sleepSessions: lastNightData,
                                           goal: userPreferences.sleepGoalHours,
