@@ -59,6 +59,23 @@ struct ContentView: View {
         )
     }
     
+    /// Balance over the widest selectable lookback, independent of the current range, so the
+    /// balance chart can show every night the range start can be moved to.
+    private var fullWindowSleepBank: SleepBank {
+        ViewModel.calculateSleepBank(
+            sleepSessions: healthKitManager.sleepSessions,
+            goalHours: userPreferences.sleepGoalHours,
+            recentDays: Constants.sleepBankDaysRange.upperBound
+        )
+    }
+    
+    private var sleepBankDaysBinding: Binding<Int> {
+        Binding(
+            get: { userPreferences.sleepBankDays },
+            set: { userPreferences.sleepBankDays = $0 }
+        )
+    }
+    
     private var bedtimeRecommendation: BedtimeRecommendation {
         ViewModel.generateBedtimeRecommendation(
             wakeTime: userPreferences.wakeTime,
@@ -112,7 +129,11 @@ struct ContentView: View {
                             )
                         }
 
-                        SleepBankCard(sleepBank: sleepBank)
+                        SleepBankCard(
+                            sleepBank: sleepBank,
+                            fullWindowBank: fullWindowSleepBank,
+                            sleepBankDays: sleepBankDaysBinding
+                        )
 
                         if let sleepBankInsight {
                             SleepInsightsCard(
@@ -144,10 +165,7 @@ struct ContentView: View {
                                 allSessions: healthKitManager.allSleepSessions,
                                 excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers,
                                 sleepGoal: userPreferences.sleepGoalHours,
-                                sleepBankDays: Binding(
-                                    get: { userPreferences.sleepBankDays },
-                                    set: { userPreferences.sleepBankDays = $0 }
-                                )
+                                sleepBankDays: sleepBankDaysBinding
                             )
                         }
                     }
