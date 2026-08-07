@@ -164,21 +164,21 @@ struct FeaturedNightTests {
         #expect(featured == sleepDay(6, 12))
     }
 
-    @Test("Falling back stops at the small hours cutoff")
-    func fallbackStopsAtCutoff() {
+    @Test("Falling back stops once the small hours are over")
+    func fallbackStopsAfterSmallHours() {
         let nights = [sleepDay(6, 10): recorded]
         let justBefore = SleepDay.featured(
             in: nights,
-            now: moment(6, 11, hour: Constants.smallHoursEndHour - 1, minute: 59),
+            now: moment(6, 11, hour: Constants.smallHours.upperBound - 1, minute: 59),
             calendar: testCalendar
         )
-        let atCutoff = SleepDay.featured(
+        let afterSmallHours = SleepDay.featured(
             in: nights,
-            now: moment(6, 11, hour: Constants.smallHoursEndHour),
+            now: moment(6, 11, hour: Constants.smallHours.upperBound),
             calendar: testCalendar
         )
 
         #expect(justBefore == sleepDay(6, 10))
-        #expect(atCutoff == sleepDay(6, 11))
+        #expect(afterSmallHours == sleepDay(6, 11))
     }
 }
