@@ -40,15 +40,15 @@ enum SleepDay {
         calendar: Calendar = .current
     ) -> Date {
         let nightUnderway = containing(now, calendar: calendar)
+        let nothingRecordedYet = nights[nightUnderway] == nil
+        let stillTheSmallHours = Constants.smallHours.contains(calendar.component(.hour, from: now))
 
-        guard
-            nights[nightUnderway] == nil,
-            Constants.smallHours.contains(calendar.component(.hour, from: now)),
-            let previousNight = previous(before: nightUnderway, calendar: calendar)
-        else {
-            return nightUnderway
+        if nothingRecordedYet,
+           stillTheSmallHours,
+           let previousNight = previous(before: nightUnderway, calendar: calendar) {
+            return previousNight
         }
 
-        return previousNight
+        return nightUnderway
     }
 }
