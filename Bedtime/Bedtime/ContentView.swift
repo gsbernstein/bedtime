@@ -25,14 +25,20 @@ struct ContentView: View {
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
     }
     
-    var lastNightData: [SleepSession]? {
+    private var lastNightKey: Date {
         let calendar = Calendar.current
-        let lastNight = calendar.startOfDay(for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date())
-        return healthKitManager.sleepSessions[lastNight]
+        return calendar.startOfDay(
+            for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date()
+        )
+    }
+
+    var lastNightData: [SleepSession]? {
+        healthKitManager.sleepSessions[lastNightKey]
     }
 
     private var recentSourceAppLinks: [SleepSourceAppLink] {
-        ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
+        guard healthKitManager.allSleepSessions[lastNightKey] == nil else { return [] }
+        return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
     }
     
     private var userPreferences: UserPreferences {
