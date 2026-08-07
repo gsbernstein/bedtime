@@ -9,7 +9,11 @@ import SwiftUI
 
 struct BedtimeRecommendationCard: View {
     let recommendation: BedtimeRecommendation
-    
+    /// When provided, the wake time is tappable and edits this value directly.
+    var wakeTime: Binding<Date>? = nil
+
+    @State private var isEditingWakeTime = false
+
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
@@ -39,15 +43,10 @@ struct BedtimeRecommendationCard: View {
                         
                         Spacer()
                         
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Wake Time")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text(TimeFormatter.formatTimeOfDay(recommendation.wakeTime))
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
+                        if let wakeTime {
+                            editableWakeTime(wakeTime)
+                        } else {
+                            wakeTimeLabel(showsEditAffordance: false)
                         }
                     }
                     
@@ -63,15 +62,88 @@ struct BedtimeRecommendationCard: View {
             }
         }
     }
+
+    private func editableWakeTime(_ wakeTime: Binding<Date>) -> some View {
+        Button {
+            isEditingWakeTime = true
+        } label: {
+            wakeTimeLabel(showsEditAffordance: true)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Wake time")
+        .accessibilityValue(TimeFormatter.formatTimeOfDay(recommendation.wakeTime))
+        .accessibilityHint("Adjusts the wake time used for your recommendation")
+        .popover(isPresented: $isEditingWakeTime) {
+            WakeTimeEditor(wakeTime: wakeTime)
+                .presentationCompactAdaptation(.popover)
+        }
+    }
+
+    private func wakeTimeLabel(showsEditAffordance: Bool) -> some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            Text("Wake Time")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            HStack(spacing: 4) {
+                Text(TimeFormatter.formatTimeOfDay(recommendation.wakeTime))
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                if showsEditAffordance {
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+/// Wheel picker shown in the popover so the wake time can be changed without
+/// opening Settings. It writes straight through to the stored preference.
+private struct WakeTimeEditor: View {
+    @Binding var wakeTime: Date
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("Wake Time")
+                .font(.headline)
+
+            DatePicker(
+                "Wake Time",
+                selection: $wakeTime,
+                displayedComponents: .hourAndMinute
+            )
+            .datePickerStyle(.wheel)
+            .labelsHidden()
+        }
+        .padding()
+        // Force 12-hour clock labels to match app-wide time formatting.
+        .environment(\.locale, Locale(identifier: "en_US"))
+    }
 }
 
 #Preview {
-    BedtimeRecommendationCard(
-        recommendation: BedtimeRecommendation(
-            recommendedBedtime: Date(),
-            wakeTime: Date(),
-            targetSleepDuration: 8,
-            reason: "Yo"
-        )
-    )
+    struct PreviewHost: View {
+        @State private var wakeTime = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date()
+
+        var body: some View {
+            BedtimeRecommendationCard(
+                recommendation: BedtimeRecommendation(
+                    recommendedBedtime: Calendar.current.date(byAdding: .hour, value: -8, to: wakeTime) ?? wakeTime,
+                    wakeTime: wakeTime,
+                    targetSleepDuration: 8,
+                    reason: "You're ahead of the game! Aim for at least 8h tonight."
+                ),
+                wakeTime: $wakeTime
+            )
+            .padding()
+            .background(Color.backgroundBehindCards)
+        }
+    }
+    return PreviewHost()
 }
