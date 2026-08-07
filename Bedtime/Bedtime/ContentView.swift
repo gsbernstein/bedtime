@@ -93,6 +93,7 @@ struct ContentView: View {
                 .frame(maxWidth: 600)
                 .frame(maxWidth: .infinity)
             }
+            .accessibilityIdentifier("home_screen")
             .background(Color.backgroundBehindCards)
             .navigationTitle("Bedger")
             .toolbar {
@@ -100,6 +101,7 @@ struct ContentView: View {
                     Button("Settings", systemImage: "gear") {
                         showingSettings.toggle()
                     }
+                    .accessibilityIdentifier("settings_button")
                 }
             }
             .refreshable {
@@ -125,6 +127,10 @@ struct ContentView: View {
             }
         }
         .task {
+            #if DEBUG
+            healthKitManager.prepareForUITestingIfNeeded()
+            guard !UITestingSupport.isActive else { return }
+            #endif
             try? await healthKitManager.fetchSleepData()
         }
     }
