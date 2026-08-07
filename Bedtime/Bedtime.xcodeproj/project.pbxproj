@@ -6,8 +6,40 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4C4956450000000000000001 /* BedtimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000010 /* BedtimeActivityAttributes.swift */; };
+		4C4956450000000000000002 /* BedtimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000010 /* BedtimeActivityAttributes.swift */; };
+		4C4956450000000000000003 /* BedtimeLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 4C4956450000000000000011 /* BedtimeLiveActivity.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4C4956450000000000000020 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 373AAED52E91B7E900D8ED84 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4C4956450000000000000030;
+			remoteInfo = BedtimeLiveActivity;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4C4956450000000000000040 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4C4956450000000000000003 /* BedtimeLiveActivity.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		373AAEDD2E91B7E900D8ED84 /* Bedger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bedger.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C4956450000000000000010 /* BedtimeActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BedtimeActivityAttributes.swift; sourceTree = "<group>"; };
+		4C4956450000000000000011 /* BedtimeLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BedtimeLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +48,22 @@
 			path = Bedtime;
 			sourceTree = "<group>";
 		};
+		4C4956450000000000000050 /* BedtimeLiveActivity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BedtimeLiveActivity;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		373AAEDA2E91B7E900D8ED84 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C4956450000000000000060 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +77,8 @@
 			isa = PBXGroup;
 			children = (
 				373AAEDF2E91B7E900D8ED84 /* Bedtime */,
+				4C4956450000000000000050 /* BedtimeLiveActivity */,
+				4C4956450000000000000070 /* Shared */,
 				373AAEDE2E91B7E900D8ED84 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,8 +87,17 @@
 			isa = PBXGroup;
 			children = (
 				373AAEDD2E91B7E900D8ED84 /* Bedger.app */,
+				4C4956450000000000000011 /* BedtimeLiveActivity.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4C4956450000000000000070 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				4C4956450000000000000010 /* BedtimeActivityAttributes.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -55,10 +110,12 @@
 				373AAED92E91B7E900D8ED84 /* Sources */,
 				373AAEDA2E91B7E900D8ED84 /* Frameworks */,
 				373AAEDB2E91B7E900D8ED84 /* Resources */,
+				4C4956450000000000000040 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				4C4956450000000000000080 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				373AAEDF2E91B7E900D8ED84 /* Bedtime */,
@@ -69,6 +126,28 @@
 			productName = Bedtime;
 			productReference = 373AAEDD2E91B7E900D8ED84 /* Bedger.app */;
 			productType = "com.apple.product-type.application";
+		};
+		4C4956450000000000000030 /* BedtimeLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C4956450000000000000090 /* Build configuration list for PBXNativeTarget "BedtimeLiveActivity" */;
+			buildPhases = (
+				4C49564500000000000000A0 /* Sources */,
+				4C4956450000000000000060 /* Frameworks */,
+				4C49564500000000000000B0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4C4956450000000000000050 /* BedtimeLiveActivity */,
+			);
+			name = BedtimeLiveActivity;
+			packageProductDependencies = (
+			);
+			productName = BedtimeLiveActivity;
+			productReference = 4C4956450000000000000011 /* BedtimeLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +160,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					373AAEDC2E91B7E900D8ED84 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					4C4956450000000000000030 = {
 						CreatedOnToolsVersion = 26.0;
 					};
 				};
@@ -100,12 +182,20 @@
 			projectRoot = "";
 			targets = (
 				373AAEDC2E91B7E900D8ED84 /* Bedtime */,
+				4C4956450000000000000030 /* BedtimeLiveActivity */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		373AAEDB2E91B7E900D8ED84 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C49564500000000000000B0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -119,10 +209,27 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C4956450000000000000001 /* BedtimeActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C49564500000000000000A0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C4956450000000000000002 /* BedtimeActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4C4956450000000000000080 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4C4956450000000000000030 /* BedtimeLiveActivity */;
+			targetProxy = 4C4956450000000000000020 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		373AAEEC2E91B7EA00D8ED84 /* Debug */ = {
@@ -138,6 +245,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.burnsides.bedtime.background-task";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Use your sleep data to calculate your sleep bank and provide personalized bedtime recommendations.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Sync sleep data from Bedger to Apple Health";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -176,6 +284,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.burnsides.bedtime.background-task";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Use your sleep data to calculate your sleep bank and provide personalized bedtime recommendations.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Sync sleep data from Bedger to Apple Health";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -322,6 +431,49 @@
 			};
 			name = Release;
 		};
+		4C49564500000000000000C0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9J44X82D53;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "BedtimeLiveActivity-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.burnsides.bedtime.liveactivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4C49564500000000000000D0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9J44X82D53;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "BedtimeLiveActivity-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.burnsides.bedtime.liveactivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -339,6 +491,15 @@
 			buildConfigurations = (
 				373AAEEC2E91B7EA00D8ED84 /* Debug */,
 				373AAEED2E91B7EA00D8ED84 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C4956450000000000000090 /* Build configuration list for PBXNativeTarget "BedtimeLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C49564500000000000000C0 /* Debug */,
+				4C49564500000000000000D0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -15,6 +15,7 @@ struct ContentView: View {
     @Query private var preferences: [UserPreferences]
     @StateObject private var sourcePreferences: SourcePreferences
     @StateObject private var healthKitManager: HealthKitManager
+    @StateObject private var liveActivityManager = LiveActivityManager()
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var error: Error?
@@ -88,7 +89,10 @@ struct ContentView: View {
                             LastNightCard(sleepSessions: lastNightData,
                                           goal: userPreferences.sleepGoalHours)
                         } else {
-                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                            BedtimeRecommendationCard(
+                                recommendation: bedtimeRecommendation,
+                                liveActivityManager: liveActivityManager
+                            )
                         }
 
                         SleepBankCard(sleepBank: sleepBank)
@@ -106,7 +110,10 @@ struct ContentView: View {
                         }
 
                         if isBeforeEvening {
-                            BedtimeRecommendationCard(recommendation: bedtimeRecommendation)
+                            BedtimeRecommendationCard(
+                                recommendation: bedtimeRecommendation,
+                                liveActivityManager: liveActivityManager
+                            )
                         } else {
                             LastNightCard(sleepSessions: lastNightData,
                                           goal: userPreferences.sleepGoalHours)
