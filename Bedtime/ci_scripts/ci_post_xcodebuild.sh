@@ -2,8 +2,8 @@
 set -eu
 
 # Runs on the Xcode Cloud Mac after xcodebuild finishes.
-# Always posts a terminal sticky commit comment for agents to poll:
-# success (screenshot diff), failed (build/test errors), or no_screenshots.
+# Extracts screenshots, uploads to Imgur, and posts a sticky commit comment.
+# Cursor/agents can wait for CI, then read that comment for results.
 
 OUTPUT_DIR="${CI_DERIVED_DATA_PATH:-/tmp}/xcode-cloud-screenshots"
 SCREENSHOTS_DIR="$OUTPUT_DIR/screenshots"

@@ -131,3 +131,20 @@ def _summarize_test_failures_legacy(
     if failed_count:
         return [f"{failed_count} test(s) failed"]
     return []
+
+
+def extract_screenshots_from_local_bundle(
+    bundle_path: Path,
+    output_dir: Path,
+    *,
+    only_failures: bool = False,
+) -> tuple[Path, ...]:
+    """Extract screenshots from a local .xcresult bundle (Xcode Cloud Mac path)."""
+    screenshots_dir = output_dir / "screenshots"
+    return tuple(
+        extract_attachments(
+            bundle_path,
+            screenshots_dir,
+            only_failures=only_failures,
+        )
+    )
