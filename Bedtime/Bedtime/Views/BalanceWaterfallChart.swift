@@ -18,7 +18,7 @@ import SwiftUI
 /// that is what the green and red background bands mark out.
 struct BalanceWaterfallChart: View {
     /// Cap on the rounding of a step's unanchored corners, so wide or tall columns stay
-    /// recognisably rectangular.
+    /// recognizably rectangular.
     private static let maxStepCornerRadius: CGFloat = 3
 
     /// Every night in the window, oldest first.
@@ -142,9 +142,12 @@ struct BalanceWaterfallChart: View {
     /// gain is anchored bottom-leading to top-trailing and a loss top-leading to
     /// bottom-trailing. Only the other two corners round off, which keeps the anchored corners
     /// flush with the neighboring steps they connect to.
+    ///
+    /// The rounded corners are diagonally opposite, so they never share an edge and can each
+    /// take up the step's full height and width rather than half of it.
     private func stepShape(isGain: Bool, stepHeight: CGFloat, chartWidth: CGFloat) -> UnevenRoundedRectangle {
         let columnWidth = nights.isEmpty ? chartWidth : chartWidth / CGFloat(nights.count)
-        let radius = min(Self.maxStepCornerRadius, min(columnWidth, stepHeight) / 2)
+        let radius = min(Self.maxStepCornerRadius, columnWidth, stepHeight)
         return UnevenRoundedRectangle(
             topLeadingRadius: isGain ? radius : 0,
             bottomLeadingRadius: isGain ? 0 : radius,
