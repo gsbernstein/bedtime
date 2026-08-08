@@ -17,6 +17,10 @@ import SwiftUI
 /// balance produces a positive range and any baseline above it produces a negative one —
 /// that is what the green and red background bands mark out.
 struct BalanceWaterfallChart: View {
+    /// Cap on the rounding of a step's unanchored corners, so wide or tall columns stay
+    /// recognisably rectangular.
+    private static let maxStepCornerRadius: CGFloat = 3
+
     /// Every night in the window, oldest first.
     let nights: [NightSummary]
     /// Per-night balance steps, cumulative over the whole window. Nights without sleep
@@ -121,16 +125,33 @@ struct BalanceWaterfallChart: View {
             if let step {
                 let priorY = yPosition(for: step.priorBalance, in: size.height)
                 let newY = yPosition(for: step.newBalance, in: size.height)
-                Rectangle()
+                let height = max(abs(newY - priorY), 1)
+                stepShape(isGain: step.isGain, stepHeight: height, chartWidth: size.width)
                     .fill(step.isGain ? Color.green : Color.red)
                     .opacity(isIncluded ? 1 : 0.3)
-                    .frame(height: max(abs(newY - priorY), 1))
+                    .frame(height: height)
                     .offset(y: min(priorY, newY))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .contentShape(Rectangle())
         .onTapGesture { select(days: nights.count - index) }
+    }
+
+    /// The running balance enters a step at the prior balance and leaves at the new one, so a
+    /// gain is anchored bottom-leading to top-trailing and a loss top-leading to
+    /// bottom-trailing. Only the other two corners round off, which keeps the anchored corners
+    /// flush with the neighboring steps they connect to.
+    private func stepShape(isGain: Bool, stepHeight: CGFloat, chartWidth: CGFloat) -> UnevenRoundedRectangle {
+        let columnWidth = nights.isEmpty ? chartWidth : chartWidth / CGFloat(nights.count)
+        let radius = min(Self.maxStepCornerRadius, min(columnWidth, stepHeight) / 2)
+        return UnevenRoundedRectangle(
+            topLeadingRadius: isGain ? radius : 0,
+            bottomLeadingRadius: isGain ? 0 : radius,
+            bottomTrailingRadius: isGain ? radius : 0,
+            topTrailingRadius: isGain ? 0 : radius,
+            style: .continuous
+        )
     }
 
     private func baseline(size: CGSize) -> some View {
