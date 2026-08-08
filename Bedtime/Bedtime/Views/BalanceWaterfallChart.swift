@@ -125,11 +125,11 @@ struct BalanceWaterfallChart: View {
             if let step {
                 let priorY = yPosition(for: step.priorBalance, in: size.height)
                 let newY = yPosition(for: step.newBalance, in: size.height)
-                let height = max(abs(newY - priorY), 1)
-                stepShape(isGain: step.isGain, stepHeight: height, chartWidth: size.width)
+                let stepHeight = abs(newY - priorY)
+                stepShape(isGain: step.isGain, stepHeight: stepHeight, chartWidth: size.width)
                     .fill(step.isGain ? Color.green : Color.red)
                     .opacity(isIncluded ? 1 : 0.3)
-                    .frame(height: height)
+                    .frame(height: max(stepHeight, 1))
                     .offset(y: min(priorY, newY))
             }
         }
@@ -145,6 +145,9 @@ struct BalanceWaterfallChart: View {
     ///
     /// The rounded corners are diagonally opposite, so they never share an edge and can each
     /// take up the step's full height and width rather than half of it.
+    ///
+    /// `stepHeight` is the balance change before it is floored to a visible minimum, so a night
+    /// that lands on the goal keeps the square ends its flat connector wants.
     private func stepShape(isGain: Bool, stepHeight: CGFloat, chartWidth: CGFloat) -> UnevenRoundedRectangle {
         let columnWidth = nights.isEmpty ? chartWidth : chartWidth / CGFloat(nights.count)
         let radius = min(Self.maxStepCornerRadius, columnWidth, stepHeight)
