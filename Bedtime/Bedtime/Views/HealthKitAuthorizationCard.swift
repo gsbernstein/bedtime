@@ -37,7 +37,9 @@ struct HealthKitAuthorizationCard: View {
                 
                 Button("Grant Access") {
                     Task {
-                        try await healthKitManager.fetchSleepData()
+                        // A failure already lands in `errorMessage`, which this card
+                        // shows above, so there's nothing left to propagate.
+                        try? await healthKitManager.fetchSleepData()
                     }
                 }
                 .buttonStyle(.borderedProminent)
