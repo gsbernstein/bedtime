@@ -49,7 +49,11 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                         
-                        Slider(value: $preferences.sleepGoalHours, in: 6...12, step: 0.25) {
+                        Slider(
+                            value: $preferences.sleepGoalHours,
+                            in: Constants.sleepGoalHoursRange,
+                            step: Constants.sleepGoalStepHours
+                        ) {
                             EmptyView()
                         }
                             .accentColor(.blue)

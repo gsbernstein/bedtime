@@ -14,7 +14,19 @@ struct SleepBankCard: View {
     /// range so it stays a fixed width and can offer every night as a range start.
     let fullWindowBank: SleepBank
     @Binding var sleepBankDays: Int
+    /// When provided, the goal is tappable and edits this value directly.
+    var sleepGoalHours: Binding<Double>? = nil
     @Environment(\.durationDisplayStyle) private var durationStyle
+
+    @State private var isEditingGoal = false
+
+    private var formattedGoal: String {
+        TimeFormatter.formatHours(
+            sleepBank.goalHours,
+            style: durationStyle,
+            maxFractionDigits: 2
+        )
+    }
     
     private var chartBalanceBounds: ClosedRange<Double> {
         let values = fullWindowBank.balanceImpacts.flatMap { [$0.priorBalance, $0.newBalance] }
@@ -87,21 +99,8 @@ struct SleepBankCard: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("Goal")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(TimeFormatter.formatHours(
-                            sleepBank.goalHours,
-                            style: durationStyle,
-                            maxFractionDigits: 2
-                        ))
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    goalColumn
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 
                 if !fullWindowBank.balanceImpacts.isEmpty {
@@ -126,13 +125,57 @@ struct SleepBankCard: View {
             }
         }
     }
+
+    @ViewBuilder
+    private var goalColumn: some View {
+        if let sleepGoalHours {
+            Button {
+                isEditingGoal = true
+            } label: {
+                goalLabel(showsEditAffordance: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Sleep goal")
+            .accessibilityValue(formattedGoal)
+            .accessibilityHint("Adjusts your nightly sleep goal")
+            .popover(isPresented: $isEditingGoal) {
+                SleepGoalEditor(goalHours: sleepGoalHours)
+                    .presentationCompactAdaptation(.popover)
+            }
+        } else {
+            goalLabel(showsEditAffordance: false)
+        }
+    }
+
+    private func goalLabel(showsEditAffordance: Bool) -> some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            Text("Goal")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            HStack(spacing: 4) {
+                Text(formattedGoal)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+
+                if showsEditAffordance {
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+    }
 }
 
 #Preview {
     struct PreviewHost: View {
         @State private var days = 7
+        @State private var goalHours = 8.0
         
-        private let goalHours = 8.0
         private let hoursPerNight: [Double?] = [
             6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
             8.4, 8.1, 7.6, 6.9, 7.2, 8.0, 7.1
@@ -168,7 +211,8 @@ struct SleepBankCard: View {
                 SleepBankCard(
                     sleepBank: bank(lastDays: days),
                     fullWindowBank: bank(lastDays: allNights.count),
-                    sleepBankDays: $days
+                    sleepBankDays: $days,
+                    sleepGoalHours: $goalHours
                 )
                 .padding()
             }

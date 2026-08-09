@@ -76,6 +76,13 @@ struct ContentView: View {
         )
     }
     
+    private var sleepGoalHoursBinding: Binding<Double> {
+        Binding(
+            get: { userPreferences.sleepGoalHours },
+            set: { userPreferences.sleepGoalHours = $0 }
+        )
+    }
+    
     private var bedtimeRecommendation: BedtimeRecommendation {
         ViewModel.generateBedtimeRecommendation(
             wakeTime: userPreferences.wakeTime,
@@ -132,7 +139,8 @@ struct ContentView: View {
                         SleepBankCard(
                             sleepBank: sleepBank,
                             fullWindowBank: fullWindowSleepBank,
-                            sleepBankDays: sleepBankDaysBinding
+                            sleepBankDays: sleepBankDaysBinding,
+                            sleepGoalHours: sleepGoalHoursBinding
                         )
 
                         if let sleepBankInsight {
