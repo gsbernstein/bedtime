@@ -151,6 +151,11 @@ struct ContentView: View {
                                     withAnimation(.easeInOut(duration: 0.2)) {
                                         userPreferences.sleepBankDays = days
                                     }
+                                },
+                                onRaiseGoal: { goalHours in
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        userPreferences.sleepGoalHours = goalHours
+                                    }
                                 }
                             )
                         }
