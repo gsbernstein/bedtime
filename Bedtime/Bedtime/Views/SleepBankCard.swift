@@ -8,11 +8,28 @@
 import SwiftUI
 
 struct SleepBankCard: View {
+    /// Balance over the selected range, which the Average / Status / Goal columns report.
     let sleepBank: SleepBank
+    /// Balance over the full lookback window. The chart draws this instead of the selected
+    /// range so it stays a fixed width and can offer every night as a range start.
+    let fullWindowBank: SleepBank
+    @Binding var sleepBankDays: Int
+    /// When provided, the goal is tappable and edits this value directly.
+    var sleepGoalHours: Binding<Double>? = nil
     @Environment(\.durationDisplayStyle) private var durationStyle
+
+    @State private var isEditingGoal = false
+
+    private var formattedGoal: String {
+        TimeFormatter.formatHours(
+            sleepBank.goalHours,
+            style: durationStyle,
+            maxFractionDigits: 2
+        )
+    }
     
     private var chartBalanceBounds: ClosedRange<Double> {
-        let values = sleepBank.balanceImpacts.flatMap { [$0.priorBalance, $0.newBalance] }
+        let values = fullWindowBank.balanceImpacts.flatMap { [$0.priorBalance, $0.newBalance] }
         guard !values.isEmpty else { return -0.75...0.75 }
         
         let dataMin = values.min() ?? 0
@@ -82,58 +99,125 @@ struct SleepBankCard: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("Goal")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(TimeFormatter.formatHours(
-                            sleepBank.goalHours,
-                            style: durationStyle,
-                            maxFractionDigits: 2
-                        ))
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    goalColumn
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 
-                if !sleepBank.balanceImpacts.isEmpty {
-                    BalanceWaterfallChart(
-                        nights: sleepBank.recentNights,
-                        impacts: sleepBank.balanceImpacts,
-                        domain: chartBalanceBounds
-                    )
-                    .frame(height: 56)
+                if !fullWindowBank.balanceImpacts.isEmpty {
+                    VStack(spacing: 4) {
+                        BalanceWaterfallChart(
+                            nights: fullWindowBank.recentNights,
+                            impacts: fullWindowBank.balanceImpacts,
+                            domain: chartBalanceBounds,
+                            selectedDays: $sleepBankDays
+                        )
+                        .frame(height: 64)
+                        
+                        HStack {
+                            Text("Last \(sleepBankDays) days")
+                            Spacer()
+                            Text("Tap to change")
+                        }
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    }
                 }
             }
         }
     }
+
+    @ViewBuilder
+    private var goalColumn: some View {
+        if let sleepGoalHours {
+            Button {
+                isEditingGoal = true
+            } label: {
+                goalLabel(showsEditAffordance: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Sleep goal")
+            .accessibilityValue(formattedGoal)
+            .accessibilityHint("Adjusts your nightly sleep goal")
+            .popover(isPresented: $isEditingGoal) {
+                SleepGoalEditor(goalHours: sleepGoalHours)
+                    .presentationCompactAdaptation(.popover)
+            }
+        } else {
+            goalLabel(showsEditAffordance: false)
+        }
+    }
+
+    private func goalLabel(showsEditAffordance: Bool) -> some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            Text("Goal")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            HStack(spacing: 4) {
+                Text(formattedGoal)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+
+                if showsEditAffordance {
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+    }
 }
 
 #Preview {
-    let calendar = Calendar.current
-    let today = calendar.startOfDay(for: Date())
-    func night(_ daysAgo: Int, _ hours: Double, hasData: Bool = true) -> NightSummary {
-        NightSummary(
-            date: calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today,
-            totalHours: hasData ? hours : 0,
-            hasData: hasData
-        )
+    struct PreviewHost: View {
+        @State private var days = 7
+        @State private var goalHours = 8.0
+        
+        private let hoursPerNight: [Double?] = [
+            6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
+            8.4, 8.1, 7.6, 6.9, 7.2, 8.0, 7.1
+        ]
+        
+        private var allNights: [NightSummary] {
+            let calendar = Calendar.current
+            let today = calendar.startOfDay(for: Date())
+            return hoursPerNight.enumerated().map { offset, hours in
+                let daysAgo = hoursPerNight.count - 1 - offset
+                return NightSummary(
+                    date: calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today,
+                    totalHours: hours ?? 0,
+                    hasData: hours != nil
+                )
+            }
+        }
+        
+        private func bank(lastDays: Int) -> SleepBank {
+            let nights = allNights.suffix(lastDays)
+            let withData = nights.filter(\.hasData)
+            let total = withData.map(\.totalHours).reduce(0, +)
+            return SleepBank(
+                currentBalance: total - goalHours * Double(withData.count),
+                goalHours: goalHours,
+                averageHours: withData.isEmpty ? nil : total / Double(withData.count),
+                recentNights: Array(nights)
+            )
+        }
+        
+        var body: some View {
+            ScrollView {
+                SleepBankCard(
+                    sleepBank: bank(lastDays: days),
+                    fullWindowBank: bank(lastDays: allNights.count),
+                    sleepBankDays: $days,
+                    sleepGoalHours: $goalHours
+                )
+                .padding()
+            }
+        }
     }
-    let inDebtNights: [NightSummary] = [
-        night(6, 6.5), night(5, 7.2), night(4, 0, hasData: false), night(3, 7.8),
-        night(2, 6.8), night(1, 7.4), night(0, 7.0)
-    ]
     
-    return ScrollView {
-        SleepBankCard(sleepBank: SleepBank(
-            currentBalance: -0.8,
-            goalHours: 8,
-            averageHours: 7.5,
-            recentNights: inDebtNights
-        ))
-        .padding()
-    }
+    return PreviewHost()
 }

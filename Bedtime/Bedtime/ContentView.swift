@@ -26,10 +26,20 @@ struct ContentView: View {
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
     }
     
-    var lastNightData: [SleepSession]? {
+    private var lastNightKey: Date {
         let calendar = Calendar.current
-        let lastNight = calendar.startOfDay(for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date())
-        return healthKitManager.sleepSessions[lastNight]
+        return calendar.startOfDay(
+            for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date()
+        )
+    }
+
+    var lastNightData: [SleepSession]? {
+        healthKitManager.sleepSessions[lastNightKey]
+    }
+
+    private var recentSourceAppLinks: [SleepSourceAppLink] {
+        guard healthKitManager.allSleepSessions[lastNightKey] == nil else { return [] }
+        return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
     }
     
     private var userPreferences: UserPreferences {
@@ -50,6 +60,30 @@ struct ContentView: View {
         )
     }
     
+    /// Balance over the widest selectable lookback, independent of the current range, so the
+    /// balance chart can show every night the range start can be moved to.
+    private var fullWindowSleepBank: SleepBank {
+        ViewModel.calculateSleepBank(
+            sleepSessions: healthKitManager.sleepSessions,
+            goalHours: userPreferences.sleepGoalHours,
+            recentDays: Constants.sleepBankDaysRange.upperBound
+        )
+    }
+    
+    private var sleepBankDaysBinding: Binding<Int> {
+        Binding(
+            get: { userPreferences.sleepBankDays },
+            set: { userPreferences.sleepBankDays = $0 }
+        )
+    }
+    
+    private var sleepGoalHoursBinding: Binding<Double> {
+        Binding(
+            get: { userPreferences.sleepGoalHours },
+            set: { userPreferences.sleepGoalHours = $0 }
+        )
+    }
+    
     private var bedtimeRecommendation: BedtimeRecommendation {
         ViewModel.generateBedtimeRecommendation(
             wakeTime: userPreferences.wakeTime,
@@ -57,6 +91,13 @@ struct ContentView: View {
             sleepGoal: userPreferences.sleepGoalHours,
             sleepBank: sleepBank,
             durationStyle: userPreferences.durationDisplayStyle
+        )
+    }
+
+    private var wakeTimeBinding: Binding<Date> {
+        Binding(
+            get: { userPreferences.wakeTime },
+            set: { userPreferences.wakeTime = $0 }
         )
     }
 
@@ -87,15 +128,22 @@ struct ContentView: View {
                     case .hasRequested:
                         if isBeforeEvening {
                             LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours)
+                                          goal: userPreferences.sleepGoalHours,
+                                          sourceAppLinks: recentSourceAppLinks)
                         } else {
                             BedtimeRecommendationCard(
                                 recommendation: bedtimeRecommendation,
-                                liveActivityManager: liveActivityManager
+                                liveActivityManager: liveActivityManager,
+                                wakeTime: wakeTimeBinding
                             )
                         }
 
-                        SleepBankCard(sleepBank: sleepBank)
+                        SleepBankCard(
+                            sleepBank: sleepBank,
+                            fullWindowBank: fullWindowSleepBank,
+                            sleepBankDays: sleepBankDaysBinding,
+                            sleepGoalHours: sleepGoalHoursBinding
+                        )
 
                         if let sleepBankInsight {
                             SleepInsightsCard(
@@ -105,6 +153,11 @@ struct ContentView: View {
                                     withAnimation(.easeInOut(duration: 0.2)) {
                                         userPreferences.sleepBankDays = days
                                     }
+                                },
+                                onRaiseGoal: { goalHours in
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        userPreferences.sleepGoalHours = goalHours
+                                    }
                                 }
                             )
                         }
@@ -112,11 +165,13 @@ struct ContentView: View {
                         if isBeforeEvening {
                             BedtimeRecommendationCard(
                                 recommendation: bedtimeRecommendation,
-                                liveActivityManager: liveActivityManager
+                                liveActivityManager: liveActivityManager,
+                                wakeTime: wakeTimeBinding
                             )
                         } else {
                             LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours)
+                                          goal: userPreferences.sleepGoalHours,
+                                          sourceAppLinks: recentSourceAppLinks)
                         }
 
                         // Recent Sleep Sessions
@@ -126,10 +181,7 @@ struct ContentView: View {
                                 allSessions: healthKitManager.allSleepSessions,
                                 excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers,
                                 sleepGoal: userPreferences.sleepGoalHours,
-                                sleepBankDays: Binding(
-                                    get: { userPreferences.sleepBankDays },
-                                    set: { userPreferences.sleepBankDays = $0 }
-                                )
+                                sleepBankDays: sleepBankDaysBinding
                             )
                         }
                     }

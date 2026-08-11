@@ -11,6 +11,9 @@ struct SleepInsightsCard: View {
     let insight: SleepBankInsight
     var currentSleepBankDays: Int = 7
     var onApplyDays: ((Int) -> Void)? = nil
+    /// Called with the new goal in hours when the raise-goal button is tapped.
+    var onRaiseGoal: ((Double) -> Void)? = nil
+    @Environment(\.durationDisplayStyle) private var durationStyle
 
     private var accentColor: Color {
         if insight.congratulationWindow != nil {
@@ -40,6 +43,10 @@ struct SleepInsightsCard: View {
         return window.days
     }
 
+    private func formattedGoal(_ hours: Double) -> String {
+        TimeFormatter.formatHours(hours, style: durationStyle, maxFractionDigits: 2)
+    }
+
     var body: some View {
         CardComponent {
             VStack(alignment: .leading, spacing: 12) {
@@ -64,6 +71,22 @@ struct SleepInsightsCard: View {
                         }
                     .buttonStyle(.bordered)
                     .tint(.orange)
+                    .padding(.top, 4)
+                }
+
+                if let goalIncrease = insight.suggestedGoalIncrease, let onRaiseGoal {
+                    Button {
+                        onRaiseGoal(goalIncrease.suggestedGoalHours)
+                    } label: {
+                        Label(
+                            "Raise goal to \(formattedGoal(goalIncrease.suggestedGoalHours))",
+                            systemImage: "arrow.up.circle"
+                        )
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.green)
                     .padding(.top, 4)
                 }
             }
@@ -91,12 +114,17 @@ struct SleepInsightsCard: View {
         )!,
         congratulationWindow: ahead,
         motivatorWindow: behind,
-        motivatorIsCatchable: true
+        motivatorIsCatchable: true,
+        suggestedGoalIncrease: nil
     )
 
-    SleepInsightsCard(insight: insight, currentSleepBankDays: 7) { _ in }
-        .padding()
-        .background(Color.backgroundBehindCards)
+    SleepInsightsCard(
+        insight: insight,
+        currentSleepBankDays: 7,
+        onApplyDays: { _ in }
+    )
+    .padding()
+    .background(Color.backgroundBehindCards)
 }
 
 #Preview("Motivator only") {
@@ -114,10 +142,50 @@ struct SleepInsightsCard: View {
         )!,
         congratulationWindow: nil,
         motivatorWindow: behind,
-        motivatorIsCatchable: true
+        motivatorIsCatchable: true,
+        suggestedGoalIncrease: nil
     )
 
-    SleepInsightsCard(insight: insight, currentSleepBankDays: 7) { _ in }
-        .padding()
-        .background(Color.backgroundBehindCards)
+    SleepInsightsCard(
+        insight: insight,
+        currentSleepBankDays: 7,
+        onApplyDays: { _ in }
+    )
+    .padding()
+    .background(Color.backgroundBehindCards)
+}
+
+#Preview("Caught up everywhere") {
+    let ahead = SleepWindowBalance(
+        days: 14,
+        balance: 5.6,
+        sleepBank: SleepBank(currentBalance: 5.6, goalHours: 8, averageHours: 8.4, recentNights: [])
+    )
+    let goalIncrease = SuggestedGoalIncrease(
+        currentGoalHours: 8,
+        suggestedGoalHours: 8.25,
+        windowDays: 14
+    )
+    let insight = SleepBankInsight(
+        message: SleepInsightsEngine.buildNarrative(
+            congratulation: ahead,
+            motivator: nil,
+            goalHours: 8,
+            maxSleepHours: 10,
+            goalIncrease: goalIncrease
+        )!,
+        congratulationWindow: ahead,
+        motivatorWindow: nil,
+        motivatorIsCatchable: false,
+        suggestedGoalIncrease: goalIncrease
+    )
+
+    SleepInsightsCard(
+        insight: insight,
+        currentSleepBankDays: 7,
+        onApplyDays: { _ in },
+        onRaiseGoal: { _ in }
+    )
+    .padding()
+    .background(Color.backgroundBehindCards)
 }

@@ -12,6 +12,15 @@ final class LiveActivityManager: ObservableObject {
         activeActivityID != nil
     }
 
+    /// The widget extension deploys to iOS 18 because its countdown relies on
+    /// `SystemFormatStyle`, so on older systems there is no activity to request.
+    var isSupported: Bool {
+        if #available(iOS 18, *) {
+            return true
+        }
+        return false
+    }
+
     var areActivitiesEnabled: Bool {
         ActivityAuthorizationInfo().areActivitiesEnabled
     }
@@ -24,6 +33,11 @@ final class LiveActivityManager: ObservableObject {
         with recommendation: BedtimeRecommendation,
         durationStyle: DurationDisplayStyle
     ) async {
+        guard isSupported else {
+            lastErrorMessage = "Live Activities need iOS 18 or later."
+            return
+        }
+
         guard areActivitiesEnabled else {
             lastErrorMessage = "Live Activities are disabled for Bedger in system settings."
             return

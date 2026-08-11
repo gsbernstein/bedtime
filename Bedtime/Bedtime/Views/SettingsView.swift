@@ -15,6 +15,7 @@ struct SettingsView: View {
     var healthKitManager: HealthKitManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var isLoadingSources = true
 
     private var sleepBankDaysBinding: Binding<Double> {
         Binding(
@@ -48,7 +49,11 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                         
-                        Slider(value: $preferences.sleepGoalHours, in: 6...12, step: 0.25) {
+                        Slider(
+                            value: $preferences.sleepGoalHours,
+                            in: Constants.sleepGoalHoursRange,
+                            step: Constants.sleepGoalStepHours
+                        ) {
                             EmptyView()
                         }
                             .accentColor(.blue)
@@ -162,6 +167,8 @@ struct SettingsView: View {
                                 .foregroundColor(.orange)
                         }
                         
+                    } else if isLoadingSources {
+                        ProgressView("Loading sources…")
                     } else {
                         Text("No sources discovered yet. Please log some sleep data to Apple Health.")
                             .font(.caption)
@@ -229,6 +236,10 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+        .task {
+            defer { isLoadingSources = false }
+            await healthKitManager.loadAvailableSources()
         }
     }
     
