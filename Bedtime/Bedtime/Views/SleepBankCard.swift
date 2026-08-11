@@ -27,6 +27,15 @@ struct SleepBankCard: View {
             maxFractionDigits: 2
         )
     }
+
+    /// Matches the range the chart clamps its selection to, so the subtitle can't claim a
+    /// window the chart isn't drawing.
+    private var clampedSleepBankDays: Int {
+        min(
+            Constants.sleepBankDaysRange.upperBound,
+            max(Constants.sleepBankDaysRange.lowerBound, sleepBankDays)
+        )
+    }
     
     private var chartBalanceBounds: ClosedRange<Double> {
         let values = fullWindowBank.balanceImpacts.flatMap { [$0.priorBalance, $0.newBalance] }
@@ -49,7 +58,7 @@ struct SleepBankCard: View {
                     iconColor: sleepBank.statusColor,
                     title: "Sleep Balance"
                 ) {
-                    Text(sleepBank.statusDescription(style: durationStyle))
+                    Text("Across the last \(clampedSleepBankDays) days")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -104,23 +113,13 @@ struct SleepBankCard: View {
                 }
                 
                 if !fullWindowBank.balanceImpacts.isEmpty {
-                    VStack(spacing: 4) {
-                        BalanceWaterfallChart(
-                            nights: fullWindowBank.recentNights,
-                            impacts: fullWindowBank.balanceImpacts,
-                            domain: chartBalanceBounds,
-                            selectedDays: $sleepBankDays
-                        )
-                        .frame(height: 64)
-                        
-                        HStack {
-                            Text("Last \(sleepBankDays) days")
-                            Spacer()
-                            Text("Tap to change")
-                        }
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    }
+                    BalanceWaterfallChart(
+                        nights: fullWindowBank.recentNights,
+                        impacts: fullWindowBank.balanceImpacts,
+                        domain: chartBalanceBounds,
+                        selectedDays: $sleepBankDays
+                    )
+                    .frame(height: 64)
                 }
             }
         }
