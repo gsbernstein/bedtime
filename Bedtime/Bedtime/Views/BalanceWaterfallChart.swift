@@ -191,54 +191,85 @@ struct BalanceWaterfallChart: View {
     }
 }
 
-#Preview {
-    struct PreviewHost: View {
-        @State private var days = 7
+#if DEBUG
 
-        private let calendar = Calendar.current
-        private let goal = 7.0
+private struct BalanceWaterfallChartPreview: View {
+    /// Hours slept per night, oldest first. `nil` is a night with no tracked sleep, which
+    /// contributes no step and leaves its column empty.
+    let hoursPerNight: [Double?]
+    var goal = 7.0
 
-        private var nights: [NightSummary] {
-            let today = calendar.startOfDay(for: Date())
-            let hours: [Double] = [6.5, 7.0, 8.0, 6.75, 5.5, 6.25, 7.5, 8.5, 7.25, 6.0, 7.75, 8.25, 7.0, 6.5]
-            return hours.enumerated().map { offset, value in
-                NightSummary(
-                    date: calendar.date(byAdding: .day, value: offset - (hours.count - 1), to: today) ?? today,
-                    totalHours: value,
-                    hasData: true
-                )
-            }
-        }
+    @State private var days = 7
 
-        private var impacts: [BalanceDayImpact] {
-            var running = 0.0
-            return nights.map { night in
-                let prior = running
-                running += night.totalHours - goal
-                return BalanceDayImpact(date: night.date, priorBalance: prior, impact: night.totalHours - goal)
-            }
-        }
-
-        var body: some View {
-            let values = impacts.flatMap { [$0.priorBalance, $0.newBalance] }
-            let magnitude = max(values.map(abs).max() ?? 0, 0.5)
-
-            return VStack(spacing: 16) {
-                BalanceWaterfallChart(
-                    nights: nights,
-                    impacts: impacts,
-                    domain: (-magnitude - 0.25)...(magnitude + 0.25),
-                    selectedDays: $days
-                )
-                .frame(height: 64)
-
-                Text("\(days) days selected")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
+    private var nights: [NightSummary] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return hoursPerNight.enumerated().map { offset, hours in
+            NightSummary(
+                date: calendar.date(byAdding: .day, value: offset - (hoursPerNight.count - 1), to: today) ?? today,
+                totalHours: hours ?? 0,
+                hasData: hours != nil
+            )
         }
     }
 
-    return PreviewHost()
+    private var impacts: [BalanceDayImpact] {
+        var running = 0.0
+        return nights.compactMap { night in
+            guard night.hasData else { return nil }
+            let prior = running
+            running += night.totalHours - goal
+            return BalanceDayImpact(date: night.date, priorBalance: prior, impact: night.totalHours - goal)
+        }
+    }
+
+    var body: some View {
+        let values = impacts.flatMap { [$0.priorBalance, $0.newBalance] }
+        let magnitude = max(values.map(abs).max() ?? 0, 0.5)
+
+        return VStack(spacing: 16) {
+            BalanceWaterfallChart(
+                nights: nights,
+                impacts: impacts,
+                domain: (-magnitude - 0.25)...(magnitude + 0.25),
+                selectedDays: $days
+            )
+            .frame(height: 64)
+
+            Text("\(days) days selected")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+    }
 }
+
+#Preview("Gains and losses") {
+    BalanceWaterfallChartPreview(hoursPerNight: [
+        6.5, 7.0, 8.0, 6.75, 5.5, 6.25, 7.5,
+        8.5, 7.25, 6.0, 7.75, 8.25, 7.0, 6.5
+    ])
+}
+
+#Preview("Ahead every night") {
+    BalanceWaterfallChartPreview(hoursPerNight: [
+        7.4, 7.8, 7.25, 8.0, 7.5, 7.9, 8.2,
+        7.6, 8.4, 7.3, 7.7, 8.1, 7.45, 7.95
+    ])
+}
+
+#Preview("Behind every night") {
+    BalanceWaterfallChartPreview(hoursPerNight: [
+        6.6, 6.2, 6.75, 5.9, 6.4, 6.05, 6.5,
+        6.3, 5.75, 6.6, 6.15, 6.45, 6.8, 6.1
+    ])
+}
+
+#Preview("Missing nights") {
+    BalanceWaterfallChartPreview(hoursPerNight: [
+        6.5, nil, 8.0, nil, nil, 6.25, 7.5,
+        8.5, nil, 6.0, 7.75, nil, 7.0, 6.5
+    ])
+}
+
+#endif

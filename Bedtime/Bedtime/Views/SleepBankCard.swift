@@ -170,53 +170,99 @@ struct SleepBankCard: View {
     }
 }
 
-#Preview {
-    struct PreviewHost: View {
-        @State private var days = 7
-        @State private var goalHours = 8.0
-        
-        private let hoursPerNight: [Double?] = [
-            6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
-            8.4, 8.1, 7.6, 6.9, 7.2, 8.0, 7.1
-        ]
-        
-        private var allNights: [NightSummary] {
-            let calendar = Calendar.current
-            let today = calendar.startOfDay(for: Date())
-            return hoursPerNight.enumerated().map { offset, hours in
-                let daysAgo = hoursPerNight.count - 1 - offset
-                return NightSummary(
-                    date: calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today,
-                    totalHours: hours ?? 0,
-                    hasData: hours != nil
-                )
-            }
-        }
-        
-        private func bank(lastDays: Int) -> SleepBank {
-            let nights = allNights.suffix(lastDays)
-            let withData = nights.filter(\.hasData)
-            let total = withData.map(\.totalHours).reduce(0, +)
-            return SleepBank(
-                currentBalance: total - goalHours * Double(withData.count),
-                goalHours: goalHours,
-                averageHours: withData.isEmpty ? nil : total / Double(withData.count),
-                recentNights: Array(nights)
+#if DEBUG
+
+/// Recomputes the bank from a fixed set of nights whenever the card changes the selected
+/// window or the goal, so the previews stay interactive the way the real card is.
+private struct SleepBankCardPreview: View {
+    /// Hours slept per night, oldest first. `nil` is a night with no tracked sleep.
+    let hoursPerNight: [Double?]
+    /// Mirrors the card being handed a goal binding or not.
+    var isGoalEditable = true
+
+    @State private var days = 7
+    @State private var goalHours = 8.0
+
+    private var allNights: [NightSummary] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return hoursPerNight.enumerated().map { offset, hours in
+            let daysAgo = hoursPerNight.count - 1 - offset
+            return NightSummary(
+                date: calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today,
+                totalHours: hours ?? 0,
+                hasData: hours != nil
             )
         }
-        
-        var body: some View {
-            ScrollView {
-                SleepBankCard(
-                    sleepBank: bank(lastDays: days),
-                    fullWindowBank: bank(lastDays: allNights.count),
-                    sleepBankDays: $days,
-                    sleepGoalHours: $goalHours
-                )
-                .padding()
-            }
-        }
     }
-    
-    return PreviewHost()
+
+    private func bank(lastDays: Int) -> SleepBank {
+        let nights = allNights.suffix(lastDays)
+        let withData = nights.filter(\.hasData)
+        let total = withData.map(\.totalHours).reduce(0, +)
+        return SleepBank(
+            currentBalance: total - goalHours * Double(withData.count),
+            goalHours: goalHours,
+            averageHours: withData.isEmpty ? nil : total / Double(withData.count),
+            recentNights: Array(nights)
+        )
+    }
+
+    var body: some View {
+        ScrollView {
+            SleepBankCard(
+                sleepBank: bank(lastDays: days),
+                fullWindowBank: bank(lastDays: allNights.count),
+                sleepBankDays: $days,
+                sleepGoalHours: isGoalEditable ? $goalHours : nil
+            )
+            .padding()
+        }
+        .background(Color.backgroundBehindCards)
+    }
 }
+
+#Preview("Behind goal") {
+    SleepBankCardPreview(hoursPerNight: [
+        6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
+        6.4, 7.1, 7.6, 6.9, 7.2, 6.6, 7.1
+    ])
+}
+
+#Preview("Ahead of goal") {
+    SleepBankCardPreview(hoursPerNight: [
+        8.4, 8.1, 8.6, 7.9, 8.8, 8.2, 8.5,
+        8.0, 8.3, 9.0, 8.1, 8.4, 8.7, 8.2
+    ])
+}
+
+#Preview("No tracked sleep") {
+    SleepBankCardPreview(hoursPerNight: Array<Double?>(repeating: nil, count: 14))
+}
+
+#Preview("Mostly untracked") {
+    SleepBankCardPreview(hoursPerNight: [
+        nil, nil, nil, 7.5, nil, nil, nil,
+        nil, nil, 8.6, nil, nil, nil, nil
+    ])
+}
+
+#Preview("Decimal durations") {
+    SleepBankCardPreview(hoursPerNight: [
+        6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
+        6.4, 7.1, 7.6, 6.9, 7.2, 6.6, 7.1
+    ])
+    .environment(\.durationDisplayStyle, .decimal)
+}
+
+#Preview("Read-only goal") {
+    SleepBankCardPreview(
+        hoursPerNight: [
+            6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
+            8.4, 8.1, 7.6, 6.9, 7.2, 8.0, 7.1
+        ],
+        isGoalEditable: false
+    )
+}
+
+#endif

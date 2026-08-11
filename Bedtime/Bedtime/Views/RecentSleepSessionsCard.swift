@@ -119,3 +119,64 @@ struct RecentSleepSessionsCard: View {
         }
     }
 }
+
+#if DEBUG
+
+import HealthKit
+
+/// Builds one session per tracked night so the previews can exercise the range handle,
+/// which moves the boundary between included and excluded nights.
+private struct RecentSleepSessionsCardPreview: View {
+    /// Hours slept per night, most recent first. `nil` is a night with no tracked sleep.
+    let hoursPerNight: [Double?]
+
+    @State private var days = 5
+
+    /// Each night ends at 7am on the day it is keyed under, matching how the card looks
+    /// sessions up by the start of their day.
+    private var sessionsByNight: [Date: [SleepSession]] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var sessions: [Date: [SleepSession]] = [:]
+        for (offset, hours) in hoursPerNight.enumerated() {
+            guard let hours,
+                  let night = calendar.date(byAdding: .day, value: -offset, to: today),
+                  let wakeTime = calendar.date(byAdding: .hour, value: 7, to: night)
+            else { continue }
+            sessions[night] = [
+                SleepSession(
+                    startDate: wakeTime.addingTimeInterval(-hours * 3600),
+                    endDate: wakeTime,
+                    sleepType: .asleepUnspecified,
+                    source: .init(source: .default(), version: nil)
+                )
+            ]
+        }
+        return sessions
+    }
+
+    var body: some View {
+        ScrollView {
+            RecentSleepSessionsCard(
+                sessions: sessionsByNight,
+                allSessions: sessionsByNight,
+                excludedSourceIDs: [],
+                sleepGoal: 8,
+                sleepBankDays: $days,
+                dayCount: hoursPerNight.count
+            )
+            .padding()
+        }
+        .background(Color.backgroundBehindCards)
+    }
+}
+
+#Preview("Tracked every night") {
+    RecentSleepSessionsCardPreview(hoursPerNight: [7.4, 8.2, 6.8, 8.6, 7.1, 8.0, 6.5, 7.9])
+}
+
+#Preview("Missing nights") {
+    RecentSleepSessionsCardPreview(hoursPerNight: [nil, 8.2, nil, nil, 7.1, 8.0, nil, 7.9])
+}
+
+#endif

@@ -103,17 +103,38 @@ struct LastNightCard: View {
 
 import HealthKit
 
-#Preview {
-    LastNightCard(
-        sleepSessions: [SleepSession(
-            startDate: DateComponents(calendar: .autoupdatingCurrent, day: 1, hour: 23, minute: 10).date!,
-            endDate: DateComponents(calendar: .autoupdatingCurrent, day: 2, hour: 6, minute: 35).date!,
-            sleepType: .asleepUnspecified,
-            source: .init(source: .default(), version: nil)
-        )],
-        goal: 8,
-        sourceAppLinks: []
+#if DEBUG
+
+/// A single overnight session ending at 6:35am, long enough back to give a plausible bedtime.
+private func previewNight(hours: Double) -> SleepSession {
+    let wakeTime = Calendar.current.date(bySettingHour: 6, minute: 35, second: 0, of: Date()) ?? Date()
+    return SleepSession(
+        startDate: wakeTime.addingTimeInterval(-hours * 3600),
+        endDate: wakeTime,
+        sleepType: .asleepUnspecified,
+        source: .init(source: .default(), version: nil)
     )
+}
+
+#Preview("Met goal") {
+    LastNightCard(sleepSessions: [previewNight(hours: 8.2)], goal: 8, sourceAppLinks: [])
+        .padding()
+        .background(Color.backgroundBehindCards)
+}
+
+#Preview("Short night") {
+    LastNightCard(sleepSessions: [previewNight(hours: 5.75)], goal: 8, sourceAppLinks: [])
+        .padding()
+        .background(Color.backgroundBehindCards)
+}
+
+#Preview("No data") {
+    LastNightCard(sleepSessions: nil, goal: 8, sourceAppLinks: [])
+        .padding()
+        .background(Color.backgroundBehindCards)
+}
+
+#Preview("No data, with source apps") {
     LastNightCard(
         sleepSessions: nil,
         goal: 8,
@@ -126,4 +147,8 @@ import HealthKit
             )
         ]
     )
+    .padding()
+    .background(Color.backgroundBehindCards)
 }
+
+#endif
