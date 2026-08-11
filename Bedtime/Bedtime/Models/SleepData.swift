@@ -140,6 +140,15 @@ struct SleepBank: Equatable {
         return max(0, currentBalance)
     }
     
+    /// Describes what the balance figures cover: the lookback window they were measured
+    /// over, or a nudge to start tracking when the window holds no nights to measure.
+    func statusDescription(days: Int) -> String {
+        guard averageHours != nil else {
+            return "Track some sleep in Apple Health to get insights."
+        }
+        return "Across the last \(days) days"
+    }
+    
     var balanceImpacts: [BalanceDayImpact] {
         var runningBalance = 0.0
         return recentNights.compactMap { night in

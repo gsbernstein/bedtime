@@ -58,7 +58,7 @@ struct SleepBankCard: View {
                     iconColor: sleepBank.statusColor,
                     title: "Sleep Balance"
                 ) {
-                    Text("Across the last \(clampedSleepBankDays) days")
+                    Text(sleepBank.statusDescription(days: clampedSleepBankDays))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
