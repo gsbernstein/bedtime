@@ -68,11 +68,7 @@ struct RecentSleepSessionsCard: View {
                     icon: "chart.line.uptrend.xyaxis",
                     iconColor: .purple,
                     title: "Recent Sleep"
-                ) {
-                    Text("\(clampedSleepBankDays) days in Sleep Balance")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+                )
                 
                 VStack(spacing: 0) {
                     ForEach(0..<sortedSessions.count, id: \.self) { index in
