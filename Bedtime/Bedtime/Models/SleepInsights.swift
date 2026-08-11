@@ -23,11 +23,29 @@ struct SleepBankInsight: Equatable {
     let congratulationWindow: SleepWindowBalance?
     let motivatorWindow: SleepWindowBalance?
     let motivatorIsCatchable: Bool
+    /// Present only when there's nothing to catch up on, so the insight can
+    /// offer a bigger goal instead of a catch-up nudge.
+    let suggestedGoalIncrease: SuggestedGoalIncrease?
+}
+
+/// A goal the recent nightly average already clears, offered when every
+/// lookback window is caught up.
+struct SuggestedGoalIncrease: Equatable {
+    let currentGoalHours: Double
+    let suggestedGoalHours: Double
+    /// Lookback the surplus was measured over.
+    let windowDays: Int
+
+    var increaseHours: Double { suggestedGoalHours - currentGoalHours }
 }
 
 enum SleepInsightsEngine {
     /// Lookback durations scanned for motivator windows (matches Settings range).
     static var windowRange: ClosedRange<Int> { Constants.sleepBankDaysRange }
+
+    /// Nights of data the full window needs before a surplus is treated as spare
+    /// capacity rather than a couple of lucky logged nights.
+    static let goalRaiseMinimumTrackedNights = 10
 
     static func generateInsight(
         sleepSessions: [Date: [SleepSession]],
@@ -46,11 +64,18 @@ enum SleepInsightsEngine {
             maxSleepHours: maxSleepHours
         )
 
+        let goalIncrease = suggestedGoalIncrease(
+            from: snapshots,
+            goalHours: goalHours,
+            maxSleepHours: maxSleepHours
+        )
+
         guard let message = buildNarrative(
             congratulation: congratulation,
             motivator: motivator,
             goalHours: goalHours,
-            maxSleepHours: maxSleepHours
+            maxSleepHours: maxSleepHours,
+            goalIncrease: goalIncrease
         ) else {
             return nil
         }
@@ -63,7 +88,8 @@ enum SleepInsightsEngine {
             message: message,
             congratulationWindow: congratulation,
             motivatorWindow: motivator,
-            motivatorIsCatchable: motivatorIsCatchable
+            motivatorIsCatchable: motivatorIsCatchable,
+            suggestedGoalIncrease: goalIncrease
         )
     }
 
@@ -109,6 +135,43 @@ enum SleepInsightsEngine {
         return behind.min(by: { $0.days < $1.days })
     }
 
+    /// A bigger goal to offer when there's no debt anywhere in the scanned
+    /// windows — including the longest one — so the surplus is spare capacity
+    /// rather than a rebound from a bad stretch.
+    static func suggestedGoalIncrease(
+        from snapshots: [SleepWindowBalance],
+        goalHours: Double,
+        maxSleepHours: Double
+    ) -> SuggestedGoalIncrease? {
+        guard
+            let fullWindow = snapshots.first(where: { $0.days == windowRange.upperBound }),
+            fullWindow.sleepBank.averageHours != nil,
+            snapshots.allSatisfy(\.isAhead)
+        else {
+            return nil
+        }
+
+        let trackedNights = fullWindow.sleepBank.recentNights.filter(\.hasData).count
+        guard trackedNights >= goalRaiseMinimumTrackedNights else { return nil }
+
+        let surplusPerNight = fullWindow.aheadHours / Double(trackedNights)
+        // Never suggest more than the sleep window allows, and round down so the
+        // recent average already clears the new goal.
+        let ceiling = min(Constants.sleepGoalHoursRange.upperBound, maxSleepHours)
+        let suggested = Constants.snappedSleepGoalHours(
+            min(goalHours + surplusPerNight, ceiling),
+            rounding: .down
+        )
+
+        guard suggested > goalHours + Constants.sleepGoalStepHours / 2 else { return nil }
+
+        return SuggestedGoalIncrease(
+            currentGoalHours: goalHours,
+            suggestedGoalHours: suggested,
+            windowDays: fullWindow.days
+        )
+    }
+
     /// Whether tonight's recommended sleep duration can fully cover this window's debt.
     static func isCatchableInOneNight(
         balance: Double,
@@ -125,7 +188,8 @@ enum SleepInsightsEngine {
         congratulation: SleepWindowBalance?,
         motivator: SleepWindowBalance?,
         goalHours: Double,
-        maxSleepHours: Double
+        maxSleepHours: Double,
+        goalIncrease: SuggestedGoalIncrease? = nil
     ) -> String? {
         switch (congratulation, motivator) {
         case let (congrats?, motivator?) where congrats.isAhead && !motivator.isAhead:
@@ -143,7 +207,7 @@ enum SleepInsightsEngine {
             )
 
         case let (congrats?, _) where congrats.isAhead:
-            return aheadNarrative(window: congrats)
+            return aheadNarrative(window: congrats, goalIncrease: goalIncrease)
 
         case let (_, motivator?) where !motivator.isAhead:
             let catchable = isCatchableInOneNight(
@@ -203,9 +267,19 @@ enum SleepInsightsEngine {
         """
     }
 
-    private static func aheadNarrative(window: SleepWindowBalance) -> String {
+    private static func aheadNarrative(
+        window: SleepWindowBalance,
+        goalIncrease: SuggestedGoalIncrease?
+    ) -> String {
         let aheadPhrase = formatHoursNaturally(window.aheadHours)
-        return "You're \(aheadPhrase) ahead over the last \(dayCountPhrase(window.days)). Nice work — keep it up!"
+        guard goalIncrease != nil else {
+            return "You're \(aheadPhrase) ahead over the last \(dayCountPhrase(window.days)). Nice work — keep it up!"
+        }
+
+        return """
+        You're \(aheadPhrase) ahead over the last \(dayCountPhrase(window.days)) and caught up every way \
+        we look at it. You're clearing your goal with room to spare — ready to aim a little higher?
+        """
     }
 
     private static func behindNarrative(

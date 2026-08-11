@@ -8,6 +8,13 @@ A native iOS app that helps optimize your sleep by tracking your "sleep bank" an
 - Tracks your sleep debt/credit based on recent nights
 - Calculates how much you're ahead or behind your sleep goal
 - Visual progress indicator showing your current balance
+- Tap the goal on the sleep balance card to adjust it without opening settings
+
+### 💡 Sleep Insights
+- Highlights the lookback windows where you're ahead, and where you're behind
+- Offers to switch the sleep bank to the window that needs catching up
+- When you're caught up across the whole two-week window, offers to raise your
+  nightly goal to one your recent average already clears
 
 ### 🛏️ Smart Bedtime Recommendations
 - Personalized bedtime suggestions based on your sleep bank
@@ -21,7 +28,7 @@ A native iOS app that helps optimize your sleep by tracking your "sleep bank" an
 - Visual representation of your sleep patterns
 
 ### ⚙️ Customizable Settings
-- Set your personal sleep goal (6-12 hours)
+- Set your personal sleep goal (6-12 hours, in 15 minute steps)
 - Configure your preferred wake time
 - Adjust the sleep bank calculation period (3-14 days)
 
