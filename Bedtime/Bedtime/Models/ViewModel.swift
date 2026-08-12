@@ -66,12 +66,17 @@ class ViewModel {
         recentDays: Int
     ) -> SleepBank {
         let calendar = Calendar.current
-        let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -recentDays, to: endDate) ?? endDate
+        // Anchor on the start of today rather than the exact current instant: sessions are
+        // keyed by day (midnight), so comparing against a moving wall-clock timestamp made
+        // the window boundary drift within the same calendar day, flipping the inclusion of
+        // borderline nights (and downstream balance/bedtime values) between calls made only
+        // moments apart.
+        let today = calendar.startOfDay(for: Date())
+        let startDate = calendar.date(byAdding: .day, value: -recentDays, to: today) ?? today
         
         // Filter sessions from the last N days
         let recentSessions = sleepSessions.filter { day, _ in
-            day >= startDate && day <= endDate
+            day >= startDate && day <= today
         }
         
         let daysWithData = recentSessions.count
@@ -88,8 +93,7 @@ class ViewModel {
         let averageHours = daysWithData > 0 ? totalSleepHours / Double(daysWithData) : nil
         
         let recentNights: [NightSummary] = (0..<recentDays).reversed().map { offset in
-            let referenceDay = calendar.date(byAdding: .day, value: -offset, to: endDate) ?? endDate
-            let day = calendar.startOfDay(for: referenceDay)
+            let day = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
             let sessions = sleepSessions[day] ?? []
             let total = sessions.map(\.durationInHours).reduce(0, +)
             return NightSummary(date: day, totalHours: total, hasData: !sessions.isEmpty)
@@ -145,8 +149,13 @@ class ViewModel {
             reason = "You're ahead of the game! Aim for at least \(goal) tonight."
         }
         
-        // Calculate recommended bedtime
-        let recommendedBedtime = calendar.date(byAdding: .minute, value: -Int(totalSleepNeeded * 60), to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
+        // Calculate recommended bedtime. Round rather than truncate the minute count:
+        // truncating turns any tiny floating-point noise in `totalSleepNeeded` (e.g. from
+        // summing many session durations) into a full minute of jitter whenever the true
+        // value sits right on a minute boundary, which is exactly when a recommendation like
+        // "9:42" would flicker to "9:43" between otherwise-identical calculations.
+        let sleepNeededMinutes = Int((totalSleepNeeded * 60).rounded())
+        let recommendedBedtime = calendar.date(byAdding: .minute, value: -sleepNeededMinutes, to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
         
         return BedtimeRecommendation(
             recommendedBedtime: recommendedBedtime,
