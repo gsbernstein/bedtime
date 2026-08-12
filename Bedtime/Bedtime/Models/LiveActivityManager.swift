@@ -92,13 +92,16 @@ final class LiveActivityManager: ObservableObject {
     func syncWithSchedule(
         recommendation: BedtimeRecommendation,
         durationStyle: DurationDisplayStyle,
-        leadTime: TimeInterval = Constants.liveActivityLeadTime,
         now: Date = Date()
     ) async {
         await endFinishedActivities(now: now)
 
         guard isSupported, areActivitiesEnabled else { return }
 
+        // Read in the body rather than as a default argument: default values are
+        // evaluated in a nonisolated context, and `Constants` picks up the
+        // module's MainActor isolation.
+        let leadTime = Constants.liveActivityLeadTime
         let schedule = upcomingSchedule(for: recommendation, now: now)
         // Once bedtime passes, the next match is tomorrow's, so this only opens
         // the window ahead of tonight's bedtime. An activity already running
