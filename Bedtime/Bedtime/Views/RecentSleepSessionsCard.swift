@@ -37,21 +37,14 @@ struct RecentSleepSessionsCard: View {
     
     @State private var expandedNights: Set<Date> = []
     
-    private var clampedSleepBankDays: Int {
-        min(
-            Constants.sleepBankDaysRange.upperBound,
-            max(Constants.sleepBankDaysRange.lowerBound, sleepBankDays)
-        )
-    }
-    
     /// Index of the last night currently included in the sleep-bank lookback.
     private var lastIncludedIndex: Int {
-        min(clampedSleepBankDays, sortedSessions.count) - 1
+        min(sleepBankDays, sortedSessions.count) - 1
     }
     
     private var sleepBankDaysBinding: Binding<Int> {
         Binding(
-            get: { clampedSleepBankDays },
+            get: { sleepBankDays },
             set: { newValue in
                 sleepBankDays = min(
                     Constants.sleepBankDaysRange.upperBound,
@@ -74,8 +67,8 @@ struct RecentSleepSessionsCard: View {
                     ForEach(0..<sortedSessions.count, id: \.self) { index in
                         let entry = sortedSessions[index]
                         let night = entry.0
-                        let isIncluded = index < clampedSleepBankDays
-                        
+                        let isIncluded = index < sleepBankDays
+
                         SleepDayGroup(
                             date: night,
                             sessions: entry.1,
@@ -110,11 +103,6 @@ struct RecentSleepSessionsCard: View {
                         }
                     }
                 }
-            }
-        }
-        .onAppear {
-            if sleepBankDays != clampedSleepBankDays {
-                sleepBankDays = clampedSleepBankDays
             }
         }
     }

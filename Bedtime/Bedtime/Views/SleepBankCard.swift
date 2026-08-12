@@ -27,15 +27,6 @@ struct SleepBankCard: View {
             maxFractionDigits: 2
         )
     }
-
-    /// Matches the range the chart clamps its selection to, so the subtitle can't claim a
-    /// window the chart isn't drawing.
-    private var clampedSleepBankDays: Int {
-        min(
-            Constants.sleepBankDaysRange.upperBound,
-            max(Constants.sleepBankDaysRange.lowerBound, sleepBankDays)
-        )
-    }
     
     private var chartBalanceBounds: ClosedRange<Double> {
         let values = fullWindowBank.balanceImpacts.flatMap { [$0.priorBalance, $0.newBalance] }
@@ -58,7 +49,7 @@ struct SleepBankCard: View {
                     iconColor: sleepBank.statusColor,
                     title: "Sleep Balance"
                 ) {
-                    Text(sleepBank.statusDescription(days: clampedSleepBankDays))
+                    Text(sleepBank.statusDescription(days: sleepBankDays))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
