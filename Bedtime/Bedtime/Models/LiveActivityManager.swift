@@ -227,20 +227,35 @@ final class LiveActivityManager: ObservableObject {
             from: recommendation.wakeTime
         )
 
-        let bedtime = calendar.nextDate(
-            after: now,
-            matching: bedtimeComponents,
-            matchingPolicy: .nextTime,
-            repeatedTimePolicy: .first,
-            direction: .forward
-        ) ?? recommendation.recommendedBedtime
-        let wakeTime = calendar.nextDate(
-            after: bedtime,
-            matching: wakeTimeComponents,
-            matchingPolicy: .nextTime,
-            repeatedTimePolicy: .first,
-            direction: .forward
-        ) ?? recommendation.wakeTime
+        func occurrence(
+            of components: DateComponents,
+            from date: Date,
+            direction: Calendar.SearchDirection
+        ) -> Date? {
+            calendar.nextDate(
+                after: date,
+                matching: components,
+                matchingPolicy: .nextTime,
+                repeatedTimePolicy: .first,
+                direction: direction
+            )
+        }
+
+        // Once bedtime has passed, the night underway is the one to show. Always
+        // reaching for the next bedtime would jump a whole day forward and take
+        // the wake time with it.
+        if
+            let lastBedtime = occurrence(of: bedtimeComponents, from: now, direction: .backward),
+            let wakeAfterLastBedtime = occurrence(of: wakeTimeComponents, from: lastBedtime, direction: .forward),
+            now < wakeAfterLastBedtime
+        {
+            return (lastBedtime, wakeAfterLastBedtime)
+        }
+
+        let bedtime = occurrence(of: bedtimeComponents, from: now, direction: .forward)
+            ?? recommendation.recommendedBedtime
+        let wakeTime = occurrence(of: wakeTimeComponents, from: bedtime, direction: .forward)
+            ?? recommendation.wakeTime
 
         return (bedtime, wakeTime)
     }
