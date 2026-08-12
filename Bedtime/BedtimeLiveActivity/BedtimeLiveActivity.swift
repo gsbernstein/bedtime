@@ -36,8 +36,13 @@ struct BedtimeLiveActivity: Widget {
                     )
                 }
             } compactLeading: {
-                Image(systemName: BedtimePhase(isStale: context.isStale).symbol)
-                    .foregroundStyle(.indigo)
+                let phase = BedtimePhase(isStale: context.isStale)
+                HStack(spacing: 3) {
+                    Image(systemName: phase.symbol)
+                    Text(phase.compactLabel)
+                }
+                .foregroundStyle(.indigo)
+                .lineLimit(1)
             } compactTrailing: {
                 CountdownText(
                     state: context.state,
@@ -79,6 +84,15 @@ private enum BedtimePhase {
     var countdownLabel: String {
         switch self {
         case .windDown: "Bedtime"
+        case .sleeping: "Wake"
+        }
+    }
+
+    /// Names what the compact pill is counting down to, since its trailing text
+    /// is only a bare duration.
+    var compactLabel: String {
+        switch self {
+        case .windDown: "Sleep"
         case .sleeping: "Wake"
         }
     }

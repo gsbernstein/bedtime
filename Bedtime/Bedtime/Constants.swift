@@ -21,6 +21,8 @@ class Constants {
     /// Selectable nightly sleep goals (Settings slider and the goal editor on the main screen).
     static let sleepGoalHoursRange = 6.0...12.0
     static let sleepGoalStepHours: Double = 0.25
+    /// How far ahead of the recommended bedtime the Live Activity appears.
+    static let liveActivityLeadTime: TimeInterval = 30 * 60
 
     /// Goal choices as step offsets from the lowest goal, so pickers can tag
     /// options with values that compare exactly.

@@ -4,6 +4,10 @@ import Foundation
 
 @MainActor
 final class LiveActivityManager: ObservableObject {
+    /// Shared so an app intent launched in the background drives the same
+    /// activity the UI is showing.
+    static let shared = LiveActivityManager()
+
     @Published private(set) var activeActivityID: String?
     @Published private(set) var isWorking = false
     @Published private(set) var lastErrorMessage: String?
@@ -49,7 +53,9 @@ final class LiveActivityManager: ObservableObject {
 
         let schedule = upcomingSchedule(for: recommendation)
         let state = BedtimeActivityAttributes.ContentState(
-            activityStart: Date(),
+            // Updating an existing activity keeps its original start so the
+            // wind-down bar doesn't jump back to empty.
+            activityStart: currentActivity?.content.state.activityStart ?? Date(),
             bedtime: schedule.bedtime,
             wakeTime: schedule.wakeTime,
             targetSleepHours: recommendation.targetSleepDuration,
@@ -80,6 +86,42 @@ final class LiveActivityManager: ObservableObject {
         }
     }
 
+    /// Starts the activity once the wind-down window opens, refreshes it if the
+    /// schedule moved, and clears out last night's once the wake time has passed.
+    /// Safe to call on every foreground.
+    func syncWithSchedule(
+        recommendation: BedtimeRecommendation,
+        durationStyle: DurationDisplayStyle,
+        leadTime: TimeInterval = Constants.liveActivityLeadTime,
+        now: Date = Date()
+    ) async {
+        await endFinishedActivities(now: now)
+
+        guard isSupported, areActivitiesEnabled else { return }
+
+        let schedule = upcomingSchedule(for: recommendation, now: now)
+        // Once bedtime passes, the next match is tomorrow's, so this only opens
+        // the window ahead of tonight's bedtime. An activity already running
+        // carries the rest of the night on its own.
+        guard now >= schedule.bedtime.addingTimeInterval(-leadTime) else { return }
+
+        await startOrUpdate(with: recommendation, durationStyle: durationStyle)
+    }
+
+    /// Starts tonight's activity from the last saved plan, for entry points that
+    /// can't recompute a recommendation, such as a background app intent.
+    func startFromSavedPlan(now: Date = Date()) async {
+        guard let plan = BedtimePlanStore.current(now: now) else {
+            lastErrorMessage = "Open Bedger once so it can work out tonight's bedtime."
+            return
+        }
+
+        await startOrUpdate(
+            with: BedtimeRecommendation(plan: plan),
+            durationStyle: plan.durationStyle
+        )
+    }
+
     func end() async {
         isWorking = true
         lastErrorMessage = nil
@@ -89,6 +131,16 @@ final class LiveActivityManager: ObservableObject {
             await activity.end(nil, dismissalPolicy: .immediate)
         }
         activeActivityID = nil
+    }
+
+    private func endFinishedActivities(now: Date) async {
+        for activity in Activity<BedtimeActivityAttributes>.activities
+        where activity.content.state.wakeTime <= now {
+            await activity.end(nil, dismissalPolicy: .immediate)
+            if activity.id == activeActivityID {
+                activeActivityID = nil
+            }
+        }
     }
 
     private var currentActivity: Activity<BedtimeActivityAttributes>? {
