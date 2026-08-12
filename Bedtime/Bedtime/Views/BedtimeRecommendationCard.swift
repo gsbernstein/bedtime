@@ -28,7 +28,7 @@ struct BedtimeRecommendationCard: View {
                 }
                 
                 // Recommendation details
-                VStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Recommended Bedtime")
@@ -56,7 +56,6 @@ struct BedtimeRecommendationCard: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.leading)
-                            .padding(.top, 4)
                     }
                 }
             }
