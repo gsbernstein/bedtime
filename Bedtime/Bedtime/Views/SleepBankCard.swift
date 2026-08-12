@@ -66,7 +66,7 @@ struct SleepBankCard: View {
                 // Equal-width columns so Status stays centered regardless of
                 // how wide Average / Goal strings are (e.g. "6h 35m" vs "7h").
                 HStack(alignment: .top, spacing: 0) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("Average")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -77,32 +77,29 @@ struct SleepBankCard: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(sleepBank.statusColor)
                         } else {
-                            Text("no recent data")
+                            Text("unknown")
                                 .font(.subheadline)
+                                .italic()
                                 .foregroundColor(.secondary)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("Status")
+                    VStack(alignment: .center, spacing: 2) {
+
+                        Text(sleepBank.averageHours != nil ? sleepBank.isInDebt ? "Behind" : "Ahead" : "Balance")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         if sleepBank.averageHours != nil {
-                            HStack(alignment: .lastTextBaseline, spacing: 4) {
-                                Text(TimeFormatter.formatHours(abs(sleepBank.currentBalance), style: durationStyle))
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(sleepBank.statusColor)
-                                
-                                Text(sleepBank.isInDebt ? "behind" : "ahead")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text(TimeFormatter.formatHours(sleepBank.currentBalance, style: durationStyle))
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(sleepBank.statusColor)
                         } else {
                             Text("unknown")
                                 .font(.subheadline)
+                                .italic()
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -147,7 +144,7 @@ struct SleepBankCard: View {
     }
 
     private func goalLabel(showsEditAffordance: Bool) -> some View {
-        VStack(alignment: .trailing, spacing: 4) {
+        VStack(alignment: .trailing, spacing: 2) {
             Text("Goal")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -177,8 +174,6 @@ struct SleepBankCard: View {
 private struct SleepBankCardPreview: View {
     /// Hours slept per night, oldest first. `nil` is a night with no tracked sleep.
     let hoursPerNight: [Double?]
-    /// Mirrors the card being handed a goal binding or not.
-    var isGoalEditable = true
 
     @State private var days = 7
     @State private var goalHours = 8.0
@@ -214,7 +209,7 @@ private struct SleepBankCardPreview: View {
                 sleepBank: bank(lastDays: days),
                 fullWindowBank: bank(lastDays: allNights.count),
                 sleepBankDays: $days,
-                sleepGoalHours: isGoalEditable ? $goalHours : nil
+                sleepGoalHours: $goalHours
             )
             .padding()
         }
@@ -253,16 +248,6 @@ private struct SleepBankCardPreview: View {
         6.4, 7.1, 7.6, 6.9, 7.2, 6.6, 7.1
     ])
     .environment(\.durationDisplayStyle, .decimal)
-}
-
-#Preview("Read-only goal") {
-    SleepBankCardPreview(
-        hoursPerNight: [
-            6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
-            8.4, 8.1, 7.6, 6.9, 7.2, 8.0, 7.1
-        ],
-        isGoalEditable: false
-    )
 }
 
 #endif
