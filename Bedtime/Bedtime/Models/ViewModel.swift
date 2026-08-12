@@ -66,24 +66,22 @@ class ViewModel {
         recentDays: Int
     ) -> SleepBank {
         let calendar = Calendar.current
-        // Anchor on the start of today rather than the exact current instant: sessions are
-        // keyed by day (midnight), so comparing against a moving wall-clock timestamp made
-        // the window boundary drift within the same calendar day, flipping the inclusion of
-        // borderline nights (and downstream balance/bedtime values) between calls made only
-        // moments apart.
         let today = calendar.startOfDay(for: Date())
-        let startDate = calendar.date(byAdding: .day, value: -recentDays, to: today) ?? today
-        
-        // Filter sessions from the last N days
-        let recentSessions = sleepSessions.filter { day, _ in
-            day >= startDate && day <= today
+
+        let recentNights: [NightSummary] = (0..<recentDays).reversed().map { offset in
+            let day = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
+            guard let sessions = sleepSessions[day] else {
+                return NightSummary(date: day, totalHours: nil )
+            }
+            let total = sessions.map(\.durationInHours).reduce(0, +)
+            return NightSummary(date: day, totalHours: total )
         }
         
-        let daysWithData = recentSessions.count
-        
+        let daysWithData = recentNights.count(where: \.hasData)
+
         // Calculate total sleep hours in the period
-        let totalSleepHours = recentSessions.values.flatMap { $0 }.map { $0.durationInHours }.reduce(0, +)
-        
+        let totalSleepHours = recentNights.compactMap(\.totalHours).reduce(0, +)
+
         // Calculate expected sleep hours (goal * number of days)
         let expectedSleepHours = goalHours * Double(daysWithData)
         
@@ -91,13 +89,6 @@ class ViewModel {
         let currentBalance = totalSleepHours - expectedSleepHours
         
         let averageHours = daysWithData > 0 ? totalSleepHours / Double(daysWithData) : nil
-        
-        let recentNights: [NightSummary] = (0..<recentDays).reversed().map { offset in
-            let day = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
-            let sessions = sleepSessions[day] ?? []
-            let total = sessions.map(\.durationInHours).reduce(0, +)
-            return NightSummary(date: day, totalHours: total, hasData: !sessions.isEmpty)
-        }
         
         return SleepBank(
             currentBalance: currentBalance,
