@@ -71,7 +71,7 @@ class ViewModel {
         let recentNights: [NightSummary] = (0..<recentDays).reversed().map { offset in
             let day = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
             guard let sessions = sleepSessions[day] else {
-                return NightSummary(date: day, totalHours: nil )
+                return NightSummary(date: day, totalHours: nil)
             }
             let total = sessions.map(\.durationInHours).reduce(0, +)
             return NightSummary(date: day, totalHours: total )
