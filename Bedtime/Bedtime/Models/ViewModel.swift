@@ -66,19 +66,20 @@ class ViewModel {
         recentDays: Int
     ) -> SleepBank {
         let calendar = Calendar.current
-        let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -recentDays, to: endDate) ?? endDate
-        
-        // Filter sessions from the last N days
-        let recentSessions = sleepSessions.filter { day, _ in
-            day >= startDate && day <= endDate
+        let today = Date()
+
+        let recentNights: [NightSummary] = (0..<recentDays).reversed().map { offset in
+            let referenceDay = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
+            let day = calendar.startOfDay(for: referenceDay)
+            let total = sleepSessions[day]?.map(\.durationInHours).reduce(0, +)
+            return NightSummary(date: day, totalHours: total)
         }
         
-        let daysWithData = recentSessions.count
-        
+        let daysWithData = recentNights.count(where: \.hasData)
+
         // Calculate total sleep hours in the period
-        let totalSleepHours = recentSessions.values.flatMap { $0 }.map { $0.durationInHours }.reduce(0, +)
-        
+        let totalSleepHours = recentNights.compactMap(\.totalHours).reduce(0, +)
+
         // Calculate expected sleep hours (goal * number of days)
         let expectedSleepHours = goalHours * Double(daysWithData)
         
@@ -86,14 +87,6 @@ class ViewModel {
         let currentBalance = totalSleepHours - expectedSleepHours
         
         let averageHours = daysWithData > 0 ? totalSleepHours / Double(daysWithData) : nil
-        
-        let recentNights: [NightSummary] = (0..<recentDays).reversed().map { offset in
-            let referenceDay = calendar.date(byAdding: .day, value: -offset, to: endDate) ?? endDate
-            let day = calendar.startOfDay(for: referenceDay)
-            let sessions = sleepSessions[day] ?? []
-            let total = sessions.map(\.durationInHours).reduce(0, +)
-            return NightSummary(date: day, totalHours: total, hasData: !sessions.isEmpty)
-        }
         
         return SleepBank(
             currentBalance: currentBalance,
@@ -144,9 +137,9 @@ class ViewModel {
             )
             reason = "You're ahead of the game! Aim for at least \(goal) tonight."
         }
-        
-        // Calculate recommended bedtime
-        let recommendedBedtime = calendar.date(byAdding: .minute, value: -Int(totalSleepNeeded * 60), to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
+
+        let sleepNeededMinutes = Int((totalSleepNeeded * 60).rounded())
+        let recommendedBedtime = calendar.date(byAdding: .minute, value: -sleepNeededMinutes, to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
         
         return BedtimeRecommendation(
             recommendedBedtime: recommendedBedtime,

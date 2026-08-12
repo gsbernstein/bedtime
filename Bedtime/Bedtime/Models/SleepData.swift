@@ -101,10 +101,10 @@ extension HKCategoryValueSleepAnalysis {
 
 struct NightSummary: Identifiable, Equatable {
     let date: Date
-    let totalHours: Double
-    let hasData: Bool
-    
+    let totalHours: Double?
+
     var id: Date { date }
+    var hasData: Bool { totalHours != nil }
 }
 
 struct BalanceDayImpact: Identifiable {
@@ -155,9 +155,9 @@ struct SleepBank: Equatable {
     var balanceImpacts: [BalanceDayImpact] {
         var runningBalance = 0.0
         return recentNights.compactMap { night in
-            guard night.hasData else { return nil }
+            guard let totalHours = night.totalHours else { return nil }
             let priorBalance = runningBalance
-            let impact = night.totalHours - goalHours
+            let impact = totalHours - goalHours
             runningBalance += impact
             return BalanceDayImpact(date: night.date, priorBalance: priorBalance, impact: impact)
         }

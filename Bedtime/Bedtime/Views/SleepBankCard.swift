@@ -188,8 +188,7 @@ struct SleepBankCard: View {
                 let daysAgo = hoursPerNight.count - 1 - offset
                 return NightSummary(
                     date: calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today,
-                    totalHours: hours ?? 0,
-                    hasData: hours != nil
+                    totalHours: hours,
                 )
             }
         }
@@ -197,7 +196,7 @@ struct SleepBankCard: View {
         private func bank(lastDays: Int) -> SleepBank {
             let nights = allNights.suffix(lastDays)
             let withData = nights.filter(\.hasData)
-            let total = withData.map(\.totalHours).reduce(0, +)
+            let total = withData.compactMap(\.totalHours).reduce(0, +)
             return SleepBank(
                 currentBalance: total - goalHours * Double(withData.count),
                 goalHours: goalHours,

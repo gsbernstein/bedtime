@@ -205,17 +205,18 @@ struct BalanceWaterfallChart: View {
                 NightSummary(
                     date: calendar.date(byAdding: .day, value: offset - (hours.count - 1), to: today) ?? today,
                     totalHours: value,
-                    hasData: true
                 )
             }
         }
 
         private var impacts: [BalanceDayImpact] {
             var running = 0.0
-            return nights.map { night in
+            return nights.compactMap { night in
+                guard let totalHours = night.totalHours else { return nil }
+                let impact = totalHours - goal
                 let prior = running
-                running += night.totalHours - goal
-                return BalanceDayImpact(date: night.date, priorBalance: prior, impact: night.totalHours - goal)
+                running += impact
+                return BalanceDayImpact(date: night.date, priorBalance: prior, impact: impact)
             }
         }
 
