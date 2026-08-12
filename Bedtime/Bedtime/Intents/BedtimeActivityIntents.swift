@@ -12,7 +12,7 @@ import AppIntents
 /// on its own schedule, so the trigger has to come from the system.
 struct StartBedtimeCountdownIntent: LiveActivityIntent {
     static let title: LocalizedStringResource = "Start Bedtime Countdown"
-    static let description = IntentDescription(
+    static let description: IntentDescription? = IntentDescription(
         "Shows tonight's bedtime countdown on the Lock Screen and in the Dynamic Island."
     )
 
@@ -24,7 +24,9 @@ struct StartBedtimeCountdownIntent: LiveActivityIntent {
 
 struct EndBedtimeCountdownIntent: LiveActivityIntent {
     static let title: LocalizedStringResource = "End Bedtime Countdown"
-    static let description = IntentDescription("Removes tonight's bedtime countdown.")
+    static let description: IntentDescription? = IntentDescription(
+        "Removes tonight's bedtime countdown."
+    )
 
     func perform() async throws -> some IntentResult {
         await LiveActivityManager.shared.end()
