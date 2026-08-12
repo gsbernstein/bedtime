@@ -41,10 +41,14 @@ struct BedtimeLiveActivity: Widget {
             } compactTrailing: {
                 CountdownText(
                     state: context.state,
-                    phase: BedtimePhase(isStale: context.isStale)
+                    phase: BedtimePhase(isStale: context.isStale),
+                    style: .compact
                 )
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.5)
+                // Without a cap the compact region grows to fit its text and
+                // stretches the whole pill.
+                .frame(maxWidth: 56)
             } minimal: {
                 Image(systemName: BedtimePhase(isStale: context.isStale).symbol)
                     .foregroundStyle(.indigo)
@@ -105,18 +109,39 @@ private enum BedtimePhase {
 /// "in 20 minutes" rather than reaching for "tomorrow", and the hour threshold means
 /// only a gap wider than a day would fall back to an absolute date.
 private struct CountdownText: View {
+    enum Style {
+        /// "in 2 hours", which reads as a sentence next to its subject.
+        case phrase
+        /// "2 hours", dropping the preposition where width is scarce.
+        case compact
+    }
+
     let state: BedtimeActivityAttributes.ContentState
     let phase: BedtimePhase
+    var style: Style = .phrase
 
     var body: some View {
-        Text(
-            .currentDate,
-            format: .reference(
-                to: phase.target(in: state),
-                allowedFields: [.hour, .minute],
-                thresholdField: .hour
+        switch style {
+        case .phrase:
+            Text(
+                .currentDate,
+                format: .reference(
+                    to: phase.target(in: state),
+                    allowedFields: [.hour, .minute],
+                    thresholdField: .hour
+                )
             )
-        )
+        case .compact:
+            Text(
+                .currentDate,
+                format: .offset(
+                    to: phase.target(in: state),
+                    allowedFields: [.hour, .minute],
+                    maxFieldCount: 1,
+                    sign: .never
+                )
+            )
+        }
     }
 }
 
