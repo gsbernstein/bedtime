@@ -8,7 +8,10 @@
 import Foundation
 import SwiftUI
 
-class Constants {
+/// Pure configuration with no state to protect, so it stays off the module's
+/// default MainActor isolation and can be read from any context, including
+/// default argument expressions.
+nonisolated enum Constants {
     static let iconWidth: CGFloat = 30
     static let cardHeaderSpacing: CGFloat = 12
     static let sleepHistoryDays = 30
