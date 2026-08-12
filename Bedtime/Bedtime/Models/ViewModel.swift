@@ -69,7 +69,11 @@ class ViewModel {
         let today = calendar.startOfDay(for: Date())
 
         let recentNights: [NightSummary] = (0..<recentDays).reversed().map { offset in
-            let day = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
+            let candidate = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
+            // `byAdding` isn't guaranteed to preserve midnight (e.g. rare DST transitions at
+            // midnight), and `sleepSessions` is always keyed by `startOfDay`, so re-anchor here
+            // rather than relying on that assumption.
+            let day = calendar.startOfDay(for: candidate)
             guard let sessions = sleepSessions[day] else {
                 return NightSummary(date: day, totalHours: nil)
             }

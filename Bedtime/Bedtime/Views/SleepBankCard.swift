@@ -188,7 +188,7 @@ struct SleepBankCard: View {
                 let daysAgo = hoursPerNight.count - 1 - offset
                 return NightSummary(
                     date: calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today,
-                    totalHours: hours ?? 0,
+                    totalHours: hours,
                 )
             }
         }
