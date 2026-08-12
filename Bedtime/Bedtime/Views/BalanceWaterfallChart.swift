@@ -207,8 +207,7 @@ private struct BalanceWaterfallChartPreview: View {
         return hoursPerNight.enumerated().map { offset, hours in
             NightSummary(
                 date: calendar.date(byAdding: .day, value: offset - (hoursPerNight.count - 1), to: today) ?? today,
-                totalHours: hours ?? 0,
-                hasData: hours != nil
+                totalHours: hours
             )
         }
     }
@@ -216,10 +215,11 @@ private struct BalanceWaterfallChartPreview: View {
     private var impacts: [BalanceDayImpact] {
         var running = 0.0
         return nights.compactMap { night in
-            guard night.hasData else { return nil }
+            guard let totalHours = night.totalHours else { return nil }
+            let impact = totalHours - goal
             let prior = running
-            running += night.totalHours - goal
-            return BalanceDayImpact(date: night.date, priorBalance: prior, impact: night.totalHours - goal)
+            running += impact
+            return BalanceDayImpact(date: night.date, priorBalance: prior, impact: impact)
         }
     }
 
