@@ -51,21 +51,25 @@ final class LiveActivityManager: ObservableObject {
         lastErrorMessage = nil
         defer { isWorking = false }
 
-        let schedule = upcomingSchedule(for: recommendation)
+        let now = Date()
+        let schedule = upcomingSchedule(for: recommendation, now: now)
+        let isSleeping = now >= schedule.bedtime
         let state = BedtimeActivityAttributes.ContentState(
             // Updating an existing activity keeps its original start so the
             // wind-down bar doesn't jump back to empty.
-            activityStart: currentActivity?.content.state.activityStart ?? Date(),
+            activityStart: currentActivity?.content.state.activityStart ?? now,
             bedtime: schedule.bedtime,
             wakeTime: schedule.wakeTime,
             targetSleepHours: recommendation.targetSleepDuration,
-            durationStyle: durationStyle
+            durationStyle: durationStyle,
+            isSleeping: isSleeping
         )
-        // Going stale at bedtime is what flips the card from the wind-down
-        // countdown to the sleeping one while the app is suspended.
+        // Going stale at bedtime flips the card to the sleeping countdown while
+        // the app is suspended. Starting mid-night, bedtime has already gone by,
+        // so the state above carries the phase and this stays ahead of now.
         let content = ActivityContent(
             state: state,
-            staleDate: schedule.bedtime
+            staleDate: isSleeping ? schedule.wakeTime : schedule.bedtime
         )
 
         if let activity = currentActivity {
@@ -149,7 +153,9 @@ final class LiveActivityManager: ObservableObject {
             bedtime: schedule.bedtime,
             wakeTime: schedule.wakeTime,
             targetSleepHours: recommendation.targetSleepDuration,
-            durationStyle: durationStyle
+            durationStyle: durationStyle,
+            // Scheduled activities always begin ahead of bedtime.
+            isSleeping: false
         )
 
         do {

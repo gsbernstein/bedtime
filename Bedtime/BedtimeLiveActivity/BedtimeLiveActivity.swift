@@ -15,7 +15,7 @@ struct BedtimeLiveActivity: Widget {
         ActivityConfiguration(for: BedtimeActivityAttributes.self) { context in
             BedtimeSummaryView(
                 state: context.state,
-                phase: BedtimePhase(isStale: context.isStale)
+                phase: BedtimePhase(context)
             )
             .padding()
             .activitySystemActionForegroundColor(.primary)
@@ -24,7 +24,7 @@ struct BedtimeLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.leading) {
                     Label(
                         context.attributes.title,
-                        systemImage: BedtimePhase(isStale: context.isStale).symbol
+                        systemImage: BedtimePhase(context).symbol
                     )
                     .font(.headline)
                 }
@@ -32,11 +32,11 @@ struct BedtimeLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.bottom) {
                     BedtimeSummaryView(
                         state: context.state,
-                        phase: BedtimePhase(isStale: context.isStale)
+                        phase: BedtimePhase(context)
                     )
                 }
             } compactLeading: {
-                let phase = BedtimePhase(isStale: context.isStale)
+                let phase = BedtimePhase(context)
                 HStack(spacing: 3) {
                     Image(systemName: phase.symbol)
                     Text(phase.compactLabel)
@@ -46,7 +46,7 @@ struct BedtimeLiveActivity: Widget {
             } compactTrailing: {
                 CountdownText(
                     state: context.state,
-                    phase: BedtimePhase(isStale: context.isStale),
+                    phase: BedtimePhase(context),
                     style: .compact
                 )
                 .lineLimit(1)
@@ -55,7 +55,7 @@ struct BedtimeLiveActivity: Widget {
                 // stretches the whole pill.
                 .frame(maxWidth: 56)
             } minimal: {
-                Image(systemName: BedtimePhase(isStale: context.isStale).symbol)
+                Image(systemName: BedtimePhase(context).symbol)
                     .foregroundStyle(.indigo)
             }
             .keylineTint(.indigo)
@@ -69,8 +69,10 @@ private enum BedtimePhase {
     case windDown
     case sleeping
 
-    init(isStale: Bool) {
-        self = isStale ? .sleeping : .windDown
+    init(_ context: ActivityViewContext<BedtimeActivityAttributes>) {
+        // Either the activity began after bedtime, or it has since gone stale at
+        // bedtime and the system re-rendered it.
+        self = context.state.isSleeping || context.isStale ? .sleeping : .windDown
     }
 
     var symbol: String {

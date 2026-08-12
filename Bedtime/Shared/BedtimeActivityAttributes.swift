@@ -11,6 +11,10 @@ nonisolated struct BedtimeActivityAttributes: ActivityAttributes {
         let wakeTime: Date
         let targetSleepHours: Double
         let durationStyle: DurationDisplayStyle
+        /// Set when the activity begins after bedtime has already passed. Before
+        /// bedtime the card relies on `staleDate` to make the same switch on its
+        /// own, which `staleDate` can only do for a date still ahead of it.
+        let isSleeping: Bool
     }
 
     let title: String
