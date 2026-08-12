@@ -139,12 +139,7 @@ class ViewModel {
             )
             reason = "You're ahead of the game! Aim for at least \(goal) tonight."
         }
-        
-        // Calculate recommended bedtime. Round rather than truncate the minute count:
-        // truncating turns any tiny floating-point noise in `totalSleepNeeded` (e.g. from
-        // summing many session durations) into a full minute of jitter whenever the true
-        // value sits right on a minute boundary, which is exactly when a recommendation like
-        // "9:42" would flicker to "9:43" between otherwise-identical calculations.
+
         let sleepNeededMinutes = Int((totalSleepNeeded * 60).rounded())
         let recommendedBedtime = calendar.date(byAdding: .minute, value: -sleepNeededMinutes, to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
         
