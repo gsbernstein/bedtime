@@ -69,9 +69,15 @@ final class LiveActivityManager: ObservableObject {
         )
 
         if let activity = currentActivity {
-            await activity.update(content)
-            activeActivityID = activity.id
-            return
+            if activity.activityState == .active {
+                await activity.update(content)
+                activeActivityID = activity.id
+                return
+            }
+            // Anything else is scheduled but not on screen yet. Clear it so this
+            // request shows up now rather than silently editing tonight's plan.
+            await activity.end(nil, dismissalPolicy: .immediate)
+            activeActivityID = nil
         }
 
         do {
@@ -100,12 +106,69 @@ final class LiveActivityManager: ObservableObject {
         guard isSupported, areActivitiesEnabled else { return }
 
         let schedule = upcomingSchedule(for: recommendation, now: now)
+        let windowOpens = schedule.bedtime.addingTimeInterval(-leadTime)
+
         // Once bedtime passes, the next match is tomorrow's, so this only opens
         // the window ahead of tonight's bedtime. An activity already running
         // carries the rest of the night on its own.
-        guard now >= schedule.bedtime.addingTimeInterval(-leadTime) else { return }
+        guard now < windowOpens else {
+            await startOrUpdate(with: recommendation, durationStyle: durationStyle)
+            return
+        }
 
-        await startOrUpdate(with: recommendation, durationStyle: durationStyle)
+        if #available(iOS 26, *) {
+            await scheduleActivity(
+                recommendation: recommendation,
+                durationStyle: durationStyle,
+                schedule: schedule,
+                startingAt: windowOpens
+            )
+        }
+    }
+
+    /// Hands the start over to the system so the card appears at the wind-down
+    /// time on its own. This is the only fully local way to get there: starting
+    /// one from a background wake throws `ActivityAuthorizationError.visibility`,
+    /// so every other route needs either a push server or a user-triggered intent.
+    @available(iOS 26, *)
+    private func scheduleActivity(
+        recommendation: BedtimeRecommendation,
+        durationStyle: DurationDisplayStyle,
+        schedule: (bedtime: Date, wakeTime: Date),
+        startingAt start: Date
+    ) async {
+        for activity in Activity<BedtimeActivityAttributes>.activities {
+            guard activity.activityState == .pending else { continue }
+            // Tonight is already queued up.
+            guard activity.content.state.bedtime != schedule.bedtime else { return }
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+
+        let state = BedtimeActivityAttributes.ContentState(
+            activityStart: start,
+            bedtime: schedule.bedtime,
+            wakeTime: schedule.wakeTime,
+            targetSleepHours: recommendation.targetSleepDuration,
+            durationStyle: durationStyle
+        )
+
+        do {
+            let activity = try Activity.request(
+                attributes: BedtimeActivityAttributes(title: "Bedger"),
+                content: ActivityContent(state: state, staleDate: schedule.bedtime),
+                pushType: nil,
+                style: .standard,
+                alertConfiguration: AlertConfiguration(
+                    title: "Time to wind down",
+                    body: "Bedtime is coming up.",
+                    sound: .default
+                ),
+                start: start
+            )
+            activeActivityID = activity.id
+        } catch {
+            lastErrorMessage = error.localizedDescription
+        }
     }
 
     /// Starts tonight's activity from the last saved plan, for entry points that
