@@ -15,6 +15,16 @@ if [[ "${CI_XCODEBUILD_ACTION:-}" == "archive" && -d "${CI_APP_STORE_SIGNED_APP_
     WHAT_TO_TEST="Build ${CI_BUILD_NUMBER:-unknown}"
   fi
 
+  # Xcode Cloud doesn't expose the commit message as an environment variable, so read the latest
+  # commit subject from the checked-out repo. Guard against git failing (e.g. missing repo path)
+  # so a lookup failure doesn't abort the archive action under `set -e`.
+  if [[ -n "${CI_PRIMARY_REPOSITORY_PATH:-}" ]]; then
+    COMMIT_MESSAGE="$(git -C "$CI_PRIMARY_REPOSITORY_PATH" log -1 --pretty=%s 2>/dev/null || true)"
+    if [[ -n "$COMMIT_MESSAGE" ]]; then
+      WHAT_TO_TEST="$WHAT_TO_TEST"$'\n'"Commit: $COMMIT_MESSAGE"
+    fi
+  fi
+
   # what to test
   TESTFLIGHT_DIR_PATH=../TestFlight
   mkdir -p "$TESTFLIGHT_DIR_PATH"
