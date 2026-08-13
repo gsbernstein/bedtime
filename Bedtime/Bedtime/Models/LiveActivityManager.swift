@@ -74,7 +74,6 @@ final class LiveActivityManager: ObservableObject {
 
         if let activity = Self.activity(withID: activeActivityID) {
             if activity.activityState == .active {
-                activeActivityID = activity.id
                 await activity.update(content)
                 return
             }
