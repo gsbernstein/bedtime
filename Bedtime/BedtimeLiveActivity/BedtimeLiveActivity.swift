@@ -55,20 +55,17 @@ struct BedtimeLiveActivity: Widget {
                 // stretches the whole pill.
                 .frame(maxWidth: 56)
             } minimal: {
-                // A second app's activity forces both into this presentation, and
-                // it is too small for the countdown text. A ring keeps the
-                // remaining time glanceable and updates without the app running.
-                let phase = BedtimePhase(context)
-                ProgressView(
-                    timerInterval: phase.progressRange(in: context.state),
-                    countsDown: false
-                ) {
-                    EmptyView()
-                } currentValueLabel: {
-                    Image(systemName: phase.symbol)
-                }
-                .progressViewStyle(.circular)
-                .tint(.indigo)
+                // A second app's activity forces both into this presentation,
+                // which is far too small for "in 2 hours". The clock pattern is
+                // the only compact numeric form that keeps counting on its own.
+                Text(
+                    timerInterval: BedtimePhase(context).progressRange(in: context.state),
+                    countsDown: true
+                )
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .foregroundStyle(.indigo)
             }
             .keylineTint(.indigo)
         }
