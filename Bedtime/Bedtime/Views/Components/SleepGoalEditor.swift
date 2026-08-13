@@ -2,8 +2,8 @@
 //  SleepGoalEditor.swift
 //  Bedtime
 //
-//  Wheel picker for the nightly sleep goal, shown in a popover so the goal can
-//  be changed without opening Settings.
+//  Wheel picker for the nightly sleep goal, expanded inline within
+//  SleepBankCard so the goal can be changed without opening Settings.
 //
 
 import SwiftUI
@@ -32,6 +32,7 @@ struct SleepGoalEditor: View {
         }
         .pickerStyle(.wheel)
         .padding(.vertical, -12)
+        .frame(maxHeight: 120)
     }
 }
 

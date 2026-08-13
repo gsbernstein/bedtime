@@ -100,6 +100,11 @@ struct SleepBankCard: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 
+                if isEditingGoal, let sleepGoalHours {
+                    SleepGoalEditor(goalHours: sleepGoalHours)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                
                 if !fullWindowBank.balanceImpacts.isEmpty {
                     BalanceWaterfallChart(
                         nights: fullWindowBank.recentNights,
@@ -115,21 +120,18 @@ struct SleepBankCard: View {
 
     @ViewBuilder
     private var goalColumn: some View {
-        if let sleepGoalHours {
+        if sleepGoalHours != nil {
             Button {
-                isEditingGoal = true
+                withAnimation(.snappy) {
+                    isEditingGoal.toggle()
+                }
             } label: {
                 goalLabel(showsEditAffordance: true)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Sleep goal")
             .accessibilityValue(formattedGoal)
-            .accessibilityHint("Adjusts your nightly sleep goal")
-            .popover(isPresented: $isEditingGoal, arrowEdge: .bottom) {
-                SleepGoalEditor(goalHours: sleepGoalHours)
-                    .frame(maxWidth: 150)
-                    .presentationCompactAdaptation(.popover)
-            }
+            .accessibilityHint(isEditingGoal ? "Collapses the sleep goal picker" : "Expands the sleep goal picker")
         } else {
             goalLabel(showsEditAffordance: false)
         }
@@ -148,10 +150,11 @@ struct SleepBankCard: View {
                     .foregroundColor(.primary)
 
                 if showsEditAffordance {
-                    Image(systemName: "chevron.up.chevron.down")
+                    Image(systemName: "chevron.down")
                         .font(.caption2)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
+                        .rotationEffect(.degrees(isEditingGoal ? 180 : 0))
                 }
             }
         }
