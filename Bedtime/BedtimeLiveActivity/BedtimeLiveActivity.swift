@@ -38,7 +38,7 @@ struct BedtimeLiveActivity: Widget {
             } compactTrailing: {
                 CountdownText(
                     state: context.state,
-                    phase: BedtimePhase(context),
+                    phase: BedtimePhase(context)
                 )
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
@@ -130,7 +130,6 @@ private enum BedtimePhase {
 /// "in 20 minutes" rather than reaching for "tomorrow", and the hour threshold means
 /// only a gap wider than a day would fall back to an absolute date.
 private struct CountdownText: View {
-
     let state: BedtimeActivityAttributes.ContentState
     let phase: BedtimePhase
 
@@ -229,6 +228,7 @@ private struct BedtimeSummaryView: View {
         }
     }
 }
+
 extension BedtimeActivityAttributes.ContentState {
     /// Wind-down: bedtime is still ahead.
     fileprivate static var windDownSample: Self {
