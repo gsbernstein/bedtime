@@ -57,7 +57,7 @@ final class LiveActivityManager: ObservableObject {
         let state = BedtimeActivityAttributes.ContentState(
             // Updating an existing activity keeps its original start so the
             // wind-down bar doesn't jump back to empty.
-            activityStart: currentActivity?.content.state.activityStart ?? now,
+            activityStart: Self.activity(withID: activeActivityID)?.content.state.activityStart ?? now,
             bedtime: schedule.bedtime,
             wakeTime: schedule.wakeTime,
             targetSleepHours: recommendation.targetSleepDuration,
@@ -72,10 +72,10 @@ final class LiveActivityManager: ObservableObject {
             staleDate: isSleeping ? schedule.wakeTime : schedule.bedtime
         )
 
-        if let activity = currentActivity {
+        if let activity = Self.activity(withID: activeActivityID) {
             if activity.activityState == .active {
-                await activity.update(content)
                 activeActivityID = activity.id
+                await activity.update(content)
                 return
             }
             // Anything else is scheduled but not on screen yet. Clear it so this
@@ -212,10 +212,12 @@ final class LiveActivityManager: ObservableObject {
         }
     }
 
-    private var currentActivity: Activity<BedtimeActivityAttributes>? {
-        guard let activeActivityID else { return nil }
+    /// Static so the returned activity stays out of the main-actor region and
+    /// its async `update`/`end` calls can be sent under strict concurrency.
+    private nonisolated static func activity(withID id: String?) -> Activity<BedtimeActivityAttributes>? {
+        guard let id else { return nil }
         return Activity<BedtimeActivityAttributes>.activities.first {
-            $0.id == activeActivityID
+            $0.id == id
         }
     }
 
