@@ -16,6 +16,4 @@ nonisolated struct BedtimeActivityAttributes: ActivityAttributes {
         /// own, which `staleDate` can only do for a date still ahead of it.
         let isSleeping: Bool
     }
-
-    let title: String
 }

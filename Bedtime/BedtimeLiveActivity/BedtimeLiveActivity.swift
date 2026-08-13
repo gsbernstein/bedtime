@@ -268,28 +268,28 @@ extension BedtimeActivityAttributes.ContentState {
     }
 }
 
-#Preview("Lock Screen", as: .content, using: BedtimeActivityAttributes(title: "Bedger")) {
+#Preview("Lock Screen", as: .content, using: BedtimeActivityAttributes()) {
     BedtimeLiveActivity()
 } contentStates: {
     BedtimeActivityAttributes.ContentState.windDownSample
     BedtimeActivityAttributes.ContentState.sleepingSample
 }
 
-#Preview("Island Expanded", as: .dynamicIsland(.expanded), using: BedtimeActivityAttributes(title: "Bedger")) {
+#Preview("Island Expanded", as: .dynamicIsland(.expanded), using: BedtimeActivityAttributes()) {
     BedtimeLiveActivity()
 } contentStates: {
     BedtimeActivityAttributes.ContentState.windDownSample
     BedtimeActivityAttributes.ContentState.sleepingSample
 }
 
-#Preview("Island Compact", as: .dynamicIsland(.compact), using: BedtimeActivityAttributes(title: "Bedger")) {
+#Preview("Island Compact", as: .dynamicIsland(.compact), using: BedtimeActivityAttributes()) {
     BedtimeLiveActivity()
 } contentStates: {
     BedtimeActivityAttributes.ContentState.windDownSample
     BedtimeActivityAttributes.ContentState.sleepingSample
 }
 
-#Preview("Island Minimal", as: .dynamicIsland(.minimal), using: BedtimeActivityAttributes(title: "Bedger")) {
+#Preview("Island Minimal", as: .dynamicIsland(.minimal), using: BedtimeActivityAttributes()) {
     BedtimeLiveActivity()
 } contentStates: {
     BedtimeActivityAttributes.ContentState.windDownSample

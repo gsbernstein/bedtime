@@ -85,7 +85,7 @@ final class LiveActivityManager: ObservableObject {
 
         do {
             let activity = try Activity.request(
-                attributes: BedtimeActivityAttributes(title: "Bedger"),
+                attributes: BedtimeActivityAttributes(),
                 content: content,
                 pushType: nil
             )
@@ -159,7 +159,7 @@ final class LiveActivityManager: ObservableObject {
 
         do {
             let activity = try Activity.request(
-                attributes: BedtimeActivityAttributes(title: "Bedger"),
+                attributes: BedtimeActivityAttributes(),
                 content: ActivityContent(state: state, staleDate: schedule.bedtime),
                 pushType: nil,
                 style: .standard,
