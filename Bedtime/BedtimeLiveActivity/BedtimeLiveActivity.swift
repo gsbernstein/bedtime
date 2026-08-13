@@ -58,6 +58,7 @@ struct BedtimeLiveActivity: Widget {
                     EmptyView()
                 } currentValueLabel: {
                     Image(systemName: phase.symbol)
+                        .padding(2)
                 }
                 .progressViewStyle(.circular)
                 .tint(.indigo)
