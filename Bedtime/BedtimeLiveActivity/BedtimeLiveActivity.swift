@@ -240,29 +240,59 @@ private struct BedtimeSummaryView: View {
         }
     }
 }
+extension BedtimeActivityAttributes.ContentState {
+    /// Wind-down: bedtime is still ahead.
+    fileprivate static var windDownSample: Self {
+        let now = Date()
+        return Self(
+            activityStart: now.addingTimeInterval(-30 * 60),
+            bedtime: now.addingTimeInterval(2 * 60 * 60),
+            wakeTime: now.addingTimeInterval(10 * 60 * 60),
+            targetSleepHours: 8,
+            durationStyle: .hoursAndMinutes,
+            isSleeping: false
+        )
+    }
+
+    /// Sleeping: bedtime has passed, counting down to wake.
+    fileprivate static var sleepingSample: Self {
+        let now = Date()
+        return Self(
+            activityStart: now.addingTimeInterval(-3 * 60 * 60),
+            bedtime: now.addingTimeInterval(-60 * 60),
+            wakeTime: now.addingTimeInterval(7 * 60 * 60),
+            targetSleepHours: 8,
+            durationStyle: .hoursAndMinutes,
+            isSleeping: true
+        )
+    }
+}
+
 #Preview("Lock Screen", as: .content, using: BedtimeActivityAttributes(title: "Bedger")) {
     BedtimeLiveActivity()
 } contentStates: {
-    let now = Date()
+    BedtimeActivityAttributes.ContentState.windDownSample
+    BedtimeActivityAttributes.ContentState.sleepingSample
+}
 
-    // Wind-down: bedtime is still ahead.
-    BedtimeActivityAttributes.ContentState(
-        activityStart: now.addingTimeInterval(-30 * 60),
-        bedtime: now.addingTimeInterval(2 * 60 * 60),
-        wakeTime: now.addingTimeInterval(10 * 60 * 60),
-        targetSleepHours: 8,
-        durationStyle: .hoursAndMinutes,
-        isSleeping: false
-    )
+#Preview("Island Expanded", as: .dynamicIsland(.expanded), using: BedtimeActivityAttributes(title: "Bedger")) {
+    BedtimeLiveActivity()
+} contentStates: {
+    BedtimeActivityAttributes.ContentState.windDownSample
+    BedtimeActivityAttributes.ContentState.sleepingSample
+}
 
-    // Sleeping: bedtime has passed, counting down to wake.
-    BedtimeActivityAttributes.ContentState(
-        activityStart: now.addingTimeInterval(-3 * 60 * 60),
-        bedtime: now.addingTimeInterval(-60 * 60),
-        wakeTime: now.addingTimeInterval(7 * 60 * 60),
-        targetSleepHours: 8,
-        durationStyle: .hoursAndMinutes,
-        isSleeping: true
-    )
+#Preview("Island Compact", as: .dynamicIsland(.compact), using: BedtimeActivityAttributes(title: "Bedger")) {
+    BedtimeLiveActivity()
+} contentStates: {
+    BedtimeActivityAttributes.ContentState.windDownSample
+    BedtimeActivityAttributes.ContentState.sleepingSample
+}
+
+#Preview("Island Minimal", as: .dynamicIsland(.minimal), using: BedtimeActivityAttributes(title: "Bedger")) {
+    BedtimeLiveActivity()
+} contentStates: {
+    BedtimeActivityAttributes.ContentState.windDownSample
+    BedtimeActivityAttributes.ContentState.sleepingSample
 }
 
