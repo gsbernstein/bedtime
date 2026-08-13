@@ -36,12 +36,15 @@ struct BedtimeLiveActivity: Widget {
                 .foregroundStyle(.indigo)
                 .lineLimit(1)
             } compactTrailing: {
-                CountdownText(
-                    state: context.state,
-                    phase: BedtimePhase(context)
-                )
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
+                let phase = BedtimePhase(context)
+                VStack(spacing: 2) {
+                    CountdownText(state: context.state, phase: phase)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+
+                    PhaseProgressBar(state: context.state, phase: phase)
+                        .frame(height: 3)
+                }
                 // Without a cap the compact region grows to fit its text and
                 // stretches the whole pill.
                 .frame(maxWidth: 56)
@@ -145,7 +148,13 @@ private struct CountdownText: View {
     }
 }
 
-private struct BedtimeSummaryView: View {
+/// The bar always anchors its fill to the leading edge, so when it counts down
+/// the emptiness grows from the trailing side — backwards next to the schedule
+/// row below it. Inverting the inherited layout direction makes it drain from
+/// the leading side instead; while sleeping the bar counts up and its
+/// leading-to-trailing fill toward Wake already reads correctly, so it keeps
+/// the inherited direction.
+private struct PhaseProgressBar: View {
     let state: BedtimeActivityAttributes.ContentState
     let phase: BedtimePhase
 
@@ -154,6 +163,21 @@ private struct BedtimeSummaryView: View {
     private var flippedLayoutDirection: LayoutDirection {
         layoutDirection == .leftToRight ? .rightToLeft : .leftToRight
     }
+
+    var body: some View {
+        ProgressView(timerInterval: phase.progressRange(in: state), countsDown: phase == .windDown) {
+            EmptyView()
+        } currentValueLabel: {
+            EmptyView()
+        }
+        .tint(.indigo)
+        .environment(\.layoutDirection, phase == .windDown ? flippedLayoutDirection : layoutDirection)
+    }
+}
+
+private struct BedtimeSummaryView: View {
+    let state: BedtimeActivityAttributes.ContentState
+    let phase: BedtimePhase
 
     private var targetText: String {
         // The default single digit: this is a computed duration, not one of the
@@ -179,19 +203,7 @@ private struct BedtimeSummaryView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.7)
 
-            ProgressView(timerInterval: phase.progressRange(in: state), countsDown: phase == .windDown) {
-                EmptyView()
-            } currentValueLabel: {
-                EmptyView()
-            }
-            .tint(.indigo)
-            // The bar always anchors its fill to the leading edge, so when it
-            // counts down the emptiness grows from the trailing side — backwards
-            // next to the schedule row below. Inverting the inherited layout
-            // direction makes it drain from the leading side instead; while
-            // sleeping the bar counts up and its leading-to-trailing fill toward
-            // Wake already reads correctly, so it keeps the inherited direction.
-            .environment(\.layoutDirection, phase == .windDown ? flippedLayoutDirection : layoutDirection)
+            PhaseProgressBar(state: state, phase: phase)
 
             HStack(alignment: .firstTextBaseline) {
                 scheduleTime(label: "Bedtime", date: state.bedtime, alignment: .leading)
