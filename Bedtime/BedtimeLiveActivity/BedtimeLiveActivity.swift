@@ -190,6 +190,12 @@ private struct BedtimeSummaryView: View {
     let state: BedtimeActivityAttributes.ContentState
     let phase: BedtimePhase
 
+    @Environment(\.layoutDirection) private var layoutDirection
+
+    private var flippedLayoutDirection: LayoutDirection {
+        layoutDirection == .leftToRight ? .rightToLeft : .leftToRight
+    }
+
     private var targetText: String {
         // The default single digit: this is a computed duration, not one of the
         // quarter-hour goals that need hundredths to read correctly.
@@ -221,11 +227,12 @@ private struct BedtimeSummaryView: View {
             }
             .tint(.indigo)
             // The bar always anchors its fill to the leading edge, so when it
-            // counts down the emptiness grows from the right — backwards next to
-            // the schedule row below. Flipping the layout direction makes it
-            // drain from the left; while sleeping the bar counts up instead and
-            // its left-to-right fill toward Wake already reads correctly.
-            .environment(\.layoutDirection, phase == .windDown ? .rightToLeft : .leftToRight)
+            // counts down the emptiness grows from the trailing side — backwards
+            // next to the schedule row below. Inverting the inherited layout
+            // direction makes it drain from the leading side instead; while
+            // sleeping the bar counts up and its leading-to-trailing fill toward
+            // Wake already reads correctly, so it keeps the inherited direction.
+            .environment(\.layoutDirection, phase == .windDown ? flippedLayoutDirection : layoutDirection)
 
             HStack(alignment: .firstTextBaseline) {
                 scheduleTime(label: "Bedtime", date: state.bedtime, alignment: .leading)
