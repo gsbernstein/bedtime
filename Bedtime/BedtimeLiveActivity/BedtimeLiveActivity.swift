@@ -36,16 +36,11 @@ struct BedtimeLiveActivity: Widget {
                 .foregroundStyle(.indigo)
                 .lineLimit(1)
             } compactTrailing: {
-                CountdownText(
-                    state: context.state,
-                    phase: BedtimePhase(context),
-                    style: .compact
-                )
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-                // Without a cap the compact region grows to fit its text and
-                // stretches the whole pill.
-                .frame(maxWidth: 56)
+                CountdownText(context)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    // Hugging doesn't work, needs a cap or it fills all available space.
+                    .frame(maxWidth: 56)
             } minimal: {
                 // A second app's activity forces both into this presentation,
                 // which is too small for "in 2 hours". Every compact numeric form
@@ -87,11 +82,10 @@ private enum BedtimePhase {
         }
     }
 
-    /// `DateReference` supplies its own "in …", so this is only the subject.
     var countdownLabel: String {
         switch self {
-        case .windDown: "Bedtime"
-        case .sleeping: "Wake"
+        case .windDown: "Bedtime in"
+        case .sleeping: "Wake in"
         }
     }
 
@@ -123,46 +117,76 @@ private enum BedtimePhase {
     }
 }
 
-/// Only the system format styles keep counting while the app is suspended, so the
-/// remaining time is rendered by the system rather than formatted by the app.
-///
-/// Limiting the fields to hours and minutes keeps the phrasing at "in 8 hours" /
-/// "in 20 minutes" rather than reaching for "tomorrow", and the hour threshold means
-/// only a gap wider than a day would fall back to an absolute date.
+/// The remaining time has to come from a `DiscreteFormatStyle` so the system keeps
+/// re-rendering it while the app is suspended. The system's `.offset` truncates
+/// ("1 hour" at 1:59 remaining) while `.reference` rounds, so the two presentations
+/// used to disagree by up to an hour; both now share one rounding style and prepositions
+/// are handled externally.
 private struct CountdownText: View {
-    enum Style {
-        /// "in 2 hours", which reads as a sentence next to its subject.
-        case phrase
-        /// "2 hours", dropping the preposition where width is scarce.
-        case compact
-    }
 
     let state: BedtimeActivityAttributes.ContentState
     let phase: BedtimePhase
-    var style: Style = .phrase
 
     var body: some View {
-        switch style {
-        case .phrase:
-            Text(
-                .currentDate,
-                format: .reference(
-                    to: phase.target(in: state),
-                    allowedFields: [.hour, .minute],
-                    thresholdField: .hour
-                )
+        Text(
+            .currentDate,
+            format: RoundedCountdownStyle(
+                target: phase.target(in: state)
             )
-        case .compact:
-            Text(
-                .currentDate,
-                format: .offset(
-                    to: phase.target(in: state),
-                    allowedFields: [.hour, .minute],
-                    maxFieldCount: 1,
-                    sign: .never
-                )
-            )
+        )
+    }
+}
+
+extension CountdownText {
+    init(_ context: ActivityViewContext<BedtimeActivityAttributes>) {
+        let phase = BedtimePhase(context)
+        self.init(state: context.state, phase: phase)
+    }
+}
+
+/// A countdown to `target` rounded to its largest field, so "2 hours" is shown from
+/// 1:30 remaining rather than only above 2:00. `Duration.UnitsFormatStyle` does the
+/// rounding and knows where its own output changes; this only maps dates into the
+/// duration domain and back so the system can schedule re-renders at those boundaries.
+private struct RoundedCountdownStyle: DiscreteFormatStyle, Codable, Hashable {
+    var target: Date
+
+    /// A single hour-or-minute field keeps the phrasing at "8 hours" / "20 minutes".
+    private var units: Duration.UnitsFormatStyle {
+        .units(allowed: [.hours, .minutes], width: .wide, maximumUnitCount: 1)
+    }
+
+    /// Clamped so a lapsed target holds at zero instead of counting back up.
+    private func remaining(at date: Date) -> Duration {
+        .seconds(max(0, target.timeIntervalSince(date)))
+    }
+
+    func format(_ value: Date) -> String {
+        units.format(remaining(at: value))
+    }
+
+    // Remaining time shrinks as the input date grows, so date-domain boundaries
+    // come from duration-domain boundaries in the opposite direction.
+    func discreteInput(before input: Date) -> Date? {
+        guard let boundary = units.discreteInput(after: remaining(at: input)) else {
+            return nil
         }
+        return target.addingTimeInterval(-boundary.timeInterval)
+    }
+
+    func discreteInput(after input: Date) -> Date? {
+        // Once the target passes, the clamped output is frozen at zero.
+        guard input < target,
+              let boundary = units.discreteInput(before: remaining(at: input)) else {
+            return nil
+        }
+        return target.addingTimeInterval(-boundary.timeInterval)
+    }
+}
+
+extension Duration {
+    fileprivate var timeInterval: TimeInterval {
+        Double(components.seconds) + Double(components.attoseconds) * 1e-18
     }
 }
 
