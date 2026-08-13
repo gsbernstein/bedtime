@@ -240,3 +240,29 @@ private struct BedtimeSummaryView: View {
         }
     }
 }
+#Preview("Lock Screen", as: .content, using: BedtimeActivityAttributes(title: "Bedger")) {
+    BedtimeLiveActivity()
+} contentStates: {
+    let now = Date()
+
+    // Wind-down: bedtime is still ahead.
+    BedtimeActivityAttributes.ContentState(
+        activityStart: now.addingTimeInterval(-30 * 60),
+        bedtime: now.addingTimeInterval(2 * 60 * 60),
+        wakeTime: now.addingTimeInterval(10 * 60 * 60),
+        targetSleepHours: 8,
+        durationStyle: .hoursAndMinutes,
+        isSleeping: false
+    )
+
+    // Sleeping: bedtime has passed, counting down to wake.
+    BedtimeActivityAttributes.ContentState(
+        activityStart: now.addingTimeInterval(-3 * 60 * 60),
+        bedtime: now.addingTimeInterval(-60 * 60),
+        wakeTime: now.addingTimeInterval(7 * 60 * 60),
+        targetSleepHours: 8,
+        durationStyle: .hoursAndMinutes,
+        isSleeping: true
+    )
+}
+
