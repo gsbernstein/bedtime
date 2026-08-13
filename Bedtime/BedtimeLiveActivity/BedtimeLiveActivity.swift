@@ -166,11 +166,9 @@ private struct BedtimeSummaryView: View {
     let phase: BedtimePhase
 
     private var targetText: String {
-        TimeFormatter.formatHours(
-            state.targetSleepHours,
-            style: state.durationStyle,
-            maxFractionDigits: 2
-        )
+        // The default single digit: this is a computed duration, not one of the
+        // quarter-hour goals that need hundredths to read correctly.
+        TimeFormatter.formatHours(state.targetSleepHours, style: state.durationStyle)
     }
 
     var body: some View {
