@@ -49,7 +49,7 @@ struct SleepBankCard: View {
                     iconColor: sleepBank.statusColor,
                     title: "Sleep Balance"
                 ) {
-                    Text(sleepBank.statusDescription(style: durationStyle))
+                    Text(sleepBank.statusDescription(days: sleepBankDays))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -57,7 +57,7 @@ struct SleepBankCard: View {
                 // Equal-width columns so Status stays centered regardless of
                 // how wide Average / Goal strings are (e.g. "6h 35m" vs "7h").
                 HStack(alignment: .top, spacing: 0) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("Average")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -68,32 +68,29 @@ struct SleepBankCard: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(sleepBank.statusColor)
                         } else {
-                            Text("no recent data")
+                            Text("unknown")
                                 .font(.subheadline)
+                                .italic()
                                 .foregroundColor(.secondary)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("Status")
+                    VStack(alignment: .center, spacing: 2) {
+
+                        Text(sleepBank.averageHours != nil ? sleepBank.isInDebt ? "Behind" : "Ahead" : "Balance")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         if sleepBank.averageHours != nil {
-                            HStack(alignment: .lastTextBaseline, spacing: 4) {
-                                Text(TimeFormatter.formatHours(abs(sleepBank.currentBalance), style: durationStyle))
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(sleepBank.statusColor)
-                                
-                                Text(sleepBank.isInDebt ? "behind" : "ahead")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text(TimeFormatter.formatHours(sleepBank.currentBalance, style: durationStyle))
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(sleepBank.statusColor)
                         } else {
                             Text("unknown")
                                 .font(.subheadline)
+                                .italic()
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -104,23 +101,13 @@ struct SleepBankCard: View {
                 }
                 
                 if !fullWindowBank.balanceImpacts.isEmpty {
-                    VStack(spacing: 4) {
-                        BalanceWaterfallChart(
-                            nights: fullWindowBank.recentNights,
-                            impacts: fullWindowBank.balanceImpacts,
-                            domain: chartBalanceBounds,
-                            selectedDays: $sleepBankDays
-                        )
-                        .frame(height: 64)
-                        
-                        HStack {
-                            Text("Last \(sleepBankDays) days")
-                            Spacer()
-                            Text("Tap to change")
-                        }
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    }
+                    BalanceWaterfallChart(
+                        nights: fullWindowBank.recentNights,
+                        impacts: fullWindowBank.balanceImpacts,
+                        domain: chartBalanceBounds,
+                        selectedDays: $sleepBankDays
+                    )
+                    .frame(height: 64)
                 }
             }
         }
@@ -148,7 +135,7 @@ struct SleepBankCard: View {
     }
 
     private func goalLabel(showsEditAffordance: Bool) -> some View {
-        VStack(alignment: .trailing, spacing: 4) {
+        VStack(alignment: .trailing, spacing: 2) {
             Text("Goal")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -171,52 +158,86 @@ struct SleepBankCard: View {
     }
 }
 
-#Preview {
-    struct PreviewHost: View {
-        @State private var days = 7
-        @State private var goalHours = 8.0
-        
-        private let hoursPerNight: [Double?] = [
-            6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
-            8.4, 8.1, 7.6, 6.9, 7.2, 8.0, 7.1
-        ]
-        
-        private var allNights: [NightSummary] {
-            let calendar = Calendar.current
-            let today = calendar.startOfDay(for: Date())
-            return hoursPerNight.enumerated().map { offset, hours in
-                let daysAgo = hoursPerNight.count - 1 - offset
-                return NightSummary(
-                    date: calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today,
-                    totalHours: hours,
-                )
-            }
-        }
-        
-        private func bank(lastDays: Int) -> SleepBank {
-            let nights = allNights.suffix(lastDays)
-            let withData = nights.filter(\.hasData)
-            let total = withData.compactMap(\.totalHours).reduce(0, +)
-            return SleepBank(
-                currentBalance: total - goalHours * Double(withData.count),
-                goalHours: goalHours,
-                averageHours: withData.isEmpty ? nil : total / Double(withData.count),
-                recentNights: Array(nights)
+#if DEBUG
+
+/// Recomputes the bank from a fixed set of nights whenever the card changes the selected
+/// window or the goal, so the previews stay interactive the way the real card is.
+private struct SleepBankCardPreview: View {
+    /// Hours slept per night, oldest first. `nil` is a night with no tracked sleep.
+    let hoursPerNight: [Double?]
+
+    @State private var days = 7
+    @State private var goalHours = 8.0
+
+    private var allNights: [NightSummary] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return hoursPerNight.enumerated().map { offset, hours in
+            let daysAgo = hoursPerNight.count - 1 - offset
+            return NightSummary(
+                date: calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today,
+                totalHours: hours
             )
         }
-        
-        var body: some View {
-            ScrollView {
-                SleepBankCard(
-                    sleepBank: bank(lastDays: days),
-                    fullWindowBank: bank(lastDays: allNights.count),
-                    sleepBankDays: $days,
-                    sleepGoalHours: $goalHours
-                )
-                .padding()
-            }
-        }
     }
-    
-    return PreviewHost()
+
+    private func bank(lastDays: Int) -> SleepBank {
+        let nights = allNights.suffix(lastDays)
+        let withData = nights.filter(\.hasData)
+        let total = withData.compactMap(\.totalHours).reduce(0, +)
+        return SleepBank(
+            currentBalance: total - goalHours * Double(withData.count),
+            goalHours: goalHours,
+            averageHours: withData.isEmpty ? nil : total / Double(withData.count),
+            recentNights: Array(nights)
+        )
+    }
+
+    var body: some View {
+        ScrollView {
+            SleepBankCard(
+                sleepBank: bank(lastDays: days),
+                fullWindowBank: bank(lastDays: allNights.count),
+                sleepBankDays: $days,
+                sleepGoalHours: $goalHours
+            )
+            .padding()
+        }
+        .background(Color.backgroundBehindCards)
+    }
 }
+
+#Preview("Behind goal") {
+    SleepBankCardPreview(hoursPerNight: [
+        6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
+        6.4, 7.1, 7.6, 6.9, 7.2, 6.6, 7.1
+    ])
+}
+
+#Preview("Ahead of goal") {
+    SleepBankCardPreview(hoursPerNight: [
+        8.4, 8.1, 8.6, 7.9, 8.8, 8.2, 8.5,
+        8.0, 8.3, 9.0, 8.1, 8.4, 8.7, 8.2
+    ])
+}
+
+#Preview("No tracked sleep") {
+    SleepBankCardPreview(hoursPerNight: Array<Double?>(repeating: nil, count: 14))
+}
+
+#Preview("Mostly untracked") {
+    SleepBankCardPreview(hoursPerNight: [
+        nil, nil, nil, 7.5, nil, nil, nil,
+        nil, nil, 8.6, nil, nil, nil, nil
+    ])
+}
+
+#Preview("Decimal durations") {
+    SleepBankCardPreview(hoursPerNight: [
+        6.5, 7.2, nil, 7.8, 6.8, 7.4, 7.0,
+        6.4, 7.1, 7.6, 6.9, 7.2, 6.6, 7.1
+    ])
+    .environment(\.durationDisplayStyle, .decimal)
+}
+
+#endif

@@ -140,16 +140,13 @@ struct SleepBank: Equatable {
         return max(0, currentBalance)
     }
     
-    func statusDescription(style: DurationDisplayStyle = .hoursAndMinutes) -> String {
-        if averageHours == nil {
-            return "Track some sleep in apple health to get insights."
-        } else if isInDebt {
-            let amount = TimeFormatter.formatHours(debtHours, style: style)
-            return "You're \(amount) behind your sleep goal"
-        } else {
-            let amount = TimeFormatter.formatHours(creditHours, style: style)
-            return "You're \(amount) ahead of your sleep goal"
+    /// Describes what the balance figures cover: the lookback window they were measured
+    /// over, or a nudge to start tracking when the window holds no nights to measure.
+    func statusDescription(days: Int) -> String {
+        guard averageHours != nil else {
+            return "Track some sleep in Apple Health to get insights."
         }
+        return "Across the last \(days) days"
     }
     
     var balanceImpacts: [BalanceDayImpact] {
