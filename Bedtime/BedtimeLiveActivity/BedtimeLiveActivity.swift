@@ -46,20 +46,16 @@ struct BedtimeLiveActivity: Widget {
                 .frame(maxWidth: 56)
             } minimal: {
                 // A second app's activity forces both into this presentation,
-                // which is too small for "in 2 hours". Every compact numeric form
-                // the system keeps updating carries ticking seconds, so this
-                // shows the same progress as a ring instead.
-                let phase = BedtimePhase(context)
-                ProgressView(
-                    timerInterval: phase.progressRange(in: context.state),
-                    countsDown: phase == .windDown
-                ) {
-                    EmptyView()
-                } currentValueLabel: {
-                    Image(systemName: phase.symbol)
-                }
-                .progressViewStyle(.circular)
-                .tint(.indigo)
+                // which is too small for "in 2 hours". At narrow width the shared
+                // style collapses to a single "10h" / "45m" field that fits.
+                CountdownText(
+                    state: context.state,
+                    phase: BedtimePhase(context),
+                    width: .narrow
+                )
+                .foregroundStyle(.indigo)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
             }
             .keylineTint(.indigo)
         }
@@ -129,12 +125,14 @@ private struct CountdownText: View {
 
     let state: BedtimeActivityAttributes.ContentState
     let phase: BedtimePhase
+    var width: Duration.UnitsFormatStyle.UnitWidth = .wide
 
     var body: some View {
         Text(
             .currentDate,
             format: RoundedCountdownStyle(
-                target: phase.target(in: state)
+                target: phase.target(in: state),
+                width: width
             )
         )
     }
@@ -146,10 +144,12 @@ private struct CountdownText: View {
 /// duration domain and back so the system can schedule re-renders at those boundaries.
 private struct RoundedCountdownStyle: DiscreteFormatStyle, Codable, Hashable {
     var target: Date
+    /// `.wide` reads as "8 hours"; `.narrow` compresses to "8h" for the minimal slot.
+    var width: Duration.UnitsFormatStyle.UnitWidth = .wide
 
-    /// A single hour-or-minute field keeps the phrasing at "8 hours" / "20 minutes".
+    /// A single hour-or-minute field keeps it to one number and one unit.
     private var units: Duration.UnitsFormatStyle {
-        .units(allowed: [.hours, .minutes], width: .wide, maximumUnitCount: 1)
+        .units(allowed: [.hours, .minutes], width: width, maximumUnitCount: 1)
     }
 
     /// Clamped so a lapsed target holds at zero instead of counting back up.
