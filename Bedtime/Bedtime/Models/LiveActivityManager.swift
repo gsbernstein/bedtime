@@ -140,10 +140,10 @@ final class LiveActivityManager: ObservableObject {
         schedule: (bedtime: Date, wakeTime: Date),
         startingAt start: Date
     ) async {
-        for activity in Activity<BedtimeActivityAttributes>.activities {
-            guard activity.activityState == .pending else { continue }
-            // Tonight is already queued up.
-            guard activity.content.state.bedtime != schedule.bedtime else { return }
+        // remove any existing activities scheduled to start at different times.
+        // It is not possible to update the start time of a scheduled activity
+        for activity in Activity<BedtimeActivityAttributes>.activities where activity.activityState == .pending {
+            if activity.content.state.bedtime == schedule.bedtime { return }
             await activity.end(nil, dismissalPolicy: .immediate)
         }
 
