@@ -164,6 +164,10 @@ class HealthKitManager: ObservableObject {
             // actor to touch `errorMessage`/`loadSleepData`. Always call
             // `completionHandler()` so HealthKit releases its background assertion and
             // stops retrying the notification.
+            //
+            // The handler type isn't Sendable, but HealthKit allows calling it from
+            // any thread, so it's safe to move onto the main actor.
+            nonisolated(unsafe) let completionHandler = completionHandler
             Task { @MainActor in
                 defer { completionHandler() }
                 guard let self else { return }
