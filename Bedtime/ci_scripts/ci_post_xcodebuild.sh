@@ -29,4 +29,5 @@ if [[ "${CI_XCODEBUILD_ACTION:-}" == "archive" && -d "${CI_APP_STORE_SIGNED_APP_
   TESTFLIGHT_DIR_PATH=../TestFlight
   mkdir -p "$TESTFLIGHT_DIR_PATH"
   echo "$WHAT_TO_TEST" >! "$TESTFLIGHT_DIR_PATH/WhatToTest.en-US.txt"
+  echo "Generated WhatToTest notes:\n$WHAT_TO_TEST"
 fi
