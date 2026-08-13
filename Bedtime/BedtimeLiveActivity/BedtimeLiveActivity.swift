@@ -21,15 +21,7 @@ struct BedtimeLiveActivity: Widget {
             .activitySystemActionForegroundColor(.primary)
         } dynamicIsland: { context in
             DynamicIsland {
-                DynamicIslandExpandedRegion(.leading) {
-                    Label(
-                        context.attributes.title,
-                        systemImage: BedtimePhase(context).symbol
-                    )
-                    .font(.headline)
-                }
-
-                DynamicIslandExpandedRegion(.bottom) {
+                DynamicIslandExpandedRegion(.center) {
                     BedtimeSummaryView(
                         state: context.state,
                         phase: BedtimePhase(context)
