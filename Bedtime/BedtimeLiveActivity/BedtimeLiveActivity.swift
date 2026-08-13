@@ -62,7 +62,7 @@ struct BedtimeLiveActivity: Widget {
                 let phase = BedtimePhase(context)
                 ProgressView(
                     timerInterval: phase.progressRange(in: context.state),
-                    countsDown: false
+                    countsDown: phase == .windDown
                 ) {
                     EmptyView()
                 } currentValueLabel: {
@@ -202,7 +202,7 @@ private struct BedtimeSummaryView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.7)
 
-            ProgressView(timerInterval: phase.progressRange(in: state), countsDown: false) {
+            ProgressView(timerInterval: phase.progressRange(in: state), countsDown: phase == .windDown) {
                 EmptyView()
             } currentValueLabel: {
                 EmptyView()
