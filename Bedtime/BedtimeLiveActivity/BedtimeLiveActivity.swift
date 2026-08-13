@@ -36,11 +36,14 @@ struct BedtimeLiveActivity: Widget {
                 .foregroundStyle(.indigo)
                 .lineLimit(1)
             } compactTrailing: {
-                CountdownText(context)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    // Hugging doesn't work, needs a cap or it fills all available space.
-                    .frame(maxWidth: 56)
+                CountdownText(
+                    state: context.state,
+                    phase: BedtimePhase(context),
+                )
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                // Hugging doesn't work, needs a cap or it fills all available space.
+                .frame(maxWidth: 56)
             } minimal: {
                 // A second app's activity forces both into this presentation,
                 // which is too small for "in 2 hours". Every compact numeric form
@@ -134,13 +137,6 @@ private struct CountdownText: View {
                 target: phase.target(in: state)
             )
         )
-    }
-}
-
-extension CountdownText {
-    init(_ context: ActivityViewContext<BedtimeActivityAttributes>) {
-        let phase = BedtimePhase(context)
-        self.init(state: context.state, phase: phase)
     }
 }
 
