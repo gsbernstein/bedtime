@@ -220,6 +220,12 @@ private struct BedtimeSummaryView: View {
                 EmptyView()
             }
             .tint(.indigo)
+            // The bar always anchors its fill to the leading edge, so when it
+            // counts down the emptiness grows from the right — backwards next to
+            // the schedule row below. Flipping the layout direction makes it
+            // drain from the left; while sleeping the bar counts up instead and
+            // its left-to-right fill toward Wake already reads correctly.
+            .environment(\.layoutDirection, phase == .windDown ? .rightToLeft : .leftToRight)
 
             HStack(alignment: .firstTextBaseline) {
                 scheduleTime(label: "Bedtime", date: state.bedtime, alignment: .leading)
