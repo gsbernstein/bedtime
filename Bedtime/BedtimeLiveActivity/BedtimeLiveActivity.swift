@@ -206,9 +206,13 @@ private struct BedtimeSummaryView: View {
 
                 Spacer(minLength: 8)
 
-                Text("\(targetText) target")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                VStack {
+                    Text("Target")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(targetText)
+                        .font(.headline)
+                }
 
                 Spacer(minLength: 8)
 
