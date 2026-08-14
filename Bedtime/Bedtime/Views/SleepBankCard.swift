@@ -43,7 +43,7 @@ struct SleepBankCard: View {
     
     var body: some View {
         CardComponent {
-            VStack(spacing: 10) {
+            VStack(alignment: .trailing, spacing: 10) {
                 CardHeader(
                     icon: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill",
                     iconColor: sleepBank.statusColor,

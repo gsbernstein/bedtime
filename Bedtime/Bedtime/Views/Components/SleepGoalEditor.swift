@@ -27,12 +27,14 @@ struct SleepGoalEditor: View {
                     style: durationStyle,
                     maxFractionDigits: 2
                 ))
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .tag(index)
             }
         }
         .pickerStyle(.wheel)
         .padding(.vertical, -12)
-        .frame(maxHeight: 120)
+        .frame(maxWidth: 150, maxHeight: 160)
     }
 }
 
