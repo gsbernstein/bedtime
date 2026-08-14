@@ -34,8 +34,7 @@ final class LiveActivityManager: ObservableObject {
     }
 
     func newStartTime(bedtime: Date, now: Date) -> Date {
-        let leadTimeInt: Int = Int(Constants.liveActivityLeadTime.rounded())
-        let defaultTime = Calendar.autoupdatingCurrent.date(byAdding: .minute, value: -leadTimeInt, to: bedtime) ?? bedtime.addingTimeInterval(-Constants.liveActivityLeadTime)
+        let defaultTime = bedtime.addingTimeInterval(-Constants.liveActivityLeadTime)
         return min(now, defaultTime)
     }
 
