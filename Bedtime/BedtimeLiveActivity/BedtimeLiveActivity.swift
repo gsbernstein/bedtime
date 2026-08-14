@@ -250,9 +250,9 @@ extension BedtimeActivityAttributes.ContentState {
     fileprivate static var windDownSample: Self {
         let now = Date()
         return Self(
-            activityStart: now.addingTimeInterval(-30 * 60),
-            bedtime: now.addingTimeInterval(2 * 60 * 60),
-            wakeTime: now.addingTimeInterval(10 * 60 * 60),
+            activityStart: now.addingTimeInterval(.minutes(-30)),
+            bedtime: now.addingTimeInterval(.hours(2)),
+            wakeTime: now.addingTimeInterval(.hours(10)),
             targetSleepHours: 8,
             durationStyle: .hoursAndMinutes,
             isSleeping: false
@@ -263,9 +263,9 @@ extension BedtimeActivityAttributes.ContentState {
     fileprivate static var sleepingSample: Self {
         let now = Date()
         return Self(
-            activityStart: now.addingTimeInterval(-3 * 60 * 60),
-            bedtime: now.addingTimeInterval(-60 * 60),
-            wakeTime: now.addingTimeInterval(7 * 60 * 60),
+            activityStart: now.addingTimeInterval(.hours(-3)),
+            bedtime: now.addingTimeInterval(.hours(-1)),
+            wakeTime: now.addingTimeInterval(.hours(7)),
             targetSleepHours: 8,
             durationStyle: .hoursAndMinutes,
             isSleeping: true

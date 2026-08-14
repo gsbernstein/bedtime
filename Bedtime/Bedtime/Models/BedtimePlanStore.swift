@@ -21,7 +21,7 @@ struct BedtimePlan: Codable {
 enum BedtimePlanStore {
     /// Plans older than this are treated as missing; the schedule they were built
     /// from has probably moved on.
-    static let maximumAge: TimeInterval = 7 * 24 * 60 * 60
+    static let maximumAge: TimeInterval = .days(7)
 
     private static let key = "tonightsBedtimePlan"
 
