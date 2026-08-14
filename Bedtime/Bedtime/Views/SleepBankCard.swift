@@ -125,8 +125,9 @@ struct SleepBankCard: View {
             .accessibilityLabel("Sleep goal")
             .accessibilityValue(formattedGoal)
             .accessibilityHint("Adjusts your nightly sleep goal")
-            .popover(isPresented: $isEditingGoal, arrowEdge: .top) {
+            .popover(isPresented: $isEditingGoal, arrowEdge: .bottom) {
                 SleepGoalEditor(goalHours: sleepGoalHours)
+                    .frame(maxWidth: 150)
                     .presentationCompactAdaptation(.popover)
             }
         } else {
