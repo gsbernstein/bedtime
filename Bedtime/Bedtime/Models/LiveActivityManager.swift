@@ -34,7 +34,7 @@ final class LiveActivityManager: ObservableObject {
     }
 
     func newStartTime(bedtime: Date, now: Date) -> Date? {
-        let defaultTime = bedtime.addingTimeInterval(.minutes(-Constants.liveActivityLeadTime))
+        let defaultTime = bedtime.addingTimeInterval(-Constants.liveActivityLeadTime)
         return min(now, defaultTime)
     }
 
