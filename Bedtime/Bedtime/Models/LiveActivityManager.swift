@@ -60,7 +60,7 @@ final class LiveActivityManager: ObservableObject {
         defer { isWorking = false }
 
         let now = Date()
-        let schedule = upcomingSchedule(for: recommendation, now: now)
+        let schedule = getTimes(for: recommendation, now: now)
         let isSleeping = now >= schedule.bedtime
         let startTime = Self.activity(withID: activeActivityID)?.content.state.activityStart ?? newStartTime(bedtime: schedule.bedtime, now: now)
         let state = BedtimeActivityAttributes.ContentState(
@@ -115,7 +115,7 @@ final class LiveActivityManager: ObservableObject {
 
         guard isSupported, areActivitiesEnabled else { return }
 
-        let schedule = upcomingSchedule(for: recommendation, now: now)
+        let schedule = getTimes(for: recommendation, now: now)
         // Same reasoning as `newStartTime`: an actual elapsed-time lead, not a
         // wall-clock gap that could stretch or shrink across a DST transition.
         let windowOpens = schedule.bedtime.addingTimeInterval(-leadTime)
@@ -229,7 +229,7 @@ final class LiveActivityManager: ObservableObject {
         }
     }
 
-    private func upcomingSchedule(
+    private func getTimes(
         for recommendation: BedtimeRecommendation,
         now: Date = Date(),
         calendar: Calendar = .current
