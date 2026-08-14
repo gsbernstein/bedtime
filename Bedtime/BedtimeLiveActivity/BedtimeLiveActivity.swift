@@ -43,7 +43,7 @@ struct BedtimeLiveActivity: Widget {
                         .minimumScaleFactor(0.5)
 
                     PhaseProgressBar(state: context.state, phase: phase)
-                        .frame(height: 3)
+                        .frame(height: 2)
                 }
                 // Text doesn't hug so without a cap the region
                 // grows to fill the whole side of the status bar.
