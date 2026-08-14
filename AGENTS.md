@@ -33,3 +33,6 @@ On a macOS machine with Xcode 15+ installed:
   script is intentionally a no‑op.
 - Code changes can still be made and reviewed on Linux, but verification (build/run/HealthKit
   behavior) must be done on macOS and/or iOS.
+- Don't repeat this limitation as a disclaimer at the end of replies — the user already knows it.
+  Only bring it up if there's a non-obvious verification step worth flagging (e.g. a specific
+  preview, debug button, or edge case to check), and keep it brief.
