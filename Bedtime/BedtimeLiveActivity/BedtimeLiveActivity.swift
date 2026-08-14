@@ -45,17 +45,13 @@ struct BedtimeLiveActivity: Widget {
                     PhaseProgressBar(state: context.state, phase: phase)
                         .frame(height: 3)
                 }
-                // Without a cap the compact region grows to fit its text and
-                // stretches the whole pill.
+                // Text doesn't hug so without a cap the region
+                // grows to fill the whole side of the status bar.
                 .frame(maxWidth: 56)
             } minimal: {
-                // A second app's activity forces both into this presentation,
-                // which is too small for "in 2 hours". Every compact numeric form
-                // the system keeps updating carries ticking seconds, so this
-                // shows the same progress as a ring instead.
                 let phase = BedtimePhase(context)
                 ProgressView(
-                    timerInterval: phase.progressRange(in: context.state),
+                    timerInterval: context.state.progressRange(for: phase),
                     countsDown: phase == .windDown
                 ) {
                     EmptyView()
@@ -106,22 +102,27 @@ private enum BedtimePhase {
         case .sleeping: "Wake"
         }
     }
+}
 
-    func target(in state: BedtimeActivityAttributes.ContentState) -> Date {
-        switch self {
-        case .windDown: state.bedtime
-        case .sleeping: state.wakeTime
+private extension BedtimeActivityAttributes.ContentState {
+
+    func start(for phase: BedtimePhase) -> Date {
+        switch phase {
+        case .windDown: activityStart
+        case .sleeping: bedtime
         }
     }
 
-    func progressRange(
-        in state: BedtimeActivityAttributes.ContentState
-    ) -> ClosedRange<Date> {
-        let start = switch self {
-        case .windDown: state.activityStart
-        case .sleeping: state.bedtime
+    func target(for phase: BedtimePhase) -> Date {
+        switch phase {
+        case .windDown: bedtime
+        case .sleeping: wakeTime
         }
-        let end = target(in: state)
+    }
+
+    func progressRange(for phase: BedtimePhase) -> ClosedRange<Date> {
+        let start = start(for: phase)
+        let end = target(for: phase)
         return min(start, end)...max(start, end)
     }
 }
@@ -140,7 +141,7 @@ private struct CountdownText: View {
         Text(
             .currentDate,
             format: .reference(
-                to: phase.target(in: state),
+                to: state.target(for: phase),
                 allowedFields: [.hour, .minute],
                 thresholdField: .hour
             )
@@ -165,7 +166,10 @@ private struct PhaseProgressBar: View {
     }
 
     var body: some View {
-        ProgressView(timerInterval: phase.progressRange(in: state), countsDown: phase == .windDown) {
+        ProgressView(
+            timerInterval: state.progressRange(for: phase),
+            countsDown: phase == .windDown
+        ) {
             EmptyView()
         } currentValueLabel: {
             EmptyView()
