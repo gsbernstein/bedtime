@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct SleepBankCard: View {
     /// Balance over the selected range, which the Average / Status / Goal columns report.
@@ -19,6 +20,12 @@ struct SleepBankCard: View {
     @Environment(\.durationDisplayStyle) private var durationStyle
 
     @State private var isEditingGoal = false
+    @State private var goalPopoverArrowEdge: Edge = .bottom
+    @State private var goalButtonFrame: CGRect = .zero
+
+    /// Rough on-screen height of the goal popover's wheel picker plus its
+    /// popover chrome, used to decide whether there's room to open upward.
+    private static let goalPopoverEstimatedHeight: CGFloat = 180
 
     private var formattedGoal: String {
         TimeFormatter.formatHours(
@@ -117,6 +124,7 @@ struct SleepBankCard: View {
     private var goalColumn: some View {
         if let sleepGoalHours {
             Button {
+                goalPopoverArrowEdge = preferredGoalPopoverArrowEdge()
                 isEditingGoal = true
             } label: {
                 goalLabel(showsEditAffordance: true)
@@ -125,7 +133,14 @@ struct SleepBankCard: View {
             .accessibilityLabel("Sleep goal")
             .accessibilityValue(formattedGoal)
             .accessibilityHint("Adjusts your nightly sleep goal")
-            .popover(isPresented: $isEditingGoal, arrowEdge: .bottom) {
+            .background(
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(key: GoalButtonFramePreferenceKey.self, value: proxy.frame(in: .global))
+                }
+            )
+            .onPreferenceChange(GoalButtonFramePreferenceKey.self) { goalButtonFrame = $0 }
+            .popover(isPresented: $isEditingGoal, arrowEdge: goalPopoverArrowEdge) {
                 SleepGoalEditor(goalHours: sleepGoalHours)
                     .frame(maxWidth: 150)
                     .presentationCompactAdaptation(.popover)
@@ -133,6 +148,22 @@ struct SleepBankCard: View {
         } else {
             goalLabel(showsEditAffordance: false)
         }
+    }
+
+    /// Opens the popover downward (`.top` arrow edge) when there isn't enough room above the
+    /// goal button to fit it—e.g. when the card is scrolled near the top of the screen—and
+    /// upward (`.bottom` arrow edge, the preferred default) otherwise.
+    private func preferredGoalPopoverArrowEdge() -> Edge {
+        guard goalButtonFrame != .zero else { return .bottom }
+
+        let screenHeight = UIScreen.main.bounds.height
+        let spaceAbove = goalButtonFrame.minY
+        let spaceBelow = screenHeight - goalButtonFrame.maxY
+
+        if spaceAbove < Self.goalPopoverEstimatedHeight && spaceBelow > spaceAbove {
+            return .top
+        }
+        return .bottom
     }
 
     private func goalLabel(showsEditAffordance: Bool) -> some View {
@@ -156,6 +187,15 @@ struct SleepBankCard: View {
             }
         }
         .contentShape(Rectangle())
+    }
+}
+
+/// Reports the goal button's frame (in global coordinates) so `SleepBankCard` can pick which
+/// side to open its goal popover on based on available space.
+private struct GoalButtonFramePreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
     }
 }
 
