@@ -17,6 +17,7 @@ struct SleepBankCard: View {
     /// When provided, the goal is tappable and edits this value directly.
     var sleepGoalHours: Binding<Double>? = nil
     @Environment(\.durationDisplayStyle) private var durationStyle
+    @Environment(\.appTheme) private var theme
 
     @State private var isEditingGoal = false
 
@@ -46,7 +47,7 @@ struct SleepBankCard: View {
             VStack(spacing: 10) {
                 CardHeader(
                     icon: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill",
-                    iconColor: sleepBank.statusColor,
+                    iconColor: sleepBank.statusColor(for: theme),
                     title: "Sleep Balance"
                 ) {
                     Text(sleepBank.statusDescription(days: sleepBankDays))
@@ -66,7 +67,7 @@ struct SleepBankCard: View {
                             Text(TimeFormatter.formatHours(averageHours, style: durationStyle))
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(sleepBank.statusColor)
+                                .foregroundColor(sleepBank.statusColor(for: theme))
                         } else {
                             Text("unknown")
                                 .font(.subheadline)
@@ -86,7 +87,7 @@ struct SleepBankCard: View {
                             Text(TimeFormatter.formatHours(sleepBank.currentBalance, style: durationStyle))
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(sleepBank.statusColor)
+                                .foregroundColor(sleepBank.statusColor(for: theme))
                         } else {
                             Text("unknown")
                                 .font(.subheadline)

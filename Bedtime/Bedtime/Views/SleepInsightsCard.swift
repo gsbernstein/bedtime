@@ -14,12 +14,13 @@ struct SleepInsightsCard: View {
     /// Called with the new goal in hours when the raise-goal button is tapped.
     var onRaiseGoal: ((Double) -> Void)? = nil
     @Environment(\.durationDisplayStyle) private var durationStyle
+    @Environment(\.appTheme) private var theme
 
     private var accentColor: Color {
         if insight.congratulationWindow != nil {
-            return AppColors.positive
+            return AppColors.positive(theme)
         }
-        return AppColors.warning
+        return AppColors.warning(theme)
     }
 
     private var iconName: String {
@@ -70,7 +71,7 @@ struct SleepInsightsCard: View {
                             .frame(maxWidth: .infinity)
                         }
                     .buttonStyle(.bordered)
-                    .tint(AppColors.warning)
+                    .tint(AppColors.warning(theme))
                     .padding(.top, 4)
                 }
 
@@ -86,7 +87,7 @@ struct SleepInsightsCard: View {
                         .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .tint(AppColors.positive)
+                    .tint(AppColors.positive(theme))
                     .padding(.top, 4)
                 }
             }

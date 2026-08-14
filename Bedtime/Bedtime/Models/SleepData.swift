@@ -86,13 +86,13 @@ extension HKCategoryValueSleepAnalysis {
         }
     }
     
-    var color: Color {
+    func color(for theme: AppTheme) -> Color {
         switch self {
-        case .asleepDeep:        return AppColors.sleepDeep
-        case .asleepREM:         return AppColors.sleepREM
-        case .asleepCore:        return AppColors.sleepCore
-        case .awake:             return AppColors.sleepAwake
-        case .inBed:             return AppColors.sleepInBed
+        case .asleepDeep:        return AppColors.sleepDeep(theme)
+        case .asleepREM:         return AppColors.sleepREM(theme)
+        case .asleepCore:        return AppColors.sleepCore(theme)
+        case .awake:             return AppColors.sleepAwake(theme)
+        case .inBed:             return AppColors.sleepInBed(theme)
         case .asleepUnspecified: return Color.secondary
         @unknown default:        return Color.secondary
         }
@@ -127,9 +127,9 @@ struct SleepBank: Equatable {
         return currentBalance < 0
     }
     
-    var statusColor: Color {
+    func statusColor(for theme: AppTheme) -> Color {
         guard averageHours != nil else { return .secondary }
-        return Constants.sleepGoalColor(difference: currentBalance, graceColor: .primary)
+        return Constants.sleepGoalColor(difference: currentBalance, graceColor: .primary, theme: theme)
     }
 
     var debtHours: Double {

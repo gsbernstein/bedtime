@@ -18,6 +18,7 @@ struct SleepDayGroup: View {
     var isIncludedInSleepBank: Bool = true
     let onToggle: () -> Void
     @Environment(\.durationDisplayStyle) private var durationStyle
+    @Environment(\.appTheme) private var theme
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -37,7 +38,8 @@ struct SleepDayGroup: View {
             Constants.sleepDurationColor(
                 hours: totalSleepHours,
                 goal: sleepGoal,
-                graceColor: .secondary
+                graceColor: .secondary,
+                theme: theme
             )
         )
     }
@@ -49,7 +51,7 @@ struct SleepDayGroup: View {
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             Rectangle()
-                .fill(isIncludedInSleepBank ? Color.accentColor : Color.secondary.opacity(0.2))
+                .fill(isIncludedInSleepBank ? AppColors.accent(theme) : Color.secondary.opacity(0.2))
                 .frame(width: 3)
                 .accessibilityHidden(true)
 

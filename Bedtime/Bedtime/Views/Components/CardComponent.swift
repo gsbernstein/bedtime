@@ -53,6 +53,7 @@ struct CardHeader<Subtitle: View>: View {
 
 struct CardComponent<Content: View>: View {
     let content: Content
+    @Environment(\.appTheme) private var theme
     
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
@@ -63,7 +64,7 @@ struct CardComponent<Content: View>: View {
             .padding()
             .background {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.cardBackground)
+                    .fill(AppColors.cardBackground(theme))
                     .shadow(
                         color: Color.black.opacity(0.1),
                         radius: 2,

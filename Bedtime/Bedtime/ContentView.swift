@@ -188,7 +188,8 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
             }
             .environment(\.durationDisplayStyle, userPreferences.durationDisplayStyle)
-            .background(Color.backgroundBehindCards)
+            .environment(\.appTheme, userPreferences.theme)
+            .background(AppColors.background(userPreferences.theme))
             .navigationTitle("Bedger")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -219,6 +220,7 @@ struct ContentView: View {
                 )
             }
         }
+        .tint(AppColors.accent(userPreferences.theme))
         .task {
             try? await healthKitManager.fetchSleepData()
         }

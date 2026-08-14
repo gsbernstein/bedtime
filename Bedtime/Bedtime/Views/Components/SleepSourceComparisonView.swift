@@ -88,6 +88,7 @@ struct SleepStageTimelineBar: View {
     let rangeStart: Date
     let rangeEnd: Date
     var isDimmed: Bool = false
+    @Environment(\.appTheme) private var theme
     
     private var rangeDuration: TimeInterval {
         max(rangeEnd.timeIntervalSince(rangeStart), 1)
@@ -103,7 +104,7 @@ struct SleepStageTimelineBar: View {
                         let width = session.duration / rangeDuration
 
                         Rectangle()
-                            .fill(session.sleepType.color)
+                            .fill(session.sleepType.color(for: theme))
                             .opacity(isDimmed ? 0.35 : 1)
                             .frame(width: max(proxy.size.width * width, 1))
                             .offset(x: proxy.size.width * offset)
