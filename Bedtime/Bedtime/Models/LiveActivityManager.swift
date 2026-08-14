@@ -33,8 +33,9 @@ final class LiveActivityManager: ObservableObject {
         activeActivityID = Activity<BedtimeActivityAttributes>.activities.first?.id
     }
 
-    func newStartTime(bedtime: Date, now: Date) -> Date? {
-        let defaultTime = bedtime.addingTimeInterval(-Constants.liveActivityLeadTime)
+    func newStartTime(bedtime: Date, now: Date) -> Date {
+        let leadTimeInt: Int = Int(Constants.liveActivityLeadTime.rounded())
+        let defaultTime = Calendar.autoupdatingCurrent.date(byAdding: .minute, value: -leadTimeInt, to: bedtime) ?? bedtime.addingTimeInterval(-Constants.liveActivityLeadTime)
         return min(now, defaultTime)
     }
 
@@ -59,7 +60,7 @@ final class LiveActivityManager: ObservableObject {
         let now = Date()
         let schedule = upcomingSchedule(for: recommendation, now: now)
         let isSleeping = now >= schedule.bedtime
-        let startTime = Self.activity(withID: activeActivityID)?.content.state.activityStart ?? newStartTime(bedtime: bedtime, now: now)
+        let startTime = Self.activity(withID: activeActivityID)?.content.state.activityStart ?? newStartTime(bedtime: schedule.bedtime, now: now)
         let state = BedtimeActivityAttributes.ContentState(
             activityStart: startTime,
             bedtime: schedule.bedtime,

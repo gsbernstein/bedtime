@@ -144,7 +144,7 @@ class ViewModel {
         return BedtimeRecommendation(
             recommendedBedtime: recommendedBedtime,
             wakeTime: wakeTime,
-            targetSleepDuration: totalSleepNeeded,
+            targetSleepDuration: totalHoursNeeded,
             reason: reason
         )
     }
