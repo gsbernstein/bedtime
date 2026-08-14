@@ -125,14 +125,14 @@ struct SleepBankCard: View {
             .accessibilityLabel("Sleep goal")
             .accessibilityValue(formattedGoal)
             .accessibilityHint("Adjusts your nightly sleep goal")
-            // Anchored to the button's bottom-right corner (rather than the default
-            // center of its bottom edge) so the arrow lines up with the visible "Goal"
-            // value instead of pointing from the middle of the wide, trailing-aligned
-            // column it sits in.
-            .adaptivePopover(
+            // Always opens above (arrowEdge .bottom) so it never covers the chart below,
+            // and is anchored to the button's bottom-right corner (rather than the default
+            // center of its bottom edge) so it extends up and to the left from there,
+            // covering the Average/Balance columns before it would ever reach the chart.
+            .popover(
                 isPresented: $isEditingGoal,
                 attachmentAnchor: .point(.bottomTrailing),
-                preferredArrowEdge: .bottom
+                arrowEdge: .bottom
             ) {
                 SleepGoalEditor(goalHours: sleepGoalHours)
                     .frame(maxWidth: 150)
@@ -164,34 +164,6 @@ struct SleepBankCard: View {
             }
         }
         .contentShape(Rectangle())
-    }
-}
-
-private extension View {
-    /// A `.popover` that prefers `preferredArrowEdge`/`attachmentAnchor` but, on iOS 18+,
-    /// lets the system pick whichever edge actually has room and reposition automatically
-    /// as the anchor scrolls—so it can fall back to a different side rather than clipping
-    /// when there isn't enough space on the preferred edge (e.g. near the top of the screen).
-    ///
-    /// iOS 17 treats `arrowEdge` as a hint and already repositions when it doesn't fit, but
-    /// iOS 18 enforces it strictly, which is why the two need separate handling here.
-    @ViewBuilder
-    func adaptivePopover<Content: View>(
-        isPresented: Binding<Bool>,
-        attachmentAnchor: PopoverAttachmentAnchor,
-        preferredArrowEdge: Edge,
-        @ViewBuilder content: @escaping () -> Content
-    ) -> some View {
-        if #available(iOS 18, *) {
-            popover(isPresented: isPresented, attachmentAnchor: attachmentAnchor, content: content)
-        } else {
-            popover(
-                isPresented: isPresented,
-                attachmentAnchor: attachmentAnchor,
-                arrowEdge: preferredArrowEdge,
-                content: content
-            )
-        }
     }
 }
 
