@@ -138,8 +138,7 @@ class ViewModel {
             reason = "You're ahead of the game! Aim for at least \(goal) tonight."
         }
 
-        let sleepNeededMinutes = Int((totalHoursNeeded * 60).rounded())
-        let recommendedBedtime = calendar.date(byAdding: .minute, value: -sleepNeededMinutes, to: wakeTime) ?? wakeTime.addingTimeInterval(.hours(-totalHoursNeeded))
+        let recommendedBedtime = calendar.date(byAdding: -TimeInterval.hours(totalHoursNeeded), to: wakeTime)
 
         return BedtimeRecommendation(
             recommendedBedtime: recommendedBedtime,

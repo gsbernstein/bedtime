@@ -34,8 +34,7 @@ final class LiveActivityManager: ObservableObject {
     }
 
     func newStartTime(bedtime: Date, now: Date) -> Date {
-        let leadTimeInt: Int = Int(Constants.liveActivityLeadTime.rounded())
-        let defaultTime = Calendar.autoupdatingCurrent.date(byAdding: .second, value: -leadTimeInt, to: bedtime) ?? bedtime.addingTimeInterval(-Constants.liveActivityLeadTime)
+        let defaultTime = Calendar.autoupdatingCurrent.date(byAdding: -Constants.liveActivityLeadTime, to: bedtime)
         return min(now, defaultTime)
     }
 
@@ -114,7 +113,7 @@ final class LiveActivityManager: ObservableObject {
         guard isSupported, areActivitiesEnabled else { return }
 
         let schedule = upcomingSchedule(for: recommendation, now: now)
-        let windowOpens = schedule.bedtime.addingTimeInterval(-leadTime)
+        let windowOpens = Calendar.autoupdatingCurrent.date(byAdding: -leadTime, to: schedule.bedtime)
 
         // Once bedtime passes, the next match is tomorrow's, so this only opens
         // the window ahead of tonight's bedtime. An activity already running

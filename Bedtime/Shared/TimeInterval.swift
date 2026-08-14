@@ -30,3 +30,16 @@ nonisolated extension TimeInterval {
     }
 
 }
+
+nonisolated extension Calendar {
+
+    /// Adds a time interval by calendar arithmetic rather than raw elapsed
+    /// seconds, so a wind-down window or lead time still lands on the same
+    /// wall-clock offset across a DST transition. Falls back to
+    /// `addingTimeInterval` on the rare date this can't be resolved.
+    func date(byAdding interval: TimeInterval, to date: Date) -> Date {
+        let seconds = Int(interval.rounded())
+        return self.date(byAdding: .second, value: seconds, to: date) ?? date.addingTimeInterval(interval)
+    }
+
+}
