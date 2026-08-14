@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct SleepBankCard: View {
     /// Balance over the selected range, which the Average / Status / Goal columns report.
@@ -20,12 +19,6 @@ struct SleepBankCard: View {
     @Environment(\.durationDisplayStyle) private var durationStyle
 
     @State private var isEditingGoal = false
-    @State private var goalPopoverArrowEdge: Edge = .bottom
-    @State private var goalButtonFrame: CGRect = .zero
-
-    /// Rough on-screen height of the goal popover's wheel picker plus its
-    /// popover chrome, used to decide whether there's room to open upward.
-    private static let goalPopoverEstimatedHeight: CGFloat = 180
 
     private var formattedGoal: String {
         TimeFormatter.formatHours(
@@ -124,7 +117,6 @@ struct SleepBankCard: View {
     private var goalColumn: some View {
         if let sleepGoalHours {
             Button {
-                goalPopoverArrowEdge = preferredGoalPopoverArrowEdge()
                 isEditingGoal = true
             } label: {
                 goalLabel(showsEditAffordance: true)
@@ -133,14 +125,15 @@ struct SleepBankCard: View {
             .accessibilityLabel("Sleep goal")
             .accessibilityValue(formattedGoal)
             .accessibilityHint("Adjusts your nightly sleep goal")
-            .background(
-                GeometryReader { proxy in
-                    Color.clear
-                        .preference(key: GoalButtonFramePreferenceKey.self, value: proxy.frame(in: .global))
-                }
-            )
-            .onPreferenceChange(GoalButtonFramePreferenceKey.self) { goalButtonFrame = $0 }
-            .popover(isPresented: $isEditingGoal, arrowEdge: goalPopoverArrowEdge) {
+            // Anchored to the button's bottom-right corner (rather than the default
+            // center of its bottom edge) so the arrow lines up with the visible "Goal"
+            // value instead of pointing from the middle of the wide, trailing-aligned
+            // column it sits in.
+            .adaptivePopover(
+                isPresented: $isEditingGoal,
+                attachmentAnchor: .point(.bottomTrailing),
+                preferredArrowEdge: .bottom
+            ) {
                 SleepGoalEditor(goalHours: sleepGoalHours)
                     .frame(maxWidth: 150)
                     .presentationCompactAdaptation(.popover)
@@ -148,22 +141,6 @@ struct SleepBankCard: View {
         } else {
             goalLabel(showsEditAffordance: false)
         }
-    }
-
-    /// Opens the popover downward (`.top` arrow edge) when there isn't enough room above the
-    /// goal button to fit it—e.g. when the card is scrolled near the top of the screen—and
-    /// upward (`.bottom` arrow edge, the preferred default) otherwise.
-    private func preferredGoalPopoverArrowEdge() -> Edge {
-        guard goalButtonFrame != .zero else { return .bottom }
-
-        let screenHeight = UIScreen.main.bounds.height
-        let spaceAbove = goalButtonFrame.minY
-        let spaceBelow = screenHeight - goalButtonFrame.maxY
-
-        if spaceAbove < Self.goalPopoverEstimatedHeight && spaceBelow > spaceAbove {
-            return .top
-        }
-        return .bottom
     }
 
     private func goalLabel(showsEditAffordance: Bool) -> some View {
@@ -190,12 +167,31 @@ struct SleepBankCard: View {
     }
 }
 
-/// Reports the goal button's frame (in global coordinates) so `SleepBankCard` can pick which
-/// side to open its goal popover on based on available space.
-private struct GoalButtonFramePreferenceKey: PreferenceKey {
-    static var defaultValue: CGRect = .zero
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        value = nextValue()
+private extension View {
+    /// A `.popover` that prefers `preferredArrowEdge`/`attachmentAnchor` but, on iOS 18+,
+    /// lets the system pick whichever edge actually has room and reposition automatically
+    /// as the anchor scrolls—so it can fall back to a different side rather than clipping
+    /// when there isn't enough space on the preferred edge (e.g. near the top of the screen).
+    ///
+    /// iOS 17 treats `arrowEdge` as a hint and already repositions when it doesn't fit, but
+    /// iOS 18 enforces it strictly, which is why the two need separate handling here.
+    @ViewBuilder
+    func adaptivePopover<Content: View>(
+        isPresented: Binding<Bool>,
+        attachmentAnchor: PopoverAttachmentAnchor,
+        preferredArrowEdge: Edge,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        if #available(iOS 18, *) {
+            popover(isPresented: isPresented, attachmentAnchor: attachmentAnchor, content: content)
+        } else {
+            popover(
+                isPresented: isPresented,
+                attachmentAnchor: attachmentAnchor,
+                arrowEdge: preferredArrowEdge,
+                content: content
+            )
+        }
     }
 }
 
