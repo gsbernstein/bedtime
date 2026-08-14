@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var error: Error?
+    @State private var scrollViewportSize: CGSize = .zero
     
     init() {
         let sourcePrefs = SourcePreferences()
@@ -187,6 +188,13 @@ struct ContentView: View {
                 .frame(maxWidth: 600)
                 .frame(maxWidth: .infinity)
             }
+            .coordinateSpace(name: Constants.mainScrollCoordinateSpaceName)
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { _, newValue in
+                scrollViewportSize = newValue
+            }
+            .environment(\.scrollViewportSize, scrollViewportSize)
             .environment(\.durationDisplayStyle, userPreferences.durationDisplayStyle)
             .background(Color.backgroundBehindCards)
             .navigationTitle("Bedger")
