@@ -20,24 +20,18 @@ struct SleepGoalEditor: View {
     }
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text("Sleep Goal")
-                .font(.headline)
-
-            Picker("Sleep Goal", selection: stepIndex) {
-                ForEach(Constants.sleepGoalStepIndices, id: \.self) { index in
-                    Text(TimeFormatter.formatHours(
-                        Constants.sleepGoalHours(atStepIndex: index),
-                        style: durationStyle,
-                        maxFractionDigits: 2
-                    ))
-                    .tag(index)
-                }
+        Picker("Sleep Goal", selection: stepIndex) {
+            ForEach(Constants.sleepGoalStepIndices, id: \.self) { index in
+                Text(TimeFormatter.formatHours(
+                    Constants.sleepGoalHours(atStepIndex: index),
+                    style: durationStyle,
+                    maxFractionDigits: 2
+                ))
+                .tag(index)
             }
-            .pickerStyle(.wheel)
-            .labelsHidden()
         }
-        .padding()
+        .pickerStyle(.wheel)
+        .padding(.vertical, -12)
     }
 }
 
