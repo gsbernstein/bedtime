@@ -34,7 +34,10 @@ final class LiveActivityManager: ObservableObject {
     }
 
     func newStartTime(bedtime: Date, now: Date) -> Date {
-        let defaultTime = Calendar.autoupdatingCurrent.date(byAdding: -Constants.liveActivityLeadTime, to: bedtime)
+        // A fixed elapsed-time subtraction rather than calendar arithmetic: the
+        // lead time should always be an actual 30 minutes, not a wall-clock gap
+        // that a DST transition happening to land near bedtime could stretch or shrink.
+        let defaultTime = bedtime.addingTimeInterval(-Constants.liveActivityLeadTime)
         return min(now, defaultTime)
     }
 
@@ -113,7 +116,9 @@ final class LiveActivityManager: ObservableObject {
         guard isSupported, areActivitiesEnabled else { return }
 
         let schedule = upcomingSchedule(for: recommendation, now: now)
-        let windowOpens = Calendar.autoupdatingCurrent.date(byAdding: -leadTime, to: schedule.bedtime)
+        // Same reasoning as `newStartTime`: an actual elapsed-time lead, not a
+        // wall-clock gap that could stretch or shrink across a DST transition.
+        let windowOpens = schedule.bedtime.addingTimeInterval(-leadTime)
 
         // Once bedtime passes, the next match is tomorrow's, so this only opens
         // the window ahead of tonight's bedtime. An activity already running

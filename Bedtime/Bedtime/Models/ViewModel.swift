@@ -138,7 +138,10 @@ class ViewModel {
             reason = "You're ahead of the game! Aim for at least \(goal) tonight."
         }
 
-        let recommendedBedtime = calendar.date(byAdding: -TimeInterval.hours(totalHoursNeeded), to: wakeTime)
+        // A fixed elapsed-time subtraction rather than calendar arithmetic: what
+        // matters is actually sleeping for this many hours, not a wall-clock gap
+        // that a DST transition overnight could stretch or shrink by an hour.
+        let recommendedBedtime = wakeTime.addingTimeInterval(-.hours(totalHoursNeeded))
 
         return BedtimeRecommendation(
             recommendedBedtime: recommendedBedtime,
