@@ -33,6 +33,11 @@ final class LiveActivityManager: ObservableObject {
         activeActivityID = Activity<BedtimeActivityAttributes>.activities.first?.id
     }
 
+    func newStartTime(bedtime: Date, now: Date) -> Date? {
+        let defaultTime = bedtime.addingTimeInterval(.minutes(-Constants.liveActivityLeadTime))
+        return min(now, defaultTime)
+    }
+
     func startOrUpdate(
         with recommendation: BedtimeRecommendation,
         durationStyle: DurationDisplayStyle
@@ -54,10 +59,9 @@ final class LiveActivityManager: ObservableObject {
         let now = Date()
         let schedule = upcomingSchedule(for: recommendation, now: now)
         let isSleeping = now >= schedule.bedtime
+        let startTime = Self.activity(withID: activeActivityID)?.content.state.activityStart ?? newStartTime(bedtime: bedtime, now: now)
         let state = BedtimeActivityAttributes.ContentState(
-            // Updating an existing activity keeps its original start so the
-            // wind-down bar doesn't jump back to empty.
-            activityStart: Self.activity(withID: activeActivityID)?.content.state.activityStart ?? now,
+            activityStart: startTime,
             bedtime: schedule.bedtime,
             wakeTime: schedule.wakeTime,
             targetSleepHours: recommendation.targetSleepDuration,
