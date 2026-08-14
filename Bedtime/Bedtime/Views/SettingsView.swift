@@ -15,6 +15,7 @@ struct SettingsView: View {
     var healthKitManager: HealthKitManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var isLoadingSources = true
 
     private var sleepBankDaysBinding: Binding<Double> {
         Binding(
@@ -22,7 +23,16 @@ struct SettingsView: View {
             set: { preferences.sleepBankDays = Int($0.rounded()) }
         )
     }
-    
+
+    #if DEBUG
+    @State private var debugIsWorking = false
+    @State private var debugMessage: String?
+    #endif
+
+    private var earliestBedtimeBinding: Binding<Date> {
+        $preferences.earliestReasonableBedtime
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -31,11 +41,19 @@ struct SettingsView: View {
                         HStack {
                             Text("Target Sleep Duration")
                             Spacer()
-                            Text(TimeFormatter.formatDuration(preferences.sleepGoalHours*60*60))
+                            Text(TimeFormatter.formatHours(
+                                preferences.sleepGoalHours,
+                                style: preferences.durationDisplayStyle,
+                                maxFractionDigits: 2
+                            ))
                                 .foregroundStyle(.secondary)
                         }
                         
-                        Slider(value: $preferences.sleepGoalHours, in: 6...12, step: 0.25) {
+                        Slider(
+                            value: $preferences.sleepGoalHours,
+                            in: Constants.sleepGoalHoursRange,
+                            step: Constants.sleepGoalStepHours
+                        ) {
                             EmptyView()
                         }
                             .accentColor(AppColors.accent)
@@ -49,6 +67,23 @@ struct SettingsView: View {
                         displayedComponents: .hourAndMinute
                     )
                 }
+
+                Section {
+                    Toggle(isOn: $preferences.useDecimalDurations) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Decimal durations")
+                            Text(preferences.useDecimalDurations
+                                 ? "Example: \(DurationDisplayStyle.decimal.settingsExample)"
+                                 : "Example: \(DurationDisplayStyle.hoursAndMinutes.settingsExample)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Display")
+                } footer: {
+                    Text("Off uses hours and minutes (5h 6m). On uses decimal hours (5.1h); sleep goals can show quarter hours like 7.25h.")
+                }
                 
                 Section("Sleep Bank Calculation") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -59,7 +94,11 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                         
-                        Slider(value: sleepBankDaysBinding, in: 3...14, step: 1) {
+                        Slider(
+                            value: sleepBankDaysBinding,
+                            in: Double(Constants.sleepBankDaysRange.lowerBound)...Double(Constants.sleepBankDaysRange.upperBound),
+                            step: 1
+                        ) {
                             EmptyView()
                         }
                         .accentColor(AppColors.accent)
@@ -71,31 +110,15 @@ struct SettingsView: View {
                 }
                 
                 Section("Sleep Limits") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Max sleep hours per night")
-                            Spacer()
-                            Text("\(String(format: "%.0f", preferences.maxSleepHoursPerNight)) hours")
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Slider(value: $preferences.maxSleepHoursPerNight, in: 8...16, step: 1) {
-                            Text("Max")
-                        }
-                        .accentColor(AppColors.accent)
-                        
-                        HStack {
-                            Text("Min sleep hours per night")
-                            Spacer()
-                            Text("\(String(format: "%.0f", preferences.minSleepHoursPerNight)) hours")
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Slider(value: $preferences.minSleepHoursPerNight, in: 2...10, step: 1) {
-                            Text("Min")
-                        }
-                        .accentColor(AppColors.accent)
-                    }
+                    DatePicker(
+                        "Earliest reasonable bedtime",
+                        selection: earliestBedtimeBinding,
+                        displayedComponents: .hourAndMinute
+                    )
+
+                    Text("Won't recommend sleeping before this time — allowing up to \(TimeFormatter.formatHours(preferences.nominalMaxSleepHours, style: preferences.durationDisplayStyle, maxFractionDigits: 2)) per night based on your wake time (aside from DST adjustments).")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 Section("Data Sources") {
@@ -144,6 +167,8 @@ struct SettingsView: View {
                                 .foregroundColor(AppColors.warning)
                         }
                         
+                    } else if isLoadingSources {
+                        ProgressView("Loading sources…")
                     } else {
                         Text("No sources discovered yet. Please log some sleep data to Apple Health.")
                             .font(.caption)
@@ -151,9 +176,57 @@ struct SettingsView: View {
                     }
                 }
                 
+                #if DEBUG
+                Section("Developer") {
+                    Button {
+                        runDebugTask {
+                            try await healthKitManager.generateFakeSleepData(
+                                nights: 14,
+                                targetSleepHours: preferences.sleepGoalHours
+                            )
+                            return "Generated 14 nights of fake sleep data."
+                        }
+                    } label: {
+                        Label("Generate Fake Sleep Data (14 nights)", systemImage: "wand.and.stars")
+                    }
+                    .disabled(debugIsWorking)
+                    
+                    Button(role: .destructive) {
+                        runDebugTask {
+                            try await healthKitManager.clearFakeSleepData()
+                            return "Cleared fake sleep data."
+                        }
+                    } label: {
+                        Label("Delete Generated Sleep Data", systemImage: "trash")
+                    }
+                    .disabled(debugIsWorking)
+                    
+                    if debugIsWorking {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Working...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    if let debugMessage {
+                        Text(debugMessage)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Text("Fake samples are tagged so deletion only removes data this app wrote.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                #endif
+                
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            // Force 12-hour clock labels in DatePickers to match app-wide time formatting.
+            .environment(\.locale, Locale(identifier: "en_US"))
             .toolbar {
                 if horizontalSizeClass == .compact {
                     ToolbarItem(placement: .confirmationAction) {
@@ -164,7 +237,29 @@ struct SettingsView: View {
                 }
             }
         }
+        .task {
+            defer { isLoadingSources = false }
+            await healthKitManager.loadAvailableSources()
+        }
     }
+    
+    #if DEBUG
+    /// Runs a debug action while toggling the working state and surfacing
+    /// either a success message or the error description in the UI.
+    private func runDebugTask(_ work: @escaping () async throws -> String) {
+        debugIsWorking = true
+        debugMessage = nil
+        Task { @MainActor in
+            do {
+                let message = try await work()
+                debugMessage = message
+            } catch {
+                debugMessage = "Error: \(error.localizedDescription)"
+            }
+            debugIsWorking = false
+        }
+    }
+    #endif
 }
 
 #Preview {

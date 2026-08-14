@@ -10,31 +10,30 @@ import SwiftUI
 struct LastNightCard: View {
     let sleepSessions: [SleepSession]?
     let goal: TimeInterval
+    let sourceAppLinks: [SleepSourceAppLink]
+    @Environment(\.durationDisplayStyle) private var durationStyle
     
     var durationInHours: TimeInterval? {
         sleepSessions?.map(\.durationInHours).reduce(0, +)
     }
-    
-    private var timeFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
+
+    private var durationColor: Color {
+        guard let durationInHours else { return .secondary }
+        return Constants.sleepDurationColor(
+            hours: durationInHours,
+            goal: goal,
+            graceColor: .primary
+        )
     }
     
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "calendar")
-                        .font(.title2)
-                        .foregroundColor(AppColors.lastNight)
-                        .frame(width: Constants.iconWidth)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Last Night")
-                            .font(.headline)
-                    }
-                    Spacer()
-                }
+                CardHeader(
+                    icon: "calendar",
+                    iconColor: AppColors.lastNight,
+                    title: "Last Night"
+                )
                 
                 if let sleepSessions {
                     HStack {
@@ -42,7 +41,7 @@ struct LastNightCard: View {
                             Text("In bed at")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(timeFormatter.string(from: sleepSessions.last!.startDate))
+                            Text(TimeFormatter.formatTimeOfDay(sleepSessions.last!.startDate))
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }
@@ -51,7 +50,7 @@ struct LastNightCard: View {
                             Text("Woke up at")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(timeFormatter.string(from: sleepSessions.first!.endDate))
+                            Text(TimeFormatter.formatTimeOfDay(sleepSessions.first!.endDate))
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }
@@ -60,27 +59,41 @@ struct LastNightCard: View {
                             Text("Sleep duration")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            HStack(alignment: .lastTextBaseline) {
-                                Text(String(format: "%.1f", durationInHours!))
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(durationInHours! > goal ? AppColors.positive : AppColors.negative)
-                                Text("hours")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text(TimeFormatter.formatHours(durationInHours!, style: durationStyle))
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(durationColor)
                         }
                     }
                     
                     // Progress bar
                     ProgressBar(value: durationInHours!, total: goal)
-                        .tint(durationInHours! > goal ? AppColors.positive : AppColors.negative)
+                        .tint(durationColor)
                     
                 } else {
-                    Text("No sleep data available")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding()
+                    VStack(spacing: 12) {
+                        Text("No sleep data available")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+
+                        if !sourceAppLinks.isEmpty {
+                            Text("Open a recent source app to sync last night's sleep.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+
+                            ForEach(sourceAppLinks) { sourceApp in
+                                Link(destination: sourceApp.destination) {
+                                    Label(
+                                        "Open \(sourceApp.name)",
+                                        systemImage: "arrow.up.forward.app"
+                                    )
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                    }
+                    .padding()
                 }
                 
             }
@@ -90,18 +103,52 @@ struct LastNightCard: View {
 
 import HealthKit
 
-#Preview {
-    LastNightCard(
-        sleepSessions: [SleepSession(
-            startDate: DateComponents(calendar: .autoupdatingCurrent, day: 1, hour: 23, minute: 10).date!,
-            endDate: DateComponents(calendar: .autoupdatingCurrent, day: 2, hour: 6, minute: 35).date!,
-            sleepType: .asleepUnspecified,
-            source: .init(source: .default(), version: nil)
-        )],
-        goal: 8
-    )
-    LastNightCard(
-        sleepSessions: nil,
-        goal: 8
+#if DEBUG
+
+/// A single overnight session ending at 6:35am, long enough back to give a plausible bedtime.
+private func previewNight(hours: Double) -> SleepSession {
+    let wakeTime = Calendar.current.date(bySettingHour: 6, minute: 35, second: 0, of: Date()) ?? Date()
+    return SleepSession(
+        startDate: wakeTime.addingTimeInterval(-hours * 3600),
+        endDate: wakeTime,
+        sleepType: .asleepUnspecified,
+        source: .init(source: .default(), version: nil)
     )
 }
+
+#Preview("Met goal") {
+    LastNightCard(sleepSessions: [previewNight(hours: 8.2)], goal: 8, sourceAppLinks: [])
+        .padding()
+        .background(Color.backgroundBehindCards)
+}
+
+#Preview("Short night") {
+    LastNightCard(sleepSessions: [previewNight(hours: 5.75)], goal: 8, sourceAppLinks: [])
+        .padding()
+        .background(Color.backgroundBehindCards)
+}
+
+#Preview("No data") {
+    LastNightCard(sleepSessions: nil, goal: 8, sourceAppLinks: [])
+        .padding()
+        .background(Color.backgroundBehindCards)
+}
+
+#Preview("No data, with source apps") {
+    LastNightCard(
+        sleepSessions: nil,
+        goal: 8,
+        sourceAppLinks: [
+            SleepSourceAppLink(
+                id: "com.ouraring.oura",
+                name: "Oura",
+                destination: URL(string: "https://cloud.ouraring.com/app/v1/home")!,
+                lastDataDate: .now
+            )
+        ]
+    )
+    .padding()
+    .background(Color.backgroundBehindCards)
+}
+
+#endif

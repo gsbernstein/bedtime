@@ -14,21 +14,32 @@ final class UserPreferences {
     var wakeTime: Date
     var sleepBankDays: Int
     var lastUpdated: Date
-    var maxSleepHoursPerNight: Double
-    var minSleepHoursPerNight: Double
-    
+    var earliestReasonableBedtime: Date
+    /// When true, durations use decimal hours ("5.1h"); otherwise "5h 6m".
+    var useDecimalDurations: Bool = false
+
+    var durationDisplayStyle: DurationDisplayStyle {
+        useDecimalDurations ? .decimal : .hoursAndMinutes
+    }
+
     init(
         sleepGoalHours: Double = 8.0,
         wakeTime: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date(),
         sleepBankDays: Int = 7,
-        maxSleepHoursPerNight: Double = 10,
-        minSleepHoursPerNight: Double = 5
+        earliestReasonableBedtime: Date = Calendar.current.date(from: DateComponents(hour: 21, minute: 0)) ?? Date(),
+        useDecimalDurations: Bool = false
     ) {
         self.sleepGoalHours = sleepGoalHours
         self.wakeTime = wakeTime
         self.sleepBankDays = sleepBankDays
         self.lastUpdated = Date()
-        self.maxSleepHoursPerNight = maxSleepHoursPerNight
-        self.minSleepHoursPerNight = minSleepHoursPerNight
+        self.earliestReasonableBedtime = earliestReasonableBedtime
+        self.useDecimalDurations = useDecimalDurations
+    }
+
+    /// Convenience accessor for the nominal sleep-window length from this
+    /// schedule's stored times. Now-aware/DST math lives in `SleepWindow`.
+    var nominalMaxSleepHours: Double {
+        SleepWindow.nominalWindowHours(earliestBedtime: earliestReasonableBedtime, wakeTime: wakeTime)
     }
 }

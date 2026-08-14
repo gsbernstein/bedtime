@@ -13,22 +13,14 @@ struct HealthKitAuthorizationCard: View {
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: "heart.text.square")
-                        .font(.title2)
-                        .foregroundColor(AppColors.healthKit)
-                        .frame(width: Constants.iconWidth)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("HealthKit Access Required")
-                            .font(.headline)
-                        
-                        Text("We need access to your sleep data")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
+                CardHeader(
+                    icon: "heart.text.square",
+                    iconColor: AppColors.healthKit,
+                    title: "HealthKit Access Required"
+                ) {
+                    Text("We need access to your sleep data")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
                 
                 Text("To calculate your sleep bank and provide personalized bedtime recommendations, we need permission to read your sleep data from the Health app.")
@@ -45,7 +37,9 @@ struct HealthKitAuthorizationCard: View {
                 
                 Button("Grant Access") {
                     Task {
-                        try await healthKitManager.requestAuthorization()
+                        // A failure already lands in `errorMessage`, which this card
+                        // shows above, so there's nothing left to propagate.
+                        try? await healthKitManager.fetchSleepData()
                     }
                 }
                 .buttonStyle(.borderedProminent)
