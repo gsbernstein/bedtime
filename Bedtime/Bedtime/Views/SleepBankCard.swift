@@ -125,15 +125,8 @@ struct SleepBankCard: View {
             .accessibilityLabel("Sleep goal")
             .accessibilityValue(formattedGoal)
             .accessibilityHint("Adjusts your nightly sleep goal")
-            // Always opens above (arrowEdge .bottom) so it never covers the chart below,
-            // and is anchored to the button's bottom-right corner (rather than the default
-            // center of its bottom edge) so it extends up and to the left from there,
-            // covering the Average/Balance columns before it would ever reach the chart.
-            .popover(
-                isPresented: $isEditingGoal,
-                attachmentAnchor: .point(.bottomTrailing),
-                arrowEdge: .bottom
-            ) {
+            // Always opens above (arrowEdge .bottom) so it never covers the chart below.
+            .popover(isPresented: $isEditingGoal, arrowEdge: .bottom) {
                 SleepGoalEditor(goalHours: sleepGoalHours)
                     .frame(maxWidth: 150)
                     .presentationCompactAdaptation(.popover)
