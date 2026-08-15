@@ -127,6 +127,31 @@ private extension BedtimeActivityAttributes.ContentState {
     }
 }
 
+/// How insistently the card nudges toward reopening the app, based on how many
+/// nights into a locally pre-scheduled queue this one is (see the app's
+/// `LiveActivityManager.scheduleUpcomingNights`). Night 0 is a real,
+/// HealthKit-backed recommendation; every night after that just repeats the
+/// same clock times, so the nudge gets louder the further out it is.
+private enum ReminderLevel: Equatable {
+    case gentle
+    case final
+
+    init?(nightsSinceLastSync: Int) {
+        switch nightsSinceLastSync {
+        case ..<2: return nil
+        case 2..<(BedtimeActivityAttributes.maxConcurrentActivities - 1): self = .gentle
+        default: self = .final
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .gentle: "Open the app for an accurate recommendation"
+        case .final: "Open the app now to keep your countdown going"
+        }
+    }
+}
+
 /// Only the system format styles keep counting while the app is suspended, so the
 /// remaining time is rendered by the system rather than formatted by the app.
 ///
@@ -226,6 +251,12 @@ private struct BedtimeSummaryView: View {
 
                 scheduleTime(label: "Wake", date: state.wakeTime, alignment: .trailing)
             }
+
+            if let reminder = ReminderLevel(nightsSinceLastSync: state.nightsSinceLastSync) {
+                Label(reminder.message, systemImage: "arrow.triangle.2.circlepath")
+                    .font(.caption2)
+                    .foregroundStyle(reminder == .final ? .red : .secondary)
+            }
         }
     }
 
@@ -271,6 +302,21 @@ extension BedtimeActivityAttributes.ContentState {
             isSleeping: true
         )
     }
+
+    /// The last night of a pre-scheduled queue, several days without a fresh
+    /// HealthKit-backed recommendation.
+    fileprivate static var staleQueuedSample: Self {
+        let now = Date()
+        return Self(
+            activityStart: now.addingTimeInterval(.minutes(-30)),
+            bedtime: now.addingTimeInterval(.hours(2)),
+            wakeTime: now.addingTimeInterval(.hours(10)),
+            targetSleepHours: 8,
+            durationStyle: .hoursAndMinutes,
+            isSleeping: false,
+            nightsSinceLastSync: BedtimeActivityAttributes.maxConcurrentActivities - 1
+        )
+    }
 }
 
 #Preview("Lock Screen", as: .content, using: BedtimeActivityAttributes()) {
@@ -278,6 +324,7 @@ extension BedtimeActivityAttributes.ContentState {
 } contentStates: {
     BedtimeActivityAttributes.ContentState.windDownSample
     BedtimeActivityAttributes.ContentState.sleepingSample
+    BedtimeActivityAttributes.ContentState.staleQueuedSample
 }
 
 #Preview("Island Expanded", as: .dynamicIsland(.expanded), using: BedtimeActivityAttributes()) {

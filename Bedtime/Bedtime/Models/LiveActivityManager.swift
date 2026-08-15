@@ -129,7 +129,7 @@ final class LiveActivityManager: ObservableObject {
         }
 
         if #available(iOS 26, *) {
-            await scheduleActivity(
+            await scheduleUpcomingNights(
                 recommendation: recommendation,
                 durationStyle: durationStyle,
                 schedule: schedule,
@@ -138,50 +138,86 @@ final class LiveActivityManager: ObservableObject {
         }
     }
 
-    /// Hands the start over to the system so the card appears at the wind-down
-    /// time on its own. This is the only fully local way to get there: starting
-    /// one from a background wake throws `ActivityAuthorizationError.visibility`,
-    /// so every other route needs either a push server or a user-triggered intent.
+    /// Hands the starts over to the system so the wind-down card appears on its
+    /// own, and pre-schedules the following nights too, since starting one from
+    /// a background wake throws `ActivityAuthorizationError.visibility` — every
+    /// other route needs either a push server or a user-triggered intent.
+    ///
+    /// The following nights just repeat tonight's bedtime/wake clock times:
+    /// without another HealthKit-backed recalculation there's no better guess,
+    /// but a stale countdown (flagged as such in the widget) beats no countdown
+    /// at all until the person reopens the app. Only `.pending` activities are
+    /// ever touched here — one already `.active` and on screen is left alone.
     @available(iOS 26, *)
-    private func scheduleActivity(
+    private func scheduleUpcomingNights(
         recommendation: BedtimeRecommendation,
         durationStyle: DurationDisplayStyle,
         schedule: (bedtime: Date, wakeTime: Date),
         startingAt start: Date
     ) async {
-        // remove any existing activities scheduled to start at different times.
-        // It is not possible to update the start time of a scheduled activity
-        for activity in Activity<BedtimeActivityAttributes>.activities where activity.activityState == .pending {
-            if activity.content.state.bedtime == schedule.bedtime { return }
+        let calendar = Calendar.autoupdatingCurrent
+        let activeCount = Activity<BedtimeActivityAttributes>.activities
+            .filter { $0.activityState == .active }
+            .count
+        let nightCount = max(0, BedtimeActivityAttributes.maxConcurrentActivities - activeCount)
+        guard nightCount > 0 else { return }
+
+        let projectedNights: [(start: Date, bedtime: Date, wakeTime: Date)] = (0..<nightCount).compactMap { offset in
+            guard
+                let nightStart = calendar.date(byAdding: .day, value: offset, to: start),
+                let nightBedtime = calendar.date(byAdding: .day, value: offset, to: schedule.bedtime),
+                let nightWakeTime = calendar.date(byAdding: .day, value: offset, to: schedule.wakeTime)
+            else { return nil }
+            return (nightStart, nightBedtime, nightWakeTime)
+        }
+
+        let pending = Activity<BedtimeActivityAttributes>.activities.filter { $0.activityState == .pending }
+        // Already queued up with tonight's exact bedtimes, so leave it alone
+        // rather than tearing down and rebuilding an unchanged queue.
+        let pendingBedtimes = Set(pending.map(\.content.state.bedtime))
+        let desiredBedtimes = Set(projectedNights.map(\.bedtime))
+        guard pendingBedtimes != desiredBedtimes else { return }
+
+        for activity in pending {
             await activity.end(nil, dismissalPolicy: .immediate)
         }
 
-        let state = BedtimeActivityAttributes.ContentState(
-            activityStart: start,
-            bedtime: schedule.bedtime,
-            wakeTime: schedule.wakeTime,
-            targetSleepHours: recommendation.targetSleepDuration,
-            durationStyle: durationStyle,
-            // Scheduled activities always begin ahead of bedtime.
-            isSleeping: false
-        )
-
-        do {
-            let activity = try Activity.request(
-                attributes: BedtimeActivityAttributes(),
-                content: ActivityContent(state: state, staleDate: schedule.bedtime),
-                pushType: nil,
-                style: .standard,
-                alertConfiguration: AlertConfiguration(
-                    title: "Time to wind down",
-                    body: "Bedtime is coming up.",
-                    sound: .default
-                ),
-                start: start
+        for (index, night) in projectedNights.enumerated() {
+            let state = BedtimeActivityAttributes.ContentState(
+                activityStart: night.start,
+                bedtime: night.bedtime,
+                wakeTime: night.wakeTime,
+                targetSleepHours: recommendation.targetSleepDuration,
+                durationStyle: durationStyle,
+                // Scheduled activities always begin ahead of bedtime.
+                isSleeping: false,
+                nightsSinceLastSync: index
             )
-            activeActivityID = activity.id
-        } catch {
-            lastErrorMessage = error.localizedDescription
+
+            do {
+                let activity = try Activity.request(
+                    attributes: BedtimeActivityAttributes(),
+                    content: ActivityContent(state: state, staleDate: night.bedtime),
+                    pushType: nil,
+                    style: .standard,
+                    alertConfiguration: AlertConfiguration(
+                        title: "Time to wind down",
+                        body: "Bedtime is coming up.",
+                        sound: .default
+                    ),
+                    start: night.start
+                )
+                if index == 0 {
+                    activeActivityID = activity.id
+                }
+            } catch {
+                if index == 0 {
+                    lastErrorMessage = error.localizedDescription
+                }
+                // The remaining budget is likely exhausted too; stop rather
+                // than fail through the rest of the queue one at a time.
+                break
+            }
         }
     }
 
