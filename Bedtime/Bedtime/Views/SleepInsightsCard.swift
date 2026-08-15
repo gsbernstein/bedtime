@@ -16,11 +16,13 @@ struct SleepInsightsCard: View {
     @Environment(\.durationDisplayStyle) private var durationStyle
     @Environment(\.appTheme) private var theme
 
+    private var colors: any ThemeColorPalette { theme.colors }
+
     private var accentColor: Color {
         if insight.congratulationWindow != nil {
-            return AppColors.positive(theme)
+            return colors.positive
         }
-        return AppColors.warning(theme)
+        return colors.warning
     }
 
     private var iconName: String {
@@ -71,7 +73,7 @@ struct SleepInsightsCard: View {
                             .frame(maxWidth: .infinity)
                         }
                     .buttonStyle(.bordered)
-                    .tint(AppColors.warning(theme))
+                    .tint(colors.warning)
                     .padding(.top, 4)
                 }
 
@@ -87,7 +89,7 @@ struct SleepInsightsCard: View {
                         .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .tint(AppColors.positive(theme))
+                    .tint(colors.positive)
                     .padding(.top, 4)
                 }
             }

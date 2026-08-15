@@ -17,6 +17,8 @@ struct IncludedDaysRangeHandle: View {
     @GestureState private var dragTranslation: CGFloat = 0
     @Environment(\.appTheme) private var theme
 
+    private var colors: any ThemeColorPalette { theme.colors }
+
     private var displayedDays: Int {
         clamped(days + dayDelta(for: dragTranslation))
     }
@@ -25,7 +27,7 @@ struct IncludedDaysRangeHandle: View {
         ZStack(alignment: .leading) {
             VStack(spacing: 0) {
                 Rectangle()
-                    .fill(AppColors.accent(theme))
+                    .fill(colors.accent)
                 Rectangle()
                     .fill(Color.secondary.opacity(0.2))
             }
@@ -33,13 +35,13 @@ struct IncludedDaysRangeHandle: View {
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(AppColors.accent(theme).opacity(0.45))
+                    .fill(colors.accent.opacity(0.45))
                     .frame(height: 2)
 
                 HStack(spacing: 6) {
                     ZStack {
                         Circle()
-                            .fill(AppColors.accent(theme))
+                            .fill(colors.accent)
                         Image(systemName: "arrow.up.and.down")
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(.white)
@@ -50,16 +52,16 @@ struct IncludedDaysRangeHandle: View {
 
                     Text("\(displayedDays) days included")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppColors.accent(theme))
+                        .foregroundStyle(colors.accent)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                         .background(
                             Capsule()
-                                .fill(AppColors.cardBackground(theme))
+                                .fill(colors.cardBackground)
                         )
                         .overlay(
                             Capsule()
-                                .stroke(AppColors.accent(theme).opacity(0.35), lineWidth: 1)
+                                .stroke(colors.accent.opacity(0.35), lineWidth: 1)
                         )
                         .offset(x: -12)
                 }

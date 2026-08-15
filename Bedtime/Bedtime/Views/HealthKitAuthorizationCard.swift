@@ -10,13 +10,15 @@ import SwiftUI
 struct HealthKitAuthorizationCard: View {
     @ObservedObject var healthKitManager: HealthKitManager
     @Environment(\.appTheme) private var theme
+
+    private var colors: any ThemeColorPalette { theme.colors }
     
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
                 CardHeader(
                     icon: "heart.text.square",
-                    iconColor: AppColors.healthKit(theme),
+                    iconColor: colors.healthKit,
                     title: "HealthKit Access Required"
                 ) {
                     Text("We need access to your sleep data")
@@ -32,7 +34,7 @@ struct HealthKitAuthorizationCard: View {
                 if let errorMessage = healthKitManager.errorMessage {
                     Text(errorMessage)
                         .font(.caption)
-                        .foregroundColor(AppColors.healthKit(theme))
+                        .foregroundColor(colors.healthKit)
                         .multilineTextAlignment(.leading)
                 }
                 

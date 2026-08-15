@@ -18,7 +18,7 @@ struct SettingsView: View {
     @State private var isLoadingSources = true
     /// Reads straight from the model rather than `\.appTheme` so the picker inside this
     /// sheet/inspector reflects edits immediately regardless of environment propagation.
-    private var theme: AppTheme { preferences.theme }
+    private var colors: any ThemeColorPalette { preferences.theme.colors }
 
     private var sleepBankDaysBinding: Binding<Double> {
         Binding(
@@ -67,7 +67,7 @@ struct SettingsView: View {
                         ) {
                             EmptyView()
                         }
-                            .accentColor(AppColors.accent(theme))
+                            .accentColor(colors.accent)
                     }
                 }
                 
@@ -112,7 +112,7 @@ struct SettingsView: View {
                         ) {
                             EmptyView()
                         }
-                        .accentColor(AppColors.accent(theme))
+                        .accentColor(colors.accent)
                         
                         Text("How many recent days to include in your sleep bank calculation")
                             .font(.caption)
@@ -168,14 +168,14 @@ struct SettingsView: View {
                             }) {
                                 Text("Source \(bundleIdentifier) is no longer available. Tap to delete.")
                                     .font(.caption)
-                                    .foregroundColor(AppColors.warning(theme))
+                                    .foregroundColor(colors.warning)
                             }
                         }
                         
                         if allExcluded {
                             Text("No sources selected. Sleep data will not be displayed.")
                                 .font(.caption)
-                                .foregroundColor(AppColors.warning(theme))
+                                .foregroundColor(colors.warning)
                         }
                         
                     } else if isLoadingSources {

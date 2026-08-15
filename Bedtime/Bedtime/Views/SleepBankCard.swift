@@ -19,6 +19,8 @@ struct SleepBankCard: View {
     @Environment(\.durationDisplayStyle) private var durationStyle
     @Environment(\.appTheme) private var theme
 
+    private var colors: any ThemeColorPalette { theme.colors }
+
     @State private var isEditingGoal = false
 
     private var formattedGoal: String {
@@ -47,7 +49,7 @@ struct SleepBankCard: View {
             VStack(spacing: 10) {
                 CardHeader(
                     icon: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill",
-                    iconColor: sleepBank.statusColor(for: theme),
+                    iconColor: sleepBank.statusColor(in: colors),
                     title: "Sleep Balance"
                 ) {
                     Text(sleepBank.statusDescription(days: sleepBankDays))
@@ -67,7 +69,7 @@ struct SleepBankCard: View {
                             Text(TimeFormatter.formatHours(averageHours, style: durationStyle))
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(sleepBank.statusColor(for: theme))
+                                .foregroundColor(sleepBank.statusColor(in: colors))
                         } else {
                             Text("unknown")
                                 .font(.subheadline)
@@ -87,7 +89,7 @@ struct SleepBankCard: View {
                             Text(TimeFormatter.formatHours(sleepBank.currentBalance, style: durationStyle))
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(sleepBank.statusColor(for: theme))
+                                .foregroundColor(sleepBank.statusColor(in: colors))
                         } else {
                             Text("unknown")
                                 .font(.subheadline)

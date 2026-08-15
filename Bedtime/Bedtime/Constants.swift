@@ -52,13 +52,13 @@ class Constants {
         return sleepGoalHoursRange.lowerBound + snapped * sleepGoalStepHours
     }
 
-    static func sleepGoalColor(difference: Double, graceColor: Color, theme: AppTheme) -> Color {
-        if difference >= 0 { return AppColors.positive(theme) }
-        if difference < -sleepGoalGraceHours { return AppColors.negative(theme) }
+    static func sleepGoalColor(difference: Double, graceColor: Color, palette: any ThemeColorPalette) -> Color {
+        if difference >= 0 { return palette.positive }
+        if difference < -sleepGoalGraceHours { return palette.negative }
         return graceColor
     }
 
-    static func sleepDurationColor(hours: Double, goal: Double, graceColor: Color, theme: AppTheme) -> Color {
-        sleepGoalColor(difference: hours - goal, graceColor: graceColor, theme: theme)
+    static func sleepDurationColor(hours: Double, goal: Double, graceColor: Color, palette: any ThemeColorPalette) -> Color {
+        sleepGoalColor(difference: hours - goal, graceColor: graceColor, palette: palette)
     }
 }

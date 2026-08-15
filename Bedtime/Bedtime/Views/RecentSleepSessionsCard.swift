@@ -35,6 +35,8 @@ struct RecentSleepSessionsCard: View {
     let excludedSourceIDs: Set<String>
     @Binding var sleepBankDays: Int
     @Environment(\.appTheme) private var theme
+
+    private var colors: any ThemeColorPalette { theme.colors }
     
     @State private var expandedNights: Set<Date> = []
     
@@ -60,7 +62,7 @@ struct RecentSleepSessionsCard: View {
             VStack(spacing: 16) {
                 CardHeader(
                     icon: "chart.line.uptrend.xyaxis",
-                    iconColor: AppColors.recentSleep(theme),
+                    iconColor: colors.recentSleep,
                     title: "Recent Sleep"
                 )
                 
@@ -97,7 +99,7 @@ struct RecentSleepSessionsCard: View {
                                 .padding(.leading, 11)
                                 .overlay(alignment: .leading) {
                                     Rectangle()
-                                        .fill(isIncluded ? AppColors.accent(theme) : Color.secondary.opacity(0.2))
+                                        .fill(isIncluded ? colors.accent : Color.secondary.opacity(0.2))
                                         .frame(width: 3)
                                         .accessibilityHidden(true)
                                 }

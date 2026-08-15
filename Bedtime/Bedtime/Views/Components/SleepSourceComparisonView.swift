@@ -104,7 +104,7 @@ struct SleepStageTimelineBar: View {
                         let width = session.duration / rangeDuration
 
                         Rectangle()
-                            .fill(session.sleepType.color(for: theme))
+                            .fill(session.sleepType.color(in: theme.colors))
                             .opacity(isDimmed ? 0.35 : 1)
                             .frame(width: max(proxy.size.width * width, 1))
                             .offset(x: proxy.size.width * offset)

@@ -13,6 +13,8 @@ struct LastNightCard: View {
     let sourceAppLinks: [SleepSourceAppLink]
     @Environment(\.durationDisplayStyle) private var durationStyle
     @Environment(\.appTheme) private var theme
+
+    private var colors: any ThemeColorPalette { theme.colors }
     
     var durationInHours: TimeInterval? {
         sleepSessions?.map(\.durationInHours).reduce(0, +)
@@ -24,7 +26,7 @@ struct LastNightCard: View {
             hours: durationInHours,
             goal: goal,
             graceColor: .primary,
-            theme: theme
+            palette: colors
         )
     }
     
@@ -33,7 +35,7 @@ struct LastNightCard: View {
             VStack(spacing: 16) {
                 CardHeader(
                     icon: "calendar",
-                    iconColor: AppColors.lastNight(theme),
+                    iconColor: colors.lastNight,
                     title: "Last Night"
                 )
                 

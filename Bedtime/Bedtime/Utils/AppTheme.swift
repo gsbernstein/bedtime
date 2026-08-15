@@ -26,6 +26,16 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         case .cozyBlack: return "Cozy (Black)"
         }
     }
+
+    /// The concrete color palette for this theme. Call sites read through this rather than
+    /// switching on the theme themselves.
+    var colors: any ThemeColorPalette {
+        switch self {
+        case .system: return SystemThemeColors()
+        case .cozy: return CozyThemeColors()
+        case .cozyBlack: return CozyBlackThemeColors()
+        }
+    }
 }
 
 private struct AppThemeKey: EnvironmentKey {
