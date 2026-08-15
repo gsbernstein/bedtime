@@ -17,6 +17,8 @@ final class UserPreferences {
     var earliestReasonableBedtime: Date
     /// When true, durations use decimal hours ("5.1h"); otherwise "5h 6m".
     var useDecimalDurations: Bool = false
+    /// When true, the sleep balance waterfall chart is hidden from the Sleep Balance card.
+    var hideSleepBankChart: Bool = false
 
     var durationDisplayStyle: DurationDisplayStyle {
         useDecimalDurations ? .decimal : .hoursAndMinutes
@@ -27,7 +29,8 @@ final class UserPreferences {
         wakeTime: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date(),
         sleepBankDays: Int = 7,
         earliestReasonableBedtime: Date = Calendar.current.date(from: DateComponents(hour: 21, minute: 0)) ?? Date(),
-        useDecimalDurations: Bool = false
+        useDecimalDurations: Bool = false,
+        hideSleepBankChart: Bool = false
     ) {
         self.sleepGoalHours = sleepGoalHours
         self.wakeTime = wakeTime
@@ -35,6 +38,7 @@ final class UserPreferences {
         self.lastUpdated = Date()
         self.earliestReasonableBedtime = earliestReasonableBedtime
         self.useDecimalDurations = useDecimalDurations
+        self.hideSleepBankChart = hideSleepBankChart
     }
 
     /// Convenience accessor for the nominal sleep-window length from this

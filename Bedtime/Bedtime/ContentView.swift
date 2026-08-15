@@ -142,7 +142,8 @@ struct ContentView: View {
                             sleepBank: sleepBank,
                             fullWindowBank: fullWindowSleepBank,
                             sleepBankDays: sleepBankDaysBinding,
-                            sleepGoalHours: sleepGoalHoursBinding
+                            sleepGoalHours: sleepGoalHoursBinding,
+                            hideChart: userPreferences.hideSleepBankChart
                         )
 
                         if let sleepBankInsight {
