@@ -249,7 +249,10 @@ struct ContentView: View {
 
         await liveActivityManager.syncWithSchedule(
             recommendation: recommendation,
-            durationStyle: durationStyle
+            durationStyle: durationStyle,
+            sourceAppLink: recentSourceAppLinks.first.map {
+                BedtimeSourceAppLink(name: $0.name, url: $0.destination)
+            }
         )
     }
 }

@@ -1,4 +1,5 @@
 import ActivityKit
+import BackgroundTasks
 import Combine
 import Foundation
 
@@ -33,6 +34,22 @@ final class LiveActivityManager: ObservableObject {
         activeActivityID = Activity<BedtimeActivityAttributes>.activities.first?.id
     }
 
+    /// Registers the background refresh task handler. Apple requires this to
+    /// happen synchronously before the app finishes launching, so call it from
+    /// `BedtimeApp.init()` rather than anywhere the shared instance is used —
+    /// registration doesn't depend on there being an activity yet.
+    static func registerBackgroundTask() {
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: Constants.wakeRefreshTaskIdentifier,
+            using: nil
+        ) { task in
+            Task { @MainActor in
+                await LiveActivityManager.shared.markAwakeIfNeeded()
+                task.setTaskCompleted(success: true)
+            }
+        }
+    }
+
     func newStartTime(bedtime: Date, now: Date) -> Date {
         // A fixed elapsed-time subtraction rather than calendar arithmetic: the
         // lead time should always be an actual 30 minutes, not a wall-clock gap
@@ -43,7 +60,8 @@ final class LiveActivityManager: ObservableObject {
 
     func startOrUpdate(
         with recommendation: BedtimeRecommendation,
-        durationStyle: DurationDisplayStyle
+        durationStyle: DurationDisplayStyle,
+        sourceAppLink: BedtimeSourceAppLink? = nil
     ) async {
         guard isSupported else {
             lastErrorMessage = "Live Activities need iOS 18 or later."
@@ -69,7 +87,8 @@ final class LiveActivityManager: ObservableObject {
             wakeTime: schedule.wakeTime,
             targetSleepHours: recommendation.targetSleepDuration,
             durationStyle: durationStyle,
-            isSleeping: isSleeping
+            isSleeping: isSleeping,
+            sourceAppLink: sourceAppLink
         )
         // Going stale at bedtime flips the card to the sleeping countdown while
         // the app is suspended. Starting mid-night, bedtime has already gone by,
@@ -80,7 +99,11 @@ final class LiveActivityManager: ObservableObject {
         )
 
         if let activity = Self.activity(withID: activeActivityID) {
-            if activity.activityState == .active {
+            // `.stale` still counts as on screen: the sleeping phase is
+            // reached by deliberately letting the wind-down content go stale
+            // at bedtime, so this is the common case for most of the night,
+            // not an edge case.
+            if activity.activityState == .active || activity.activityState == .stale {
                 await activity.update(content)
                 return
             }
@@ -97,9 +120,47 @@ final class LiveActivityManager: ObservableObject {
                 pushType: nil
             )
             activeActivityID = activity.id
+            scheduleWakeRefreshTask(at: schedule.wakeTime)
         } catch {
             lastErrorMessage = error.localizedDescription
         }
+    }
+
+    /// Flips the activity to its post-wake phase once `wakeTime` has passed,
+    /// without recomputing the recommendation: this runs from a HealthKit
+    /// background delivery callback or the wake-refresh background task,
+    /// neither of which has cheap access to the full recommendation inputs
+    /// (HealthKit averages, SwiftData preferences) — nor needs them, since
+    /// every other field on the activity is left exactly as it was.
+    func markAwakeIfNeeded(now: Date = Date()) async {
+        guard
+            let activity = Self.activity(withID: activeActivityID),
+            activity.activityState == .active || activity.activityState == .stale
+        else { return }
+
+        let state = activity.content.state
+        guard state.isSleeping, !state.isAwake, now >= state.wakeTime else { return }
+
+        var updatedState = state
+        updatedState.isAwake = true
+        // Nothing left to wait for, so there's no future date to go stale at.
+        await activity.update(ActivityContent(state: updatedState, staleDate: nil))
+    }
+
+    /// Best-effort backup for `markAwakeIfNeeded`, in case HealthKit doesn't
+    /// deliver new sleep data by wake time (no watch/ring worn, slow sync,
+    /// etc). Not time-precise — iOS decides when to actually run it.
+    ///
+    /// `BGProcessingTaskRequest` rather than `BGAppRefreshTaskRequest`: the
+    /// latter needs the `fetch` UIBackgroundMode, but only `processing` is
+    /// declared. The work itself is trivial, so the conditions that usually
+    /// make processing tasks wait for a convenient moment are turned off.
+    private func scheduleWakeRefreshTask(at wakeTime: Date) {
+        let request = BGProcessingTaskRequest(identifier: Constants.wakeRefreshTaskIdentifier)
+        request.earliestBeginDate = wakeTime
+        request.requiresNetworkConnectivity = false
+        request.requiresExternalPower = false
+        try? BGTaskScheduler.shared.submit(request)
     }
 
     /// Starts the activity once the wind-down window opens, refreshes it if the
@@ -109,7 +170,8 @@ final class LiveActivityManager: ObservableObject {
         recommendation: BedtimeRecommendation,
         durationStyle: DurationDisplayStyle,
         leadTime: TimeInterval = Constants.liveActivityLeadTime,
-        now: Date = Date()
+        now: Date = Date(),
+        sourceAppLink: BedtimeSourceAppLink? = nil
     ) async {
         await endFinishedActivities(now: now)
 
@@ -124,7 +186,7 @@ final class LiveActivityManager: ObservableObject {
         // the window ahead of tonight's bedtime. An activity already running
         // carries the rest of the night on its own.
         guard now < windowOpens else {
-            await startOrUpdate(with: recommendation, durationStyle: durationStyle)
+            await startOrUpdate(with: recommendation, durationStyle: durationStyle, sourceAppLink: sourceAppLink)
             return
         }
 
@@ -133,7 +195,8 @@ final class LiveActivityManager: ObservableObject {
                 recommendation: recommendation,
                 durationStyle: durationStyle,
                 schedule: schedule,
-                startingAt: windowOpens
+                startingAt: windowOpens,
+                sourceAppLink: sourceAppLink
             )
         }
     }
@@ -153,7 +216,8 @@ final class LiveActivityManager: ObservableObject {
         recommendation: BedtimeRecommendation,
         durationStyle: DurationDisplayStyle,
         schedule: (bedtime: Date, wakeTime: Date),
-        startingAt start: Date
+        startingAt start: Date,
+        sourceAppLink: BedtimeSourceAppLink? = nil
     ) async {
         let calendar = Calendar.autoupdatingCurrent
         let activeCount = Activity<BedtimeActivityAttributes>.activities
@@ -191,7 +255,8 @@ final class LiveActivityManager: ObservableObject {
                 durationStyle: durationStyle,
                 // Scheduled activities always begin ahead of bedtime.
                 isSleeping: false,
-                nightsSinceLastSync: index
+                nightsSinceLastSync: index,
+                sourceAppLink: sourceAppLink
             )
 
             do {
@@ -209,6 +274,7 @@ final class LiveActivityManager: ObservableObject {
                 )
                 if index == 0 {
                     activeActivityID = activity.id
+                    scheduleWakeRefreshTask(at: night.wakeTime)
                 }
             } catch {
                 if index == 0 {

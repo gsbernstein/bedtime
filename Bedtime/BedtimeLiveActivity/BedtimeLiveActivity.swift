@@ -37,52 +37,71 @@ struct BedtimeLiveActivity: Widget {
                 .lineLimit(1)
             } compactTrailing: {
                 let phase = BedtimePhase(context)
-                VStack(spacing: 2) {
-                    CountdownText(state: context.state, phase: phase)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
+                if phase == .awake {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.indigo)
+                } else {
+                    VStack(spacing: 2) {
+                        CountdownText(state: context.state, phase: phase)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
 
-                    PhaseProgressBar(state: context.state, phase: phase)
-                        .frame(height: 2)
+                        PhaseProgressBar(state: context.state, phase: phase)
+                            .frame(height: 2)
+                    }
+                    // Text doesn't hug so without a cap the region
+                    // grows to fill the whole side of the status bar.
+                    .frame(maxWidth: 56)
                 }
-                // Text doesn't hug so without a cap the region
-                // grows to fill the whole side of the status bar.
-                .frame(maxWidth: 56)
             } minimal: {
                 let phase = BedtimePhase(context)
-                ProgressView(
-                    timerInterval: context.state.progressRange(for: phase),
-                    countsDown: phase == .windDown
-                ) {
-                    EmptyView()
-                } currentValueLabel: {
+                if phase == .awake {
                     Image(systemName: phase.symbol)
-                        .padding(2)
+                        .foregroundStyle(.indigo)
+                } else {
+                    ProgressView(
+                        timerInterval: context.state.progressRange(for: phase),
+                        countsDown: phase == .windDown
+                    ) {
+                        EmptyView()
+                    } currentValueLabel: {
+                        Image(systemName: phase.symbol)
+                            .padding(2)
+                    }
+                    .progressViewStyle(.circular)
+                    .tint(.indigo)
                 }
-                .progressViewStyle(.circular)
-                .tint(.indigo)
             }
             .keylineTint(.indigo)
         }
     }
 }
 
-/// The activity covers two stretches of the night. `staleDate` is set to bedtime,
-/// so the system re-renders into the sleeping phase without the app running.
+/// The activity covers three stretches: wind-down, sleeping, and — once
+/// `LiveActivityManager.markAwakeIfNeeded()` flips `isAwake` — done. The first
+/// transition happens locally when `staleDate` (set to bedtime) passes; the
+/// second can't, since `staleDate` only lapses once, so it needs the app to
+/// actually run and push that update.
 private enum BedtimePhase {
     case windDown
     case sleeping
+    case awake
 
     init(_ context: ActivityViewContext<BedtimeActivityAttributes>) {
-        // Either the activity began after bedtime, or it has since gone stale at
-        // bedtime and the system re-rendered it.
-        self = context.state.isSleeping || context.isStale ? .sleeping : .windDown
+        if context.state.isAwake {
+            self = .awake
+        } else {
+            // Either the activity began after bedtime, or it has since gone
+            // stale at bedtime and the system re-rendered it.
+            self = context.state.isSleeping || context.isStale ? .sleeping : .windDown
+        }
     }
 
     var symbol: String {
         switch self {
         case .windDown: "bed.double.fill"
         case .sleeping: "moon.zzz.fill"
+        case .awake: "sun.max.fill"
         }
     }
 
@@ -91,6 +110,7 @@ private enum BedtimePhase {
         switch self {
         case .windDown: "Bedtime"
         case .sleeping: "Wake"
+        case .awake: "Awake"
         }
     }
 
@@ -100,6 +120,7 @@ private enum BedtimePhase {
         switch self {
         case .windDown: "Sleep"
         case .sleeping: "Wake"
+        case .awake: "Awake"
         }
     }
 }
@@ -109,14 +130,14 @@ private extension BedtimeActivityAttributes.ContentState {
     func start(for phase: BedtimePhase) -> Date {
         switch phase {
         case .windDown: activityStart
-        case .sleeping: bedtime
+        case .sleeping, .awake: bedtime
         }
     }
 
     func target(for phase: BedtimePhase) -> Date {
         switch phase {
         case .windDown: bedtime
-        case .sleeping: wakeTime
+        case .sleeping, .awake: wakeTime
         }
     }
 
@@ -216,47 +237,75 @@ private struct BedtimeSummaryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 4) {
-                Image(systemName: phase.symbol)
-                    .foregroundStyle(.indigo)
-                    .padding(.trailing, 2)
-
-                Text(phase.countdownLabel)
-
-                CountdownText(state: state, phase: phase)
-                    .fontWeight(.semibold)
-
-                Spacer(minLength: 0)
+            if phase == .awake {
+                awakeContent
+            } else {
+                countdownContent
             }
-            .font(.headline)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
+        }
+    }
 
-            PhaseProgressBar(state: state, phase: phase)
+    private var awakeContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Good morning", systemImage: phase.symbol)
+                .font(.headline)
+                .foregroundStyle(.indigo)
 
-            HStack(alignment: .firstTextBaseline) {
-                scheduleTime(label: "Bedtime", date: state.bedtime, alignment: .leading)
-
-                Spacer(minLength: 8)
-
-                VStack {
-                    Text("Target")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(targetText)
-                        .font(.headline)
+            if let link = state.sourceAppLink {
+                Link(destination: link.url) {
+                    Label("Open \(link.name) to see your data", systemImage: "arrow.up.right")
                 }
+                .font(.subheadline)
+            } else {
+                Text("Open Bedger to see your sleep data")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
 
-                Spacer(minLength: 8)
+    @ViewBuilder
+    private var countdownContent: some View {
+        HStack(spacing: 4) {
+            Image(systemName: phase.symbol)
+                .foregroundStyle(.indigo)
+                .padding(.trailing, 2)
 
-                scheduleTime(label: "Wake", date: state.wakeTime, alignment: .trailing)
+            Text(phase.countdownLabel)
+
+            CountdownText(state: state, phase: phase)
+                .fontWeight(.semibold)
+
+            Spacer(minLength: 0)
+        }
+        .font(.headline)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+
+        PhaseProgressBar(state: state, phase: phase)
+
+        HStack(alignment: .firstTextBaseline) {
+            scheduleTime(label: "Bedtime", date: state.bedtime, alignment: .leading)
+
+            Spacer(minLength: 8)
+
+            VStack {
+                Text("Target")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(targetText)
+                    .font(.headline)
             }
 
-            if let reminder = ReminderLevel(nightsSinceLastSync: state.nightsSinceLastSync) {
-                Label(reminder.message, systemImage: "arrow.triangle.2.circlepath")
-                    .font(.caption2)
-                    .foregroundStyle(reminder == .final ? .red : .secondary)
-            }
+            Spacer(minLength: 8)
+
+            scheduleTime(label: "Wake", date: state.wakeTime, alignment: .trailing)
+        }
+
+        if let reminder = ReminderLevel(nightsSinceLastSync: state.nightsSinceLastSync) {
+            Label(reminder.message, systemImage: "arrow.triangle.2.circlepath")
+                .font(.caption2)
+                .foregroundStyle(reminder == .final ? .red : .secondary)
         }
     }
 
@@ -303,6 +352,24 @@ extension BedtimeActivityAttributes.ContentState {
         )
     }
 
+    /// Awake: wake time has passed and `markAwakeIfNeeded()` marked it done.
+    fileprivate static var awakeSample: Self {
+        let now = Date()
+        return Self(
+            activityStart: now.addingTimeInterval(.hours(-8)),
+            bedtime: now.addingTimeInterval(.hours(-8)),
+            wakeTime: now.addingTimeInterval(.minutes(-5)),
+            targetSleepHours: 8,
+            durationStyle: .hoursAndMinutes,
+            isSleeping: true,
+            sourceAppLink: BedtimeSourceAppLink(
+                name: "Oura",
+                url: URL(string: "https://cloud.ouraring.com/app/v1/home")!
+            ),
+            isAwake: true
+        )
+    }
+
     /// The last night of a pre-scheduled queue, several days without a fresh
     /// HealthKit-backed recommendation.
     fileprivate static var staleQueuedSample: Self {
@@ -324,6 +391,7 @@ extension BedtimeActivityAttributes.ContentState {
 } contentStates: {
     BedtimeActivityAttributes.ContentState.windDownSample
     BedtimeActivityAttributes.ContentState.sleepingSample
+    BedtimeActivityAttributes.ContentState.awakeSample
     BedtimeActivityAttributes.ContentState.staleQueuedSample
 }
 
@@ -332,6 +400,7 @@ extension BedtimeActivityAttributes.ContentState {
 } contentStates: {
     BedtimeActivityAttributes.ContentState.windDownSample
     BedtimeActivityAttributes.ContentState.sleepingSample
+    BedtimeActivityAttributes.ContentState.awakeSample
 }
 
 #Preview("Island Compact", as: .dynamicIsland(.compact), using: BedtimeActivityAttributes()) {
@@ -339,6 +408,7 @@ extension BedtimeActivityAttributes.ContentState {
 } contentStates: {
     BedtimeActivityAttributes.ContentState.windDownSample
     BedtimeActivityAttributes.ContentState.sleepingSample
+    BedtimeActivityAttributes.ContentState.awakeSample
 }
 
 #Preview("Island Minimal", as: .dynamicIsland(.minimal), using: BedtimeActivityAttributes()) {
@@ -346,5 +416,6 @@ extension BedtimeActivityAttributes.ContentState {
 } contentStates: {
     BedtimeActivityAttributes.ContentState.windDownSample
     BedtimeActivityAttributes.ContentState.sleepingSample
+    BedtimeActivityAttributes.ContentState.awakeSample
 }
 
