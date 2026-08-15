@@ -90,10 +90,12 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+
+                    Toggle("Hide sleep balance chart", isOn: $preferences.hideSleepBankChart)
                 } header: {
                     Text("Display")
                 } footer: {
-                    Text("Off uses hours and minutes (5h 6m). On uses decimal hours (5.1h); sleep goals can show quarter hours like 7.25h.")
+                    Text("Off uses hours and minutes (5h 6m). On uses decimal hours (5.1h); sleep goals can show quarter hours like 7.25h.\n\nHiding the sleep balance chart keeps the Sleep Balance card's summary but removes the waterfall graph.")
                 }
                 
                 Section("Sleep Bank Calculation") {

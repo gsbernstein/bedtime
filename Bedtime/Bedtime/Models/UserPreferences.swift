@@ -20,6 +20,8 @@ final class UserPreferences {
     /// Stored as a raw string so an unrecognized value (e.g. from a future app version)
     /// falls back to `.cozy` instead of failing to load.
     private var themeRawValue: String = AppTheme.cozy.rawValue
+    /// When true, the sleep balance waterfall chart is hidden from the Sleep Balance card.
+    var hideSleepBankChart: Bool = false
 
     var durationDisplayStyle: DurationDisplayStyle {
         useDecimalDurations ? .decimal : .hoursAndMinutes
@@ -36,7 +38,8 @@ final class UserPreferences {
         sleepBankDays: Int = 7,
         earliestReasonableBedtime: Date = Calendar.current.date(from: DateComponents(hour: 21, minute: 0)) ?? Date(),
         useDecimalDurations: Bool = false,
-        theme: AppTheme = .cozy
+        theme: AppTheme = .cozy,
+        hideSleepBankChart: Bool = false
     ) {
         self.sleepGoalHours = sleepGoalHours
         self.wakeTime = wakeTime
@@ -45,6 +48,7 @@ final class UserPreferences {
         self.earliestReasonableBedtime = earliestReasonableBedtime
         self.useDecimalDurations = useDecimalDurations
         self.themeRawValue = theme.rawValue
+        self.hideSleepBankChart = hideSleepBankChart
     }
 
     /// Convenience accessor for the nominal sleep-window length from this

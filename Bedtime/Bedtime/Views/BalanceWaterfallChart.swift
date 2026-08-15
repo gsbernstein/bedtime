@@ -9,13 +9,15 @@ import SwiftUI
 ///
 /// The chart always draws every night the range start can be moved to, so it keeps a
 /// fixed width while the selected range changes. Tapping a column starts the range on
-/// that night. The baseline is the balance carried into the selected range, which makes
-/// the gap between the baseline and the end of the last column the balance the card
-/// reports.
+/// that night. A static line marks the balance carried out of the most recent night, and
+/// the gap between it and the balance carried into the selected range is the balance the
+/// card reports.
 ///
-/// Because every column is a step in one running total, any baseline below the ending
-/// balance produces a positive range and any baseline above it produces a negative one —
-/// that is what the green and red background bands mark out.
+/// Because every column is a step in one running total, any ending balance above the
+/// range's starting balance produces a positive range and any ending balance below it
+/// produces a negative one — that is what the green and red background bands mark out.
+/// The bands are anchored to the range's starting balance, so they move as the selected
+/// range changes.
 struct BalanceWaterfallChart: View {
     /// Cap on the rounding of a step's unanchored corners, so wide or tall columns stay
     /// recognizably rectangular.
@@ -67,18 +69,12 @@ struct BalanceWaterfallChart: View {
         return balances[min(selectionStartIndex, balances.count - 1)]
     }
 
-    /// Share of the width taken up by nights older than the selected range.
-    private var excludedWidthFraction: CGFloat {
-        guard !nights.isEmpty else { return 0 }
-        return CGFloat(selectionStartIndex) / CGFloat(nights.count)
-    }
-
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .topLeading) {
                 aboveBelowBands(size: proxy.size)
                 columns(size: proxy.size)
-                baseline(size: proxy.size)
+                endingBalanceLine(size: proxy.size)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
@@ -99,16 +95,18 @@ struct BalanceWaterfallChart: View {
         .sensoryFeedback(.selection, trigger: clampedSelectedDays)
     }
 
-    /// Light bands split at the ending balance: a range that starts in the green band
-    /// finishes ahead of the goal, one that starts in the red band finishes behind.
+    /// Light bands split at the baseline balance carried into the selected range: if the
+    /// most recent night ends up in the green band above, the range gained ground; if it
+    /// ends up in the red band below, the range lost ground. Because the split is anchored
+    /// to the range's starting balance, it shifts whenever the selected range changes.
     private func aboveBelowBands(size: CGSize) -> some View {
-        let dividerY = min(max(yPosition(for: endingBalance, in: size.height), 0), size.height)
+        let dividerY = min(max(yPosition(for: baselineBalance, in: size.height), 0), size.height)
         return VStack(spacing: 0) {
             Rectangle()
-                .fill(colors.negative.opacity(0.1))
+                .fill(colors.positive.opacity(0.1))
                 .frame(height: dividerY)
             Rectangle()
-                .fill(colors.positive.opacity(0.1))
+                .fill(colors.negative.opacity(0.1))
         }
     }
 
@@ -163,19 +161,13 @@ struct BalanceWaterfallChart: View {
         )
     }
 
-    private func baseline(size: CGSize) -> some View {
-        let excludedWidth = size.width * excludedWidthFraction
-        return ZStack(alignment: .topLeading) {
-            Rectangle()
-                .fill(Color.secondary.opacity(0.25))
-                .frame(width: excludedWidth, height: 1)
-
-            Rectangle()
-                .fill(Color.secondary.opacity(0.6))
-                .frame(width: size.width - excludedWidth, height: 1)
-                .offset(x: excludedWidth)
-        }
-        .offset(y: yPosition(for: baselineBalance, in: size.height))
+    /// A single static line at the balance carried out of the most recent night, unaffected
+    /// by the selected range.
+    private func endingBalanceLine(size: CGSize) -> some View {
+        Rectangle()
+            .fill(Color.secondary.opacity(0.6))
+            .frame(width: size.width, height: 1)
+            .offset(y: yPosition(for: endingBalance, in: size.height))
     }
 
     private func yPosition(for value: Double, in height: CGFloat) -> CGFloat {

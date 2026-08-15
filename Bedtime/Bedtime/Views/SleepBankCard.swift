@@ -16,6 +16,8 @@ struct SleepBankCard: View {
     @Binding var sleepBankDays: Int
     /// When provided, the goal is tappable and edits this value directly.
     var sleepGoalHours: Binding<Double>? = nil
+    /// When true, the balance waterfall chart is omitted from the card.
+    var hideChart: Bool = false
     @Environment(\.durationDisplayStyle) private var durationStyle
     @Environment(\.appTheme) private var theme
 
@@ -103,7 +105,7 @@ struct SleepBankCard: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 
-                if !fullWindowBank.balanceImpacts.isEmpty {
+                if !hideChart && !fullWindowBank.balanceImpacts.isEmpty {
                     BalanceWaterfallChart(
                         nights: fullWindowBank.recentNights,
                         impacts: fullWindowBank.balanceImpacts,
