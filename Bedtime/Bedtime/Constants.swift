@@ -55,7 +55,7 @@ class Constants {
     static func sleepGoalColor(difference: Double) -> KeyPath<ThemeColorPalette, Color>? {
         if difference >= 0 { return \.positive }
         if difference < -sleepGoalGraceHours { return \.negative }
-        return nil
+        return nil // "grace" coloring when you're pretty close
     }
 
     static func sleepDurationColor(hours: Double, goal: Double) -> KeyPath<ThemeColorPalette, Color>? {
