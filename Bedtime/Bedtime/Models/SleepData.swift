@@ -136,7 +136,7 @@ struct SleepBank: Equatable {
     
     var statusColor: KeyPath<ThemeColorPalette, Color> {
         guard averageHours != nil else { return \.secondary }
-        return Constants.sleepGoalColor(difference: currentBalance) ?? \.secondary
+        return Constants.sleepGoalColor(difference: currentBalance) ?? \.primary
     }
 
     var debtHours: Double {
