@@ -8,7 +8,6 @@ import SwiftUI
 /// Warm palette inspired by the app icon: coral accents, cream backgrounds, dusty
 /// mauve/brown sleep-stage colors.
 struct CozyThemeColors: ThemeColorPalette {
-    /// Cream, shared with `CozyBlackThemeColors` in light mode.
     static let cream: (Double, Double, Double) = (0.984, 0.957, 0.929)
     static let creamCard: (Double, Double, Double) = (0.992, 0.973, 0.953)
 
