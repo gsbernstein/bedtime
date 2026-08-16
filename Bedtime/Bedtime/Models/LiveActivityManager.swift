@@ -235,14 +235,21 @@ final class LiveActivityManager: ObservableObject {
             return (nightStart, nightBedtime, nightWakeTime)
         }
 
-        let pending = Activity<BedtimeActivityAttributes>.activities.filter { $0.activityState == .pending }
         // Already queued up with tonight's exact bedtimes, so leave it alone
         // rather than tearing down and rebuilding an unchanged queue.
-        let pendingBedtimes = Set(pending.map(\.content.state.bedtime))
+        let pendingBedtimes = Set(
+            Activity<BedtimeActivityAttributes>.activities
+                .filter { $0.activityState == .pending }
+                .map(\.content.state.bedtime)
+        )
         let desiredBedtimes = Set(projectedNights.map(\.bedtime))
         guard pendingBedtimes != desiredBedtimes else { return }
 
-        for activity in pending {
+        // Re-derived rather than reused from `pendingBedtimes` above: once an
+        // `Activity` has been read from within this actor-isolated region, the
+        // compiler can no longer prove it's safe to send into `await end(...)`
+        // below. A fresh, standalone expression avoids that.
+        for activity in Activity<BedtimeActivityAttributes>.activities where activity.activityState == .pending {
             await activity.end(nil, dismissalPolicy: .immediate)
         }
 
