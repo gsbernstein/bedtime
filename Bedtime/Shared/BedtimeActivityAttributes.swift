@@ -4,7 +4,11 @@ import Foundation
 /// A deep link to the third-party app that actually wrote recent sleep data to
 /// HealthKit (e.g. Oura), so the card can point there directly once the person
 /// wakes up instead of a bare "open Bedger" that doesn't have the data either.
-struct BedtimeSourceAppLink: Codable, Hashable {
+///
+/// Embedded in `ContentState`, so like `BedtimeActivityAttributes` this must
+/// stay off the module's default MainActor isolation, or its `Equatable`/
+/// `Hashable` conformances become main-actor-isolated too.
+nonisolated struct BedtimeSourceAppLink: Codable, Hashable {
     let name: String
     let url: URL
 }
