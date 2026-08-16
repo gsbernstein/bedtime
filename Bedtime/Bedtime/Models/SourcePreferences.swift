@@ -11,6 +11,7 @@ import Combine
 import HealthKit
 
 /// Manages user preferences for which HealthKit sources to include in sleep data
+@MainActor
 class SourcePreferences: ObservableObject {
     private static let excludedSourcesKey = "excludedSleepSourceBundleIdentifiers"
     

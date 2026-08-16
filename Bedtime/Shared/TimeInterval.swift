@@ -7,7 +7,7 @@
 
 import Foundation
 
-nonisolated extension TimeInterval {
+extension TimeInterval {
 
     static func minutes(_ minutes: Int) -> TimeInterval {
         TimeInterval(60 * minutes)

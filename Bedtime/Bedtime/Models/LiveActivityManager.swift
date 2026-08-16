@@ -37,8 +37,10 @@ final class LiveActivityManager: ObservableObject {
     /// Registers the background refresh task handler. Apple requires this to
     /// happen synchronously before the app finishes launching, so call it from
     /// `BedtimeApp.init()` rather than anywhere the shared instance is used —
-    /// registration doesn't depend on there being an activity yet.
-    static func registerBackgroundTask() {
+    /// registration doesn't depend on there being an activity yet. `nonisolated`
+    /// since `App.init()` isn't MainActor-isolated; the launch handler still
+    /// hops to the main actor itself before touching `.shared`.
+    nonisolated static func registerBackgroundTask() {
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: Constants.wakeRefreshTaskIdentifier,
             using: nil

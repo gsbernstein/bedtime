@@ -4,18 +4,12 @@ import Foundation
 /// A deep link to the third-party app that actually wrote recent sleep data to
 /// HealthKit (e.g. Oura), so the card can point there directly once the person
 /// wakes up instead of a bare "open Bedger" that doesn't have the data either.
-///
-/// Embedded in `ContentState`, so like `BedtimeActivityAttributes` this must
-/// stay off the module's default MainActor isolation, or its `Equatable`/
-/// `Hashable` conformances become main-actor-isolated too.
-nonisolated struct BedtimeSourceAppLink: Codable, Hashable {
+struct BedtimeSourceAppLink: Codable, Hashable {
     let name: String
     let url: URL
 }
 
-// ActivityKit hands this type to the widget extension across isolation
-// boundaries, so it must stay off the target's default MainActor isolation.
-nonisolated struct BedtimeActivityAttributes: ActivityAttributes {
+struct BedtimeActivityAttributes: ActivityAttributes {
     /// The system caps an app at this many concurrent Live Activities, counting
     /// both active and merely `.pending` (scheduled but not yet started) ones.
     /// Shared with the widget extension so its staleness messaging can key off
