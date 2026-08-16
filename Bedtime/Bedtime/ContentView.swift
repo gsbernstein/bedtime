@@ -25,19 +25,16 @@ struct ContentView: View {
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
     }
     
-    private var lastNightKey: Date {
-        let calendar = Calendar.current
-        return calendar.startOfDay(
-            for: calendar.date(byAdding: .hour, value: -4, to: Date()) ?? Date()
-        )
+    private var featuredNight: Date {
+        SleepDay.featured(in: healthKitManager.sleepSessions)
     }
 
-    var lastNightData: [SleepSession]? {
-        healthKitManager.sleepSessions[lastNightKey]
+    var featuredNightData: [SleepSession]? {
+        healthKitManager.sleepSessions[featuredNight]
     }
 
     private var recentSourceAppLinks: [SleepSourceAppLink] {
-        guard healthKitManager.allSleepSessions[lastNightKey] == nil else { return [] }
+        guard healthKitManager.allSleepSessions[featuredNight] == nil else { return [] }
         return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
     }
     
@@ -126,7 +123,7 @@ struct ContentView: View {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     case .hasRequested:
                         if isBeforeEvening {
-                            LastNightCard(sleepSessions: lastNightData,
+                            LastNightCard(sleepSessions: featuredNightData,
                                           goal: userPreferences.sleepGoalHours,
                                           sourceAppLinks: recentSourceAppLinks)
                         } else {
@@ -167,7 +164,7 @@ struct ContentView: View {
                                 wakeTime: wakeTimeBinding
                             )
                         } else {
-                            LastNightCard(sleepSessions: lastNightData,
+                            LastNightCard(sleepSessions: featuredNightData,
                                           goal: userPreferences.sleepGoalHours,
                                           sourceAppLinks: recentSourceAppLinks)
                         }

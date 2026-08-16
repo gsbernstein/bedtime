@@ -29,9 +29,7 @@ struct SleepSession {
     }
     
     var dateForGrouping: Date {
-        let midpoint = startDate.addingTimeInterval(duration / 2)
-        let shiftedMidpoint = midpoint.addingTimeInterval(TimeInterval(6 * 60 * 60))
-        return Calendar.current.startOfDay(for: shiftedMidpoint)
+        SleepDay.containing(startDate.addingTimeInterval(duration / 2))
     }
 }
 
