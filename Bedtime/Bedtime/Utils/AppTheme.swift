@@ -10,8 +10,8 @@ import SwiftUI
 enum AppTheme: String, CaseIterable, Identifiable, Codable {
     /// The original look: default iOS system colors and backgrounds.
     case system
-    /// Warm palette inspired by the app icon: coral accents, cream backgrounds, dusty
-    /// mauve/brown sleep-stage colors.
+    /// Warm palette inspired by the app icon: a dusty blue accent from the sleep cap, cream
+    /// backgrounds, and a distinguishable spread of warm sleep-stage colors.
     case cozy
 
     var id: String { rawValue }
