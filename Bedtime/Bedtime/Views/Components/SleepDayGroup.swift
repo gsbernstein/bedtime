@@ -34,15 +34,14 @@ struct SleepDayGroup: View {
     
     private var balanceImpact: (value: Double, isPositive: Bool, color: Color) {
         let difference = totalSleepHours - sleepGoal
+        let keypath = Constants.sleepDurationColor(
+            hours: totalSleepHours,
+            goal: sleepGoal
+        ) ?? \.secondary
         return (
             abs(difference),
             difference >= 0,
-            Constants.sleepDurationColor(
-                hours: totalSleepHours,
-                goal: sleepGoal,
-                graceColor: .secondary,
-                palette: colors
-            )
+            colors[keyPath: keypath]
         )
     }
     

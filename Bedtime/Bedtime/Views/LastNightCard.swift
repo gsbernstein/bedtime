@@ -22,12 +22,11 @@ struct LastNightCard: View {
 
     private var durationColor: Color {
         guard let durationInHours else { return .secondary }
-        return Constants.sleepDurationColor(
+        let keypath = Constants.sleepDurationColor(
             hours: durationInHours,
-            goal: goal,
-            graceColor: .primary,
-            palette: colors
-        )
+            goal: goal
+        ) ?? \.primary
+        return colors[keyPath: keypath]
     }
     
     var body: some View {

@@ -21,6 +21,8 @@ protocol ThemeColorPalette {
     var sleepInBed: Color { get }
     var background: Color { get }
     var cardBackground: Color { get }
+    var primary: Color { get }
+    var secondary: Color { get }
 }
 
 extension ThemeColorPalette {

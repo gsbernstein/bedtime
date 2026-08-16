@@ -45,6 +45,9 @@ struct CozyThemeColors: ThemeColorPalette {
     /// Warm taupe (#584744).
     let sleepInBed = dynamicColor(light: (0.345, 0.278, 0.267), dark: (0.478, 0.404, 0.384))
 
-    let background = dynamicColor(light: Self.cream, dark: Self.darkBrown)
-    let cardBackground = dynamicColor(light: Self.creamCard, dark: Self.darkBrownCard)
+    let background = dynamicColor(light: CozyThemeColors.cream, dark: (0, 0, 0))
+    let cardBackground = dynamicColor(light: CozyThemeColors.creamCard, dark: Self.creamCard)
+
+    let primary: Color = .primary
+    let secondary: Color = .secondary
 }

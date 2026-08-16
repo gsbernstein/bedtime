@@ -51,7 +51,7 @@ struct SleepBankCard: View {
             VStack(spacing: 10) {
                 CardHeader(
                     icon: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill",
-                    iconColor: sleepBank.statusColor(in: colors),
+                    iconColor: colors[keyPath: sleepBank.statusColor],
                     title: "Sleep Balance"
                 ) {
                     Text(sleepBank.statusDescription(days: sleepBankDays))
@@ -71,7 +71,7 @@ struct SleepBankCard: View {
                             Text(TimeFormatter.formatHours(averageHours, style: durationStyle))
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(sleepBank.statusColor(in: colors))
+                                .foregroundColor(colors[keyPath: sleepBank.statusColor])
                         } else {
                             Text("unknown")
                                 .font(.subheadline)
@@ -91,7 +91,7 @@ struct SleepBankCard: View {
                             Text(TimeFormatter.formatHours(sleepBank.currentBalance, style: durationStyle))
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(sleepBank.statusColor(in: colors))
+                                .foregroundColor(colors[keyPath: sleepBank.statusColor])
                         } else {
                             Text("unknown")
                                 .font(.subheadline)

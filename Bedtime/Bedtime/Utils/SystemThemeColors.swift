@@ -20,4 +20,6 @@ struct SystemThemeColors: ThemeColorPalette {
     let sleepInBed = Color.gray
     let background = dynamicColor(light: .secondarySystemBackground, dark: .systemBackground)
     let cardBackground = dynamicColor(light: .systemBackground, dark: .tertiarySystemBackground)
+    let primary = Color.primary
+    let secondary = Color.secondary
 }
