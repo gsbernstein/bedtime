@@ -12,9 +12,7 @@ struct CozyThemeColors: ThemeColorPalette {
     static let cream: (Double, Double, Double) = (0.984, 0.957, 0.929)
     static let creamCard: (Double, Double, Double) = (0.992, 0.973, 0.953)
 
-    /// Dark warm brown, used behind cards in dark mode.
-    private static let darkBrown: (Double, Double, Double) = (0.165, 0.129, 0.118)
-    private static let darkBrownCard: (Double, Double, Double) = (0.239, 0.196, 0.173)
+    private static let nearBlackCard: (Double, Double, Double) = (0.110, 0.110, 0.110)
 
     /// Warm coral from the app icon (#f8987c).
     let accent = dynamicColor(light: (0.973, 0.596, 0.486), dark: (0.961, 0.659, 0.573))
@@ -46,7 +44,7 @@ struct CozyThemeColors: ThemeColorPalette {
     let sleepInBed = dynamicColor(light: (0.345, 0.278, 0.267), dark: (0.478, 0.404, 0.384))
 
     let background = dynamicColor(light: CozyThemeColors.cream, dark: (0, 0, 0))
-    let cardBackground = dynamicColor(light: CozyThemeColors.creamCard, dark: Self.creamCard)
+    let cardBackground = dynamicColor(light: CozyThemeColors.creamCard, dark: Self.nearBlackCard)
 
     let primary: Color = .primary
     let secondary: Color = .secondary
