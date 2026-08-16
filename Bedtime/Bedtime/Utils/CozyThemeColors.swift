@@ -25,6 +25,6 @@ struct CozyThemeColors: ThemeColorPalette {
     let sleepInBed = Color.cozySleepInBed
     let background = Color.cozyBackground
     let cardBackground = Color.cozyCardBackground
-    let primary: Color = .primary
-    let secondary: Color = .secondary
+    let primary = Color.primary
+    let secondary = Color.secondary
 }
