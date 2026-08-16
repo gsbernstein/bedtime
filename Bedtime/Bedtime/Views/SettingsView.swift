@@ -16,6 +16,9 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isLoadingSources = true
+    /// Reads straight from the model rather than `\.appTheme` so the picker inside this
+    /// sheet/inspector reflects edits immediately regardless of environment propagation.
+    private var colors: any ThemeColorPalette { preferences.theme.colors }
 
     private var sleepBankDaysBinding: Binding<Double> {
         Binding(
@@ -36,6 +39,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Appearance") {
+                    Picker("Theme", selection: $preferences.theme) {
+                        ForEach(AppTheme.allCases) { option in
+                            Text(option.displayName).tag(option)
+                        }
+                    }
+                }
+
                 Section("Sleep Goal") {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -56,7 +67,7 @@ struct SettingsView: View {
                         ) {
                             EmptyView()
                         }
-                            .accentColor(.blue)
+                            .accentColor(colors.accent)
                     }
                 }
                 
@@ -103,7 +114,7 @@ struct SettingsView: View {
                         ) {
                             EmptyView()
                         }
-                        .accentColor(.blue)
+                        .accentColor(colors.accent)
                         
                         Text("How many recent days to include in your sleep bank calculation")
                             .font(.caption)
@@ -159,14 +170,14 @@ struct SettingsView: View {
                             }) {
                                 Text("Source \(bundleIdentifier) is no longer available. Tap to delete.")
                                     .font(.caption)
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(colors.warning)
                             }
                         }
                         
                         if allExcluded {
                             Text("No sources selected. Sleep data will not be displayed.")
                                 .font(.caption)
-                                .foregroundColor(.orange)
+                                .foregroundColor(colors.warning)
                         }
                         
                     } else if isLoadingSources {

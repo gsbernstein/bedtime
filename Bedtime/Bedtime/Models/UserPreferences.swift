@@ -17,11 +17,19 @@ final class UserPreferences {
     var earliestReasonableBedtime: Date
     /// When true, durations use decimal hours ("5.1h"); otherwise "5h 6m".
     var useDecimalDurations: Bool = false
+    /// Stored as a raw string so an unrecognized value (e.g. from a future app version)
+    /// falls back to `.cozy` instead of failing to load.
+    private var themeRawValue: String = AppTheme.cozy.rawValue
     /// When true, the sleep balance waterfall chart is hidden from the Sleep Balance card.
     var hideSleepBankChart: Bool = false
 
     var durationDisplayStyle: DurationDisplayStyle {
         useDecimalDurations ? .decimal : .hoursAndMinutes
+    }
+
+    var theme: AppTheme {
+        get { AppTheme(rawValue: themeRawValue) ?? .cozy }
+        set { themeRawValue = newValue.rawValue }
     }
 
     init(
@@ -30,6 +38,7 @@ final class UserPreferences {
         sleepBankDays: Int = 7,
         earliestReasonableBedtime: Date = Calendar.current.date(from: DateComponents(hour: 21, minute: 0)) ?? Date(),
         useDecimalDurations: Bool = false,
+        theme: AppTheme = .cozy,
         hideSleepBankChart: Bool = false
     ) {
         self.sleepGoalHours = sleepGoalHours
@@ -38,6 +47,7 @@ final class UserPreferences {
         self.lastUpdated = Date()
         self.earliestReasonableBedtime = earliestReasonableBedtime
         self.useDecimalDurations = useDecimalDurations
+        self.themeRawValue = theme.rawValue
         self.hideSleepBankChart = hideSleepBankChart
     }
 
