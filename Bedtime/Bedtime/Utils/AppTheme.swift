@@ -13,9 +13,6 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
     /// Warm palette inspired by the app icon: coral accents, cream backgrounds, dusty
     /// mauve/brown sleep-stage colors.
     case cozy
-    /// The cozy palette with a true-black background and cards in dark mode, for OLED
-    /// displays and users who prefer maximum contrast.
-    case cozyBlack
 
     var id: String { rawValue }
 
@@ -23,7 +20,6 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .system: return "System"
         case .cozy: return "Cozy"
-        case .cozyBlack: return "Cozy (Black)"
         }
     }
 
@@ -33,7 +29,6 @@ enum AppTheme: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .system: return SystemThemeColors()
         case .cozy: return CozyThemeColors()
-        case .cozyBlack: return CozyBlackThemeColors()
         }
     }
 }
