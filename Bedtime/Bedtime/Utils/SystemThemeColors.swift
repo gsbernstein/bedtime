@@ -5,8 +5,6 @@
 
 import SwiftUI
 
-/// The original default iOS system colors, exactly as they were before the cozy palette
-/// existed (see the app's git history for the extraction commit that predates it).
 struct SystemThemeColors: ThemeColorPalette {
     let accent = Color.blue
     let recentSleep = Color.purple

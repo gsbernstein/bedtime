@@ -209,7 +209,7 @@ private struct SleepBankCardPreview: View {
             )
             .padding()
         }
-        .background(Color.backgroundBehindCards)
+        .background(AppTheme.cozy.colors.background)
     }
 }
 

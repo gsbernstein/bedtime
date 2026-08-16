@@ -127,7 +127,7 @@ struct SleepInsightsCard: View {
         onApplyDays: { _ in }
     )
     .padding()
-    .background(Color.backgroundBehindCards)
+    .background(AppTheme.cozy.colors.background)
 }
 
 #Preview("Motivator only") {
@@ -155,7 +155,7 @@ struct SleepInsightsCard: View {
         onApplyDays: { _ in }
     )
     .padding()
-    .background(Color.backgroundBehindCards)
+    .background(AppTheme.cozy.colors.background)
 }
 
 #Preview("Caught up everywhere") {
@@ -190,5 +190,5 @@ struct SleepInsightsCard: View {
         onRaiseGoal: { _ in }
     )
     .padding()
-    .background(Color.backgroundBehindCards)
+    .background(AppTheme.cozy.colors.background)
 }

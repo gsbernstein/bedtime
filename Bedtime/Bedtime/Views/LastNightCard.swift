@@ -122,19 +122,19 @@ private func previewNight(hours: Double) -> SleepSession {
 #Preview("Met goal") {
     LastNightCard(sleepSessions: [previewNight(hours: 8.2)], goal: 8, sourceAppLinks: [])
         .padding()
-        .background(Color.backgroundBehindCards)
+        .background(AppTheme.cozy.colors.background)
 }
 
 #Preview("Short night") {
     LastNightCard(sleepSessions: [previewNight(hours: 5.75)], goal: 8, sourceAppLinks: [])
         .padding()
-        .background(Color.backgroundBehindCards)
+        .background(AppTheme.cozy.colors.background)
 }
 
 #Preview("No data") {
     LastNightCard(sleepSessions: nil, goal: 8, sourceAppLinks: [])
         .padding()
-        .background(Color.backgroundBehindCards)
+        .background(AppTheme.cozy.colors.background)
 }
 
 #Preview("No data, with source apps") {
@@ -151,7 +151,7 @@ private func previewNight(hours: Double) -> SleepSession {
         ]
     )
     .padding()
-    .background(Color.backgroundBehindCards)
+    .background(AppTheme.cozy.colors.background)
 }
 
 #endif

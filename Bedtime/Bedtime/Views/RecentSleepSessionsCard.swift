@@ -158,7 +158,7 @@ private struct RecentSleepSessionsCardPreview: View {
             )
             .padding()
         }
-        .background(Color.backgroundBehindCards)
+        .background(AppTheme.cozy.colors.background)
     }
 }
 

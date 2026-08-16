@@ -144,7 +144,7 @@ private struct WakeTimeEditor: View {
                 wakeTime: $wakeTime
             )
             .padding()
-            .background(Color.backgroundBehindCards)
+            .background(AppTheme.cozy.colors.background)
         }
     }
     return PreviewHost()
