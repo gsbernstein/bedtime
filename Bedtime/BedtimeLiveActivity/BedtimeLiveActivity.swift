@@ -43,15 +43,19 @@ struct BedtimeLiveActivity: Widget {
                 } else {
                     VStack(spacing: 2) {
                         CountdownText(state: context.state, phase: phase)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.7)
 
                         PhaseProgressBar(state: context.state, phase: phase)
                             .frame(height: 2)
                     }
-                    // Text doesn't hug so without a cap the region
-                    // grows to fill the whole side of the status bar.
-                    .frame(maxWidth: 56)
+                    // Text doesn't hug so without a cap the region grows to
+                    // fill the whole side of the status bar. A phrase like
+                    // "in 26 minutes" is too wide for one line even at this
+                    // width, so it's allowed to wrap instead of shrinking to
+                    // the point of being unreadable.
+                    .frame(maxWidth: 46)
                 }
             } minimal: {
                 let phase = BedtimePhase(context)
