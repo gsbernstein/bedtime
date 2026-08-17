@@ -15,6 +15,7 @@ struct ContentView: View {
     @Query private var preferences: [UserPreferences]
     @StateObject private var sourcePreferences: SourcePreferences
     @StateObject private var healthKitManager: HealthKitManager
+    @ObservedObject private var liveActivityManager = LiveActivityManager.shared
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var error: Error?
@@ -132,6 +133,7 @@ struct ContentView: View {
                         } else {
                             BedtimeRecommendationCard(
                                 recommendation: bedtimeRecommendation,
+                                liveActivityManager: liveActivityManager,
                                 wakeTime: wakeTimeBinding
                             )
                         }
@@ -164,6 +166,7 @@ struct ContentView: View {
                         if isBeforeEvening {
                             BedtimeRecommendationCard(
                                 recommendation: bedtimeRecommendation,
+                                liveActivityManager: liveActivityManager,
                                 wakeTime: wakeTimeBinding
                             )
                         } else {
@@ -222,14 +225,44 @@ struct ContentView: View {
         }
         .task {
             try? await healthKitManager.fetchSleepData()
+            await refreshBedtimePlan()
         }
         .onChange(of: scenePhase) { _, newPhase in
             // Refresh on return from background: the observer query's background
             // delivery is throttled, and `.task` doesn't re-run on resume, so this
             // covers data added in the Health app while we were suspended.
             guard newPhase == .active else { return }
-            Task { try? await healthKitManager.fetchSleepData() }
+            Task {
+                try? await healthKitManager.fetchSleepData()
+                await refreshBedtimePlan()
+            }
         }
+        .onChange(of: bedtimeRecommendation) { _, _ in
+            // Catches every foreground way the recommendation can move — the
+            // sleep bank range, sleep goal, or wake time — none of which go
+            // through `scenePhase` above since the app never left the
+            // foreground for them.
+            Task {
+                await refreshBedtimePlan()
+            }
+        }
+    }
+
+    /// Records tonight's recommendation for background entry points and brings the
+    /// Live Activity in line with it.
+    private func refreshBedtimePlan() async {
+        let recommendation = bedtimeRecommendation
+        let durationStyle = userPreferences.durationDisplayStyle
+
+        BedtimePlanStore.save(recommendation, durationStyle: durationStyle)
+
+        await liveActivityManager.syncWithSchedule(
+            recommendation: recommendation,
+            durationStyle: durationStyle,
+            sourceAppLink: recentSourceAppLinks.first.map {
+                BedtimeSourceAppLink(name: $0.name, url: $0.destination)
+            }
+        )
     }
 }
 

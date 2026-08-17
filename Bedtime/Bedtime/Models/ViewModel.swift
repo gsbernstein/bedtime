@@ -114,22 +114,22 @@ class ViewModel {
 
         // Calculate how much sleep we need tonight
         // If we're in debt, we need extra sleep to catch up
-        var totalSleepNeeded = sleepGoal - sleepBank.currentBalance
-        
+        var totalHoursNeeded = sleepGoal - sleepBank.currentBalance
+
         // Generate reason
         let reason: String?
         if sleepBank.averageHours == nil {
             reason = "No data so far, just aim for your goal"
-        } else if totalSleepNeeded > maxSleepHours {
-            totalSleepNeeded = maxSleepHours
+        } else if totalHoursNeeded > maxSleepHours {
+            totalHoursNeeded = maxSleepHours
             reason = nil
         } else if sleepBank.isInDebt {
             let debtHours = sleepBank.debtHours
-            let needed = TimeFormatter.formatHours(totalSleepNeeded, style: durationStyle)
+            let needed = TimeFormatter.formatHours(totalHoursNeeded, style: durationStyle)
             let debt = TimeFormatter.formatHours(debtHours, style: durationStyle)
             reason = "You need \(needed) tonight to catch up on your \(debt) sleep debt."
         } else {
-            totalSleepNeeded = sleepGoal
+            totalHoursNeeded = sleepGoal
             let goal = TimeFormatter.formatHours(
                 sleepGoal,
                 style: durationStyle,
@@ -138,13 +138,15 @@ class ViewModel {
             reason = "You're ahead of the game! Aim for at least \(goal) tonight."
         }
 
-        let sleepNeededMinutes = Int((totalSleepNeeded * 60).rounded())
-        let recommendedBedtime = calendar.date(byAdding: .minute, value: -sleepNeededMinutes, to: wakeTime) ?? wakeTime.addingTimeInterval(-totalSleepNeeded * 60 * 60)
-        
+        // A fixed elapsed-time subtraction rather than calendar arithmetic: what
+        // matters is actually sleeping for this many hours, not a wall-clock gap
+        // that a DST transition overnight could stretch or shrink by an hour.
+        let recommendedBedtime = wakeTime.addingTimeInterval(-.hours(totalHoursNeeded))
+
         return BedtimeRecommendation(
             recommendedBedtime: recommendedBedtime,
             wakeTime: wakeTime,
-            targetSleepDuration: totalSleepNeeded,
+            targetSleepDuration: totalHoursNeeded,
             reason: reason
         )
     }

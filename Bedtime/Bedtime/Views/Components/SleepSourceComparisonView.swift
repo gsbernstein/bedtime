@@ -122,10 +122,10 @@ struct SleepStageTimelineBar: View {
     
     SleepSourceComparisonView(
         sessions: [
-            SleepSession(startDate: bedTime, endDate: bedTime.addingTimeInterval(3600), sleepType: .asleepCore, source: sourceA),
-            SleepSession(startDate: bedTime.addingTimeInterval(3600), endDate: bedTime.addingTimeInterval(7200), sleepType: .asleepDeep, source: sourceA),
-            SleepSession(startDate: bedTime.addingTimeInterval(300), endDate: bedTime.addingTimeInterval(5400), sleepType: .asleepCore, source: sourceB),
-            SleepSession(startDate: bedTime.addingTimeInterval(5400), endDate: bedTime.addingTimeInterval(7800), sleepType: .asleepREM, source: sourceB),
+            SleepSession(startDate: bedTime, endDate: bedTime.addingTimeInterval(.hours(1)), sleepType: .asleepCore, source: sourceA),
+            SleepSession(startDate: bedTime.addingTimeInterval(.hours(1)), endDate: bedTime.addingTimeInterval(.hours(2)), sleepType: .asleepDeep, source: sourceA),
+            SleepSession(startDate: bedTime.addingTimeInterval(.minutes(5)), endDate: bedTime.addingTimeInterval(.minutes(90)), sleepType: .asleepCore, source: sourceB),
+            SleepSession(startDate: bedTime.addingTimeInterval(.minutes(90)), endDate: bedTime.addingTimeInterval(.minutes(130)), sleepType: .asleepREM, source: sourceB),
         ],
         excludedSourceIDs: ["com.example.disabled"]
     )
