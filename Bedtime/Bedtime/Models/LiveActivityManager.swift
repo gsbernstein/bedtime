@@ -31,7 +31,7 @@ final class LiveActivityManager: ObservableObject {
     }
 
     init() {
-        activeActivityID = Activity<BedtimeActivityAttributes>.activities.first?.id
+        activeActivityID = (Self.currentlyVisibleActivity() ?? Activity<BedtimeActivityAttributes>.activities.first)?.id
     }
 
     /// Registers the background refresh task handler. Apple requires this to
@@ -82,7 +82,12 @@ final class LiveActivityManager: ObservableObject {
         let now = Date()
         let schedule = getTimes(for: recommendation, now: now)
         let isSleeping = now >= schedule.bedtime
-        let startTime = Self.activity(withID: activeActivityID)?.content.state.activityStart ?? newStartTime(bedtime: schedule.bedtime, now: now)
+        // Prefer whatever's actually on screen over the cached
+        // `activeActivityID`: once the multi-night queue is in play, that
+        // cache can point at a `.pending` future night instead of tonight's
+        // visible activity, silently updating the wrong one.
+        let existingActivity = Self.currentlyVisibleActivity() ?? Self.activity(withID: activeActivityID)
+        let startTime = existingActivity?.content.state.activityStart ?? newStartTime(bedtime: schedule.bedtime, now: now)
         let state = BedtimeActivityAttributes.ContentState(
             activityStart: startTime,
             bedtime: schedule.bedtime,
@@ -100,13 +105,14 @@ final class LiveActivityManager: ObservableObject {
             staleDate: isSleeping ? schedule.wakeTime : schedule.bedtime
         )
 
-        if let activity = Self.activity(withID: activeActivityID) {
+        if let activity = existingActivity {
             // `.stale` still counts as on screen: the sleeping phase is
             // reached by deliberately letting the wind-down content go stale
             // at bedtime, so this is the common case for most of the night,
             // not an edge case.
             if activity.activityState == .active || activity.activityState == .stale {
                 await activity.update(content)
+                activeActivityID = activity.id
                 return
             }
             // Anything else is scheduled but not on screen yet. Clear it so this
@@ -135,10 +141,7 @@ final class LiveActivityManager: ObservableObject {
     /// (HealthKit averages, SwiftData preferences) — nor needs them, since
     /// every other field on the activity is left exactly as it was.
     func markAwakeIfNeeded(now: Date = Date()) async {
-        guard
-            let activity = Self.activity(withID: activeActivityID),
-            activity.activityState == .active || activity.activityState == .stale
-        else { return }
+        guard let activity = Self.currentlyVisibleActivity() else { return }
 
         let state = activity.content.state
         guard state.isSleeping, !state.isAwake, now >= state.wakeTime else { return }
@@ -147,6 +150,7 @@ final class LiveActivityManager: ObservableObject {
         updatedState.isAwake = true
         // Nothing left to wait for, so there's no future date to go stale at.
         await activity.update(ActivityContent(state: updatedState, staleDate: nil))
+        activeActivityID = activity.id
     }
 
     /// Best-effort backup for `markAwakeIfNeeded`, in case HealthKit doesn't
@@ -337,6 +341,21 @@ final class LiveActivityManager: ObservableObject {
         guard let id else { return nil }
         return Activity<BedtimeActivityAttributes>.activities.first {
             $0.id == id
+        }
+    }
+
+    /// The activity actually on screen right now, if any. `.stale` counts —
+    /// that's how the sleeping phase is reached, not a separate case.
+    ///
+    /// Preferred over trusting `activeActivityID` for anything that should
+    /// act on what's visible: that property is only a cache, and once the
+    /// multi-night queue is in play `Activity.activities` can also contain
+    /// several `.pending` future nights, so picking the wrong entry (or an
+    /// `.id` left pointing at one) would silently update or end the wrong
+    /// activity instead of the one on screen.
+    private nonisolated static func currentlyVisibleActivity() -> Activity<BedtimeActivityAttributes>? {
+        Activity<BedtimeActivityAttributes>.activities.first {
+            $0.activityState == .active || $0.activityState == .stale
         }
     }
 
