@@ -237,6 +237,15 @@ struct ContentView: View {
                 await refreshBedtimePlan()
             }
         }
+        .onChange(of: bedtimeRecommendation) { _, _ in
+            // Catches every foreground way the recommendation can move — the
+            // sleep bank range, sleep goal, or wake time — none of which go
+            // through `scenePhase` above since the app never left the
+            // foreground for them.
+            Task {
+                await refreshBedtimePlan()
+            }
+        }
     }
 
     /// Records tonight's recommendation for background entry points and brings the

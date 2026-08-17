@@ -162,7 +162,7 @@ struct SleepBank: Equatable {
     
 }
 
-struct BedtimeRecommendation {
+struct BedtimeRecommendation: Equatable {
     let recommendedBedtime: Date
     let wakeTime: Date
     let targetSleepDuration: Double // in hours
