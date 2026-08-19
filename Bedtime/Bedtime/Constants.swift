@@ -61,4 +61,10 @@ class Constants {
     static func sleepDurationColor(hours: Double, goal: Double, graceColor: Color) -> Color {
         sleepGoalColor(difference: hours - goal, graceColor: graceColor)
     }
+
+    /// Named coordinate space for the app's main scroll view. Descendants can measure their
+    /// position relative to it (`.named(mainScrollCoordinateSpaceName)`) to reliably track how
+    /// far they are from the top/bottom of the visible viewport as the user scrolls—unlike
+    /// `.global` frames, which don't update consistently during interactive scrolling.
+    static let mainScrollCoordinateSpaceName = "mainScrollView"
 }
