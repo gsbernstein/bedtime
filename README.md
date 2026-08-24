@@ -21,6 +21,7 @@ A native iOS app that helps optimize your sleep by tracking your "sleep bank" an
 - Considers your normal wake time and sleep goal
 - Adjusts recommendations when you're in sleep debt
 - Tap the wake time on the recommendation card to adjust it without opening settings
+- Starts a Live Activity with a bedtime countdown and overnight progress on the Lock Screen and Dynamic Island
 
 ### 📊 Sleep History
 - View your recent sleep sessions from HealthKit

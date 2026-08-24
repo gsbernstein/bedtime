@@ -133,7 +133,7 @@ private struct RecentSleepSessionsCardPreview: View {
             else { continue }
             sessions[night] = [
                 SleepSession(
-                    startDate: wakeTime.addingTimeInterval(-hours * 3600),
+                    startDate: wakeTime.addingTimeInterval(.hours(-hours)),
                     endDate: wakeTime,
                     sleepType: .asleepUnspecified,
                     source: .init(source: .default(), version: nil)

@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 /// How durations are shown throughout the app.
-enum DurationDisplayStyle: String, CaseIterable, Identifiable {
+enum DurationDisplayStyle: String, Codable, CaseIterable, Identifiable {
     /// Compact hours and minutes, e.g. "5h 6m".
     case hoursAndMinutes
     /// Decimal hours, e.g. "5.1h" (or "7.25h" when more precision is needed).
