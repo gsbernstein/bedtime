@@ -45,6 +45,10 @@ final class LiveActivityManager: ObservableObject {
             forTaskWithIdentifier: Constants.wakeRefreshTaskIdentifier,
             using: nil
         ) { task in
+            // BGTask isn't Sendable, but the system allows calling
+            // setTaskCompleted from any context — matches the HealthKit
+            // observer's completionHandler workaround.
+            nonisolated(unsafe) let task = task
             Task { @MainActor in
                 await LiveActivityManager.shared.markAwakeIfNeeded()
                 task.setTaskCompleted(success: true)
@@ -86,8 +90,16 @@ final class LiveActivityManager: ObservableObject {
         // `activeActivityID`: once the multi-night queue is in play, that
         // cache can point at a `.pending` future night instead of tonight's
         // visible activity, silently updating the wrong one.
-        let existingActivity = Self.currentlyVisibleActivity() ?? Self.activity(withID: activeActivityID)
-        let startTime = existingActivity?.content.state.activityStart ?? newStartTime(bedtime: schedule.bedtime, now: now)
+        //
+        // Looked up fresh at each use below rather than stored in a shared
+        // `let`: once an `Activity` has been read synchronously within this
+        // actor-isolated function, the compiler can no longer prove it's
+        // safe to send into `await update(...)` further down.
+        func existingActivity() -> Activity<BedtimeActivityAttributes>? {
+            Self.currentlyVisibleActivity() ?? Self.activity(withID: activeActivityID)
+        }
+
+        let startTime = existingActivity()?.content.state.activityStart ?? newStartTime(bedtime: schedule.bedtime, now: now)
         let state = BedtimeActivityAttributes.ContentState(
             activityStart: startTime,
             bedtime: schedule.bedtime,
@@ -105,7 +117,7 @@ final class LiveActivityManager: ObservableObject {
             staleDate: isSleeping ? schedule.wakeTime : schedule.bedtime
         )
 
-        if let activity = existingActivity, activity.activityState == .active || activity.activityState == .stale {
+        if let activity = existingActivity(), activity.activityState == .active || activity.activityState == .stale {
             // `.stale` still counts as on screen: the sleeping phase is
             // reached by deliberately letting the wind-down content go stale
             // at bedtime, so this is the common case for most of the night,
