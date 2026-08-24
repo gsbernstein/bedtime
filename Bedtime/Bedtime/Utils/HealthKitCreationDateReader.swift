@@ -24,6 +24,6 @@ enum HealthKitCreationDateReader {
     private static let key = "creationTimestamp"
 
     static func creationDate(for sample: HKSample) -> Date? {
-        KVCSafeAccessor.safeValue(key, forObject: sample) as? Date
+        KVCSafeAccessor.safeValue(key, for: sample) as? Date
     }
 }

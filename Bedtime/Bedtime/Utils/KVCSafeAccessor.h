@@ -17,7 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Returns `[object valueForKey:key]`, or `nil` if that raises any exception (e.g. the key is
 /// undefined) instead of crashing.
-+ (nullable id)safeValue:(NSString *)key forObject:(id)object;
++ (nullable id)safeValue:(NSString *)key forObject:(id)object NS_SWIFT_NAME(safeValue(_:for:));
 
 @end
 
