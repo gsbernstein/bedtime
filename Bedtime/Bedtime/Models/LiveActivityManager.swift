@@ -124,8 +124,13 @@ final class LiveActivityManager: ObservableObject {
         // visibly on screen. Starting/updating right now always takes
         // priority over a background pre-scheduled queue, which gets rebuilt
         // fresh next time `syncWithSchedule` runs anyway.
-        for activity in Activity<BedtimeActivityAttributes>.activities where activity.activityState == .pending {
-            await activity.end(nil, dismissalPolicy: .immediate)
+        //
+        // `.pending` (and the multi-night queue that produces it) only
+        // exists on iOS 26+; on older systems there's nothing to clear.
+        if #available(iOS 26, *) {
+            for activity in Activity<BedtimeActivityAttributes>.activities where activity.activityState == .pending {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
         }
         activeActivityID = nil
 
