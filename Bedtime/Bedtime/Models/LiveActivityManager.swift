@@ -91,15 +91,13 @@ final class LiveActivityManager: ObservableObject {
         // cache can point at a `.pending` future night instead of tonight's
         // visible activity, silently updating the wrong one.
         //
-        // Looked up fresh at each use below rather than stored in a shared
-        // `let`: once an `Activity` has been read synchronously within this
-        // actor-isolated function, the compiler can no longer prove it's
-        // safe to send into `await update(...)` further down.
-        func existingActivity() -> Activity<BedtimeActivityAttributes>? {
-            Self.currentlyVisibleActivity() ?? Self.activity(withID: activeActivityID)
-        }
-
-        let startTime = existingActivity()?.content.state.activityStart ?? newStartTime(bedtime: schedule.bedtime, now: now)
+        // Looked up fresh at each use below via the nonisolated static
+        // helper rather than stored in a shared `let`: once an `Activity`
+        // has been read synchronously within this actor-isolated function,
+        // the compiler can no longer prove it's safe to send into
+        // `await update(...)` further down.
+        let startTime = Self.existingActivity(cachedID: activeActivityID)?.content.state.activityStart
+            ?? newStartTime(bedtime: schedule.bedtime, now: now)
         let state = BedtimeActivityAttributes.ContentState(
             activityStart: startTime,
             bedtime: schedule.bedtime,
@@ -117,7 +115,7 @@ final class LiveActivityManager: ObservableObject {
             staleDate: isSleeping ? schedule.wakeTime : schedule.bedtime
         )
 
-        if let activity = existingActivity(), activity.activityState == .active || activity.activityState == .stale {
+        if let activity = Self.existingActivity(cachedID: activeActivityID), activity.activityState == .active || activity.activityState == .stale {
             // `.stale` still counts as on screen: the sleeping phase is
             // reached by deliberately letting the wind-down content go stale
             // at bedtime, so this is the common case for most of the night,
@@ -382,6 +380,16 @@ final class LiveActivityManager: ObservableObject {
         Activity<BedtimeActivityAttributes>.activities.first {
             $0.activityState == .active || $0.activityState == .stale
         }
+    }
+
+    /// `currentlyVisibleActivity()`, falling back to the cached ID. Takes the
+    /// ID as a parameter rather than reading `activeActivityID` directly: a
+    /// local function referencing `self` would still inherit this actor's
+    /// isolation at its call site, tainting the returned `Activity` for the
+    /// main-actor region the same way a stored `let` does — `nonisolated
+    /// static` is what actually keeps it out.
+    private nonisolated static func existingActivity(cachedID: String?) -> Activity<BedtimeActivityAttributes>? {
+        currentlyVisibleActivity() ?? activity(withID: cachedID)
     }
 
     private func getTimes(
