@@ -105,21 +105,29 @@ final class LiveActivityManager: ObservableObject {
             staleDate: isSleeping ? schedule.wakeTime : schedule.bedtime
         )
 
-        if let activity = existingActivity {
+        if let activity = existingActivity, activity.activityState == .active || activity.activityState == .stale {
             // `.stale` still counts as on screen: the sleeping phase is
             // reached by deliberately letting the wind-down content go stale
             // at bedtime, so this is the common case for most of the night,
             // not an edge case.
-            if activity.activityState == .active || activity.activityState == .stale {
-                await activity.update(content)
-                activeActivityID = activity.id
-                return
-            }
-            // Anything else is scheduled but not on screen yet. Clear it so this
-            // request shows up now rather than silently editing tonight's plan.
-            await activity.end(nil, dismissalPolicy: .immediate)
-            activeActivityID = nil
+            await activity.update(content)
+            activeActivityID = activity.id
+            return
         }
+
+        // Nothing to update in place, so this is about to request a new
+        // activity. Clear every `.pending` one first, not just whichever
+        // `existingActivity` happened to resolve to — the multi-night queue
+        // can leave several scheduled at once, and each still counts against
+        // the 5-concurrent-activity budget, so leaving them made `request`
+        // below fail with `targetMaximumExceeded` even though nothing was
+        // visibly on screen. Starting/updating right now always takes
+        // priority over a background pre-scheduled queue, which gets rebuilt
+        // fresh next time `syncWithSchedule` runs anyway.
+        for activity in Activity<BedtimeActivityAttributes>.activities where activity.activityState == .pending {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+        activeActivityID = nil
 
         do {
             let activity = try Activity.request(
