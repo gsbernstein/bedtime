@@ -10,10 +10,6 @@ import HealthKit
 struct SleepSourceComparisonView: View {
     let sessions: [SleepSession]
     let excludedSourceIDs: Set<String>
-    /// Cleanable duplicate-sync groups for this night, keyed by source in `sourceTracks`.
-    var duplicateGroups: [DuplicateSleepGroup] = []
-    /// Called when the little "review duplicates" button next to a source's row is tapped.
-    var onReviewDuplicates: (DuplicateSleepGroup) -> Void = { _ in }
     @Environment(\.durationDisplayStyle) private var durationStyle
     
     private struct SourceTrack: Identifiable {
@@ -51,13 +47,8 @@ struct SleepSourceComparisonView: View {
     private var shouldShow: Bool {
         !sourceTracks.isEmpty && (
             sourceTracks.count > 1 ||
-            sourceTracks.contains { !$0.isEnabled } ||
-            !duplicateGroups.isEmpty
+            sourceTracks.contains { !$0.isEnabled }
         )
-    }
-
-    private func duplicateGroup(for bundleID: String) -> DuplicateSleepGroup? {
-        duplicateGroups.first { $0.sourceBundleID == bundleID }
     }
     
     var body: some View {
@@ -70,19 +61,6 @@ struct SleepSourceComparisonView: View {
                             .foregroundStyle(track.isEnabled ? .secondary : .tertiary)
                             .lineLimit(1)
                             .frame(width: 72, alignment: .leading)
-
-                        if let duplicateGroup = duplicateGroup(for: track.id) {
-                            Button {
-                                onReviewDuplicates(duplicateGroup)
-                            } label: {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.caption2)
-                                    .foregroundStyle(.orange)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Possible duplicate \(track.name) data")
-                            .accessibilityHint("Review and remove duplicate entries")
-                        }
                         
                         SleepStageTimelineBar(
                             sessions: track.sessions,

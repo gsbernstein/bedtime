@@ -114,11 +114,15 @@ struct SleepDayGroup: View {
                 .buttonStyle(PlainButtonStyle())
                 .disabled(!hasSessions)
 
+                DuplicateCleanupRow(
+                    groups: duplicateGroups,
+                    onReview: { selectedDuplicateGroup = $0 }
+                )
+                .padding(.leading, 4)
+
                 SleepSourceComparisonView(
                     sessions: allSessions,
-                    excludedSourceIDs: excludedSourceIDs,
-                    duplicateGroups: duplicateGroups,
-                    onReviewDuplicates: { selectedDuplicateGroup = $0 }
+                    excludedSourceIDs: excludedSourceIDs
                 )
                 .padding(.leading, 4)
 
