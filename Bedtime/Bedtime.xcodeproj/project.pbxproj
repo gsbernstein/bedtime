@@ -139,7 +139,7 @@
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.burnsides.bedtime.background-task";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Use your sleep data to calculate your sleep bank and provide personalized bedtime recommendations.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Sync sleep data from Bedger to Apple Health";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Bedger needs permission to remove duplicate sleep entries you choose to delete (e.g. from a source re-syncing the same night twice).";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = processing;
@@ -157,6 +157,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Bedtime/Bedtime-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -176,7 +177,7 @@
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.burnsides.bedtime.background-task";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Use your sleep data to calculate your sleep bank and provide personalized bedtime recommendations.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Sync sleep data from Bedger to Apple Health";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Bedger needs permission to remove duplicate sleep entries you choose to delete (e.g. from a source re-syncing the same night twice).";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = processing;
@@ -194,6 +195,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Bedtime/Bedtime-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

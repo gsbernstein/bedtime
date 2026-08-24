@@ -16,8 +16,13 @@ struct SleepDayGroup: View {
     let sleepGoal: Double
     /// Whether this night counts toward the sleep-bank lookback window.
     var isIncludedInSleepBank: Bool = true
+    /// Cleanable duplicate-sync groups detected for this night.
+    var duplicateGroups: [DuplicateSleepGroup] = []
+    /// Deletes the given samples from HealthKit (see `HealthKitManager.deleteDuplicateSamples`).
+    var onDeleteDuplicates: ([DuplicateCandidateSample]) async throws -> Void = { _ in }
     let onToggle: () -> Void
     @Environment(\.durationDisplayStyle) private var durationStyle
+    @State private var selectedDuplicateGroup: DuplicateSleepGroup?
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -111,7 +116,9 @@ struct SleepDayGroup: View {
 
                 SleepSourceComparisonView(
                     sessions: allSessions,
-                    excludedSourceIDs: excludedSourceIDs
+                    excludedSourceIDs: excludedSourceIDs,
+                    duplicateGroups: duplicateGroups,
+                    onReviewDuplicates: { selectedDuplicateGroup = $0 }
                 )
                 .padding(.leading, 4)
 
@@ -133,5 +140,8 @@ struct SleepDayGroup: View {
         }
         .opacity(isIncludedInSleepBank ? 1 : 0.45)
         .accessibilityHint(isIncludedInSleepBank ? "Included in sleep balance" : "Not included in sleep balance")
+        .sheet(item: $selectedDuplicateGroup) { group in
+            DuplicateCleanupSheet(group: group, onDelete: onDeleteDuplicates)
+        }
     }
 }

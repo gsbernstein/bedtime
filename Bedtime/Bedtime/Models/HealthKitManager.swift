@@ -17,8 +17,9 @@ import Combine
 /// HealthKit intentionally does **not** report whether read access was granted —
 /// `requestAuthorization` succeeding only means the user chose
 /// whether or not to provide permission. We use this flag to avoid re-prompting,
-/// not as proof of access. Write/share permission (for debug) is handled separately by
-/// `requireWriteAuthorization(for:)`, which can re-prompt when needed.
+/// not as proof of access. Write/share permission (needed for debug data generation and for
+/// deleting duplicate entries) is handled separately by `requireWriteAuthorization(for:)`,
+/// which can re-prompt when needed.
 enum PermissionsRequestState: Equatable {
     case loading
     case shouldRequest
@@ -42,6 +43,9 @@ class HealthKitManager: ObservableObject {
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
     /// All sessions regardless of source preferences — used for per-source comparison UI.
     @Published private(set) var allSleepSessions: [Date: [SleepSession]] = [:]
+    /// Same-source, same-night samples that overlap in time — the signature of a source
+    /// re-syncing data it already wrote (see `DuplicateSleepDetector`) — grouped for cleanup UI.
+    @Published private(set) var duplicateSleepGroups: [DuplicateSleepGroup] = []
     @Published var errorMessage: String?
     @Published var availableSources: [HKSource]?
     
@@ -261,9 +265,10 @@ class HealthKitManager: ObservableObject {
             sourcePreferences.isSourceSelected($0.source.source.bundleIdentifier)
         }
         self.sleepSessions = Dictionary(grouping: includedSessions) { $0.dateForGrouping }
+
+        self.duplicateSleepGroups = DuplicateSleepDetector.detectCleanableGroups(in: samples)
     }
-    
-    #if DEBUG
+
     /// Prompts for write access to `type` (plus read access to sleep analysis),
     /// then verifies share authorization succeeded. Unlike read access, HealthKit
     /// does report write/share status via `authorizationStatus(for:)`.
@@ -307,6 +312,21 @@ class HealthKitManager: ObservableObject {
         }
     }
     
+    /// Deletes duplicate sleep samples surfaced by `duplicateSleepGroups` (see
+    /// `DuplicateSleepDetector`), then refreshes so the UI reflects the change.
+    ///
+    /// Requires write access to sleep analysis, which is only needed for this cleanup
+    /// feature — everywhere else the app is read-only — so authorization is requested here
+    /// rather than upfront.
+    func deleteDuplicateSamples(_ samples: [DuplicateCandidateSample]) async throws {
+        guard !samples.isEmpty else { return }
+        try await requireWriteAuthorization(for: HKCategoryType.sleepAnalysis)
+        let predicate = HKQuery.predicateForObjects(with: Set(samples.map(\.id)))
+        try await healthStore.deleteObjects(of: HKCategoryType.sleepAnalysis, predicate: predicate)
+        try await fetchSleepData()
+    }
+
+    #if DEBUG
     /// Writes a batch of fake sleep nights into HealthKit and refreshes the
     /// in-memory cache so the UI updates immediately. Debug builds only.
     func generateFakeSleepData(nights: Int = 14, targetSleepHours: Double = 7.5) async throws {

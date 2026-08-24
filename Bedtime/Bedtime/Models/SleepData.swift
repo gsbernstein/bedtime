@@ -29,6 +29,12 @@ struct SleepSession {
     }
     
     var dateForGrouping: Date {
+        Self.dateForGrouping(startDate: startDate, duration: duration)
+    }
+
+    /// Shared with duplicate-detection code (`DuplicateSleepDetector`) so both bucket samples
+    /// into "nights" using the exact same rule.
+    static func dateForGrouping(startDate: Date, duration: TimeInterval) -> Date {
         let midpoint = startDate.addingTimeInterval(duration / 2)
         let shiftedMidpoint = midpoint.addingTimeInterval(TimeInterval(6 * 60 * 60))
         return Calendar.current.startOfDay(for: shiftedMidpoint)

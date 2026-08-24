@@ -27,6 +27,16 @@ A native iOS app that helps optimize your sleep by tracking your "sleep bank" an
 - Track sleep duration over time
 - Visual representation of your sleep patterns
 
+### 🧹 Duplicate Data Cleanup
+- Detects when a source (e.g. Oura) has re-synced a night it already wrote, leaving two
+  overlapping sets of samples for the same stretch of sleep
+- A small warning button appears next to the affected source's row; tapping it opens a
+  cleanup sheet
+- The sheet shows the overlapping entries on a timeline and a histogram of when they were
+  added to HealthKit, with a divider you can drag to preview exactly which entries would be
+  kept vs. deleted
+- Confirming deletes only the older, superseded sync from HealthKit
+
 ### ⚙️ Customizable Settings
 - Set your personal sleep goal (6-12 hours, in 15 minute steps)
 - Configure your preferred wake time
@@ -63,7 +73,8 @@ Sleep sessions are assigned to a calendar day using a "midpoint + 6 hours" rule 
 
 - All data stays on your device
 - No data is sent to external servers
-- HealthKit data is only read, never written to
+- HealthKit data is read-only, with one exception: the duplicate cleanup feature deletes
+  samples you explicitly choose to remove. Bedger never writes new sleep data
 
 ## Architecture
 

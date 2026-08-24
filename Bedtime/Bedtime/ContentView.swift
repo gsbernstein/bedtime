@@ -179,7 +179,11 @@ struct ContentView: View {
                                 allSessions: healthKitManager.allSleepSessions,
                                 excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers,
                                 sleepGoal: userPreferences.sleepGoalHours,
-                                sleepBankDays: sleepBankDaysBinding
+                                sleepBankDays: sleepBankDaysBinding,
+                                duplicateSleepGroups: healthKitManager.duplicateSleepGroups,
+                                onDeleteDuplicates: { samples in
+                                    try await healthKitManager.deleteDuplicateSamples(samples)
+                                }
                             )
                         }
                     }
