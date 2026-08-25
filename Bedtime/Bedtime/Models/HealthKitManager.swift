@@ -17,9 +17,8 @@ import Combine
 /// HealthKit intentionally does **not** report whether read access was granted —
 /// `requestAuthorization` succeeding only means the user chose
 /// whether or not to provide permission. We use this flag to avoid re-prompting,
-/// not as proof of access. `requestAuthorization()` also requests write/share access up
-/// front (see its doc comment for why); `requireWriteAuthorization(for:)` re-checks that
-/// decision — and can re-prompt if it somehow never happened — right before a write.
+/// not as proof of access. Write/share permission (for debug) is handled separately by
+/// `requireWriteAuthorization(for:)`, which can re-prompt when needed.
 enum PermissionsRequestState: Equatable {
     case loading
     case shouldRequest
@@ -43,9 +42,6 @@ class HealthKitManager: ObservableObject {
     @Published var sleepSessions: [Date: [SleepSession]] = [:]
     /// All sessions regardless of source preferences — used for per-source comparison UI.
     @Published private(set) var allSleepSessions: [Date: [SleepSession]] = [:]
-    /// Same-source, same-night samples that overlap in time — the signature of a source
-    /// re-syncing data it already wrote (see `DuplicateSleepDetector`) — grouped for cleanup UI.
-    @Published private(set) var duplicateSleepGroups: [DuplicateSleepGroup] = []
     @Published var errorMessage: String?
     @Published var availableSources: [HKSource]?
     
@@ -80,18 +76,9 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    /// Presents the HealthKit authorization sheet for sleep analysis if we haven't already,
-    /// requesting both read access (used everywhere) and write/share access (used only by the
-    /// duplicate-cleanup delete flow) in one prompt. No-op on subsequent calls — see
-    /// `PermissionsRequestState` for why we can't verify if read access was actually granted.
-    ///
-    /// Write access is bundled in here — rather than requested lazily by
-    /// `requireWriteAuthorization(for:)` at delete time — deliberately: `requestAuthorization`
-    /// can silently fail to present its system sheet when called from a context that's already
-    /// nested inside another presented sheet (as the delete button is, inside
-    /// `DuplicateCleanupSheet`). Asking here, from the top level, means by the time the user
-    /// reaches that nested sheet the authorization decision already exists, so
-    /// `requireWriteAuthorization(for:)` resolves instantly with no UI to present.
+    /// Presents the HealthKit authorization sheet for read access if we haven't
+    /// already. No-op on subsequent calls — see `PermissionsRequestState` for
+    /// why we can't verify if read access was actually granted.
     func requestAuthorization() async throws {
         guard permissionsRequestState != .hasRequested else { return }
         
@@ -99,7 +86,7 @@ class HealthKitManager: ObservableObject {
         
         do {
             try await healthStore.requestAuthorization(
-                toShare: [HKCategoryType.sleepAnalysis],
+                toShare: [],
                 read: [HKCategoryType.sleepAnalysis]
             )
             permissionsRequestState = .hasRequested
@@ -274,10 +261,9 @@ class HealthKitManager: ObservableObject {
             sourcePreferences.isSourceSelected($0.source.source.bundleIdentifier)
         }
         self.sleepSessions = Dictionary(grouping: includedSessions) { $0.dateForGrouping }
-
-        self.duplicateSleepGroups = DuplicateSleepDetector.detectCleanableGroups(in: samples)
     }
-
+    
+    #if DEBUG
     /// Prompts for write access to `type` (plus read access to sleep analysis),
     /// then verifies share authorization succeeded. Unlike read access, HealthKit
     /// does report write/share status via `authorizationStatus(for:)`.
@@ -321,30 +307,6 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    /// Deletes duplicate sleep samples surfaced by `duplicateSleepGroups` (see
-    /// `DuplicateSleepDetector`), then refreshes so the UI reflects the change.
-    ///
-    /// Only ever actually deletes anything when every sample was written by this app — see
-    /// `ForeignSourceDeletionError`. In practice that means this will almost always throw for
-    /// real duplicate groups (which come from Oura, not Bedger); it exists mainly so a real
-    /// self-written duplicate (e.g. from the debug data generator) can still be cleaned up, and
-    /// so the failure mode for everything else is a clear, honest error instead of a delete call
-    /// that silently matches zero objects and looks like it worked.
-    func deleteDuplicateSamples(_ samples: [DuplicateCandidateSample]) async throws {
-        guard !samples.isEmpty else { return }
-
-        let ownBundleID = Bundle.main.bundleIdentifier
-        if let foreign = samples.first(where: { $0.sourceBundleID != ownBundleID }) {
-            throw ForeignSourceDeletionError(sourceName: foreign.sourceName)
-        }
-
-        try await requireWriteAuthorization(for: HKCategoryType.sleepAnalysis)
-        let predicate = HKQuery.predicateForObjects(with: Set(samples.map(\.id)))
-        try await healthStore.deleteObjects(of: HKCategoryType.sleepAnalysis, predicate: predicate)
-        try await fetchSleepData()
-    }
-
-    #if DEBUG
     /// Writes a batch of fake sleep nights into HealthKit and refreshes the
     /// in-memory cache so the UI updates immediately. Debug builds only.
     func generateFakeSleepData(nights: Int = 14, targetSleepHours: Double = 7.5) async throws {

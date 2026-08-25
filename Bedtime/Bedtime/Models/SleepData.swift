@@ -32,8 +32,8 @@ struct SleepSession {
         Self.dateForGrouping(startDate: startDate, duration: duration)
     }
 
-    /// Shared with duplicate-detection code (`DuplicateSleepDetector`) so both bucket samples
-    /// into "nights" using the exact same rule.
+    /// Exposed statically so other code that buckets raw samples into "nights" (e.g. duplicate
+    /// filtering, before `SleepSession`s exist yet) can use the exact same rule.
     static func dateForGrouping(startDate: Date, duration: TimeInterval) -> Date {
         let midpoint = startDate.addingTimeInterval(duration / 2)
         let shiftedMidpoint = midpoint.addingTimeInterval(TimeInterval(6 * 60 * 60))

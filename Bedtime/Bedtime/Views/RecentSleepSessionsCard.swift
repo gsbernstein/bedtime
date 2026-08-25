@@ -15,15 +15,11 @@ struct RecentSleepSessionsCard: View {
         excludedSourceIDs: Set<String>,
         sleepGoal: Double,
         sleepBankDays: Binding<Int>,
-        dayCount: Int = Constants.sleepHistoryDays,
-        duplicateSleepGroups: [DuplicateSleepGroup] = [],
-        onDeleteDuplicates: @escaping ([DuplicateCandidateSample]) async throws -> Void = { _ in }
+        dayCount: Int = Constants.sleepHistoryDays
     ) {
         self.sleepGoal = sleepGoal
         self.excludedSourceIDs = excludedSourceIDs
         self._sleepBankDays = sleepBankDays
-        self.duplicateSleepGroups = duplicateSleepGroups
-        self.onDeleteDuplicates = onDeleteDuplicates
         
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -37,8 +33,6 @@ struct RecentSleepSessionsCard: View {
     let sortedSessions: [(Date, [SleepSession], [SleepSession])]
     let sleepGoal: Double
     let excludedSourceIDs: Set<String>
-    let duplicateSleepGroups: [DuplicateSleepGroup]
-    let onDeleteDuplicates: ([DuplicateCandidateSample]) async throws -> Void
     @Binding var sleepBankDays: Int
     
     @State private var expandedNights: Set<Date> = []
@@ -83,8 +77,6 @@ struct RecentSleepSessionsCard: View {
                             isExpanded: expandedNights.contains(night),
                             sleepGoal: sleepGoal,
                             isIncludedInSleepBank: isIncluded,
-                            duplicateGroups: duplicateSleepGroups.filter { $0.night == night },
-                            onDeleteDuplicates: onDeleteDuplicates,
                             onToggle: {
                                 withAnimation(.easeInOut(duration: 0.2)) {
                                     if expandedNights.contains(night) {
