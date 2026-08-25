@@ -17,9 +17,9 @@ import Combine
 /// HealthKit intentionally does **not** report whether read access was granted —
 /// `requestAuthorization` succeeding only means the user chose
 /// whether or not to provide permission. We use this flag to avoid re-prompting,
-/// not as proof of access. Write/share permission (needed for debug data generation and for
-/// deleting duplicate entries) is handled separately by `requireWriteAuthorization(for:)`,
-/// which can re-prompt when needed.
+/// not as proof of access. `requestAuthorization()` also requests write/share access up
+/// front (see its doc comment for why); `requireWriteAuthorization(for:)` re-checks that
+/// decision — and can re-prompt if it somehow never happened — right before a write.
 enum PermissionsRequestState: Equatable {
     case loading
     case shouldRequest
@@ -80,9 +80,18 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    /// Presents the HealthKit authorization sheet for read access if we haven't
-    /// already. No-op on subsequent calls — see `PermissionsRequestState` for
-    /// why we can't verify if read access was actually granted.
+    /// Presents the HealthKit authorization sheet for sleep analysis if we haven't already,
+    /// requesting both read access (used everywhere) and write/share access (used only by the
+    /// duplicate-cleanup delete flow) in one prompt. No-op on subsequent calls — see
+    /// `PermissionsRequestState` for why we can't verify if read access was actually granted.
+    ///
+    /// Write access is bundled in here — rather than requested lazily by
+    /// `requireWriteAuthorization(for:)` at delete time — deliberately: `requestAuthorization`
+    /// can silently fail to present its system sheet when called from a context that's already
+    /// nested inside another presented sheet (as the delete button is, inside
+    /// `DuplicateCleanupSheet`). Asking here, from the top level, means by the time the user
+    /// reaches that nested sheet the authorization decision already exists, so
+    /// `requireWriteAuthorization(for:)` resolves instantly with no UI to present.
     func requestAuthorization() async throws {
         guard permissionsRequestState != .hasRequested else { return }
         
@@ -90,7 +99,7 @@ class HealthKitManager: ObservableObject {
         
         do {
             try await healthStore.requestAuthorization(
-                toShare: [],
+                toShare: [HKCategoryType.sleepAnalysis],
                 read: [HKCategoryType.sleepAnalysis]
             )
             permissionsRequestState = .hasRequested
