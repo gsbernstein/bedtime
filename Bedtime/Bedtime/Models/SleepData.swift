@@ -29,6 +29,12 @@ struct SleepSession {
     }
     
     var dateForGrouping: Date {
+        Self.dateForGrouping(startDate: startDate, duration: duration)
+    }
+
+    /// Exposed statically so other code that buckets raw samples into "nights" (e.g. duplicate
+    /// filtering, before `SleepSession`s exist yet) can use the exact same rule.
+    static func dateForGrouping(startDate: Date, duration: TimeInterval) -> Date {
         let midpoint = startDate.addingTimeInterval(duration / 2)
         let shiftedMidpoint = midpoint.addingTimeInterval(TimeInterval(6 * 60 * 60))
         return Calendar.current.startOfDay(for: shiftedMidpoint)
