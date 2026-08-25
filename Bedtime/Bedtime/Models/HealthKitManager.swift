@@ -254,7 +254,8 @@ class HealthKitManager: ObservableObject {
     }
     
     private func processSleepSamples(_ samples: [HKCategorySample]) {
-        let allSessions = samples.compactMap { SleepSession(sample: $0) }
+        let rawSessions = samples.compactMap { SleepSession(sample: $0) }
+        let allSessions = SleepSampleDeduplicator.deduplicate(rawSessions)
         self.allSleepSessions = Dictionary(grouping: allSessions) { $0.dateForGrouping }
         
         let includedSessions = allSessions.filter {
