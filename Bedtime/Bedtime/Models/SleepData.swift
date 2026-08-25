@@ -86,16 +86,23 @@ extension HKCategoryValueSleepAnalysis {
         }
     }
     
-    var color: Color {
+    /// The palette color this sleep stage maps to, or `nil` when it has no themed color
+    /// (unspecified/unknown stages fall back to `Color.secondary` at the call site).
+    var paletteColor: KeyPath<any ThemeColorPalette, Color>? {
         switch self {
-        case .asleepDeep:        return Color.blue
-        case .asleepREM:         return Color.purple
-        case .asleepCore:        return Color.indigo
-        case .awake:             return Color.orange
-        case .inBed:             return Color.gray
-        case .asleepUnspecified: return Color.secondary
-        @unknown default:        return Color.secondary
+        case .asleepDeep:        return \.sleepDeep
+        case .asleepREM:         return \.sleepREM
+        case .asleepCore:        return \.sleepCore
+        case .awake:             return \.sleepAwake
+        case .inBed:             return \.sleepInBed
+        case .asleepUnspecified: return nil
+        @unknown default:        return nil
         }
+    }
+
+    func color(in palette: any ThemeColorPalette) -> Color {
+        guard let paletteColor else { return .secondary }
+        return palette[keyPath: paletteColor]
     }
 }
 
@@ -127,9 +134,9 @@ struct SleepBank: Equatable {
         return currentBalance < 0
     }
     
-    var statusColor: Color {
-        guard averageHours != nil else { return .secondary }
-        return Constants.sleepGoalColor(difference: currentBalance, graceColor: .primary)
+    var statusColor: KeyPath<ThemeColorPalette, Color> {
+        guard averageHours != nil else { return \.secondary }
+        return Constants.sleepGoalColor(difference: currentBalance) ?? \.primary
     }
 
     var debtHours: Double {

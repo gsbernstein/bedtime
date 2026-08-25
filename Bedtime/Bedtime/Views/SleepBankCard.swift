@@ -19,6 +19,9 @@ struct SleepBankCard: View {
     /// When true, the balance waterfall chart is omitted from the card.
     var hideChart: Bool = false
     @Environment(\.durationDisplayStyle) private var durationStyle
+    @Environment(\.appTheme) private var theme
+
+    private var colors: any ThemeColorPalette { theme.colors }
 
     @State private var isEditingGoal = false
 
@@ -48,7 +51,7 @@ struct SleepBankCard: View {
             VStack(spacing: 10) {
                 CardHeader(
                     icon: sleepBank.isInDebt ? "moon.zzz.fill" : "moon.stars.fill",
-                    iconColor: sleepBank.statusColor,
+                    iconColor: colors[keyPath: sleepBank.statusColor],
                     title: "Sleep Balance"
                 ) {
                     Text(sleepBank.statusDescription(days: sleepBankDays))
@@ -68,7 +71,7 @@ struct SleepBankCard: View {
                             Text(TimeFormatter.formatHours(averageHours, style: durationStyle))
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(sleepBank.statusColor)
+                                .foregroundColor(colors[keyPath: sleepBank.statusColor])
                         } else {
                             Text("unknown")
                                 .font(.subheadline)
@@ -88,7 +91,7 @@ struct SleepBankCard: View {
                             Text(TimeFormatter.formatHours(sleepBank.currentBalance, style: durationStyle))
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(sleepBank.statusColor)
+                                .foregroundColor(colors[keyPath: sleepBank.statusColor])
                         } else {
                             Text("unknown")
                                 .font(.subheadline)
@@ -206,7 +209,7 @@ private struct SleepBankCardPreview: View {
             )
             .padding()
         }
-        .background(Color.backgroundBehindCards)
+        .background(AppTheme.cozy.colors.background)
     }
 }
 

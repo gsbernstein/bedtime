@@ -13,13 +13,16 @@ struct BedtimeRecommendationCard: View {
     var wakeTime: Binding<Date>? = nil
 
     @State private var isEditingWakeTime = false
+    @Environment(\.appTheme) private var theme
+
+    private var colors: any ThemeColorPalette { theme.colors }
 
     var body: some View {
         CardComponent {
             VStack(spacing: 16) {
                 CardHeader(
                     icon: "bed.double.fill",
-                    iconColor: .blue,
+                    iconColor: colors.bedtime,
                     title: "Tonight's Recommendation"
                 ) {
                     Text("Based on your sleep bank")
@@ -38,7 +41,7 @@ struct BedtimeRecommendationCard: View {
                             Text(TimeFormatter.formatTimeOfDay(recommendation.recommendedBedtime))
                                 .font(.title)
                                 .fontWeight(.bold)
-                                .foregroundColor(.blue)
+                                .foregroundColor(colors.bedtime)
                         }
                         
                         Spacer()
@@ -141,7 +144,7 @@ private struct WakeTimeEditor: View {
                 wakeTime: $wakeTime
             )
             .padding()
-            .background(Color.backgroundBehindCards)
+            .background(AppTheme.cozy.colors.background)
         }
     }
     return PreviewHost()

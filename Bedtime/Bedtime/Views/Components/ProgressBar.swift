@@ -26,15 +26,16 @@ struct ProgressBar: View {
 }
 
 #Preview(traits: .sizeThatFitsLayout) {
+    let colors = AppTheme.cozy.colors
     VStack {
         ProgressBar(value: 0.2)
-            .tint(Gradient(colors: [.orange, .red]))
+            .tint(Gradient(colors: [colors.warning, colors.negative]))
 
         ProgressBar(value: 6, total: 8)
-            .tint(Gradient(colors: [.purple, .blue]))
+            .tint(Gradient(colors: [colors.recentSleep, colors.bedtime]))
 
         ProgressBar(value: 8, total: 10)
-            .tint(LinearGradient(colors: [.green, .cyan], startPoint: .leading, endPoint: .trailing))
+            .tint(LinearGradient(colors: [colors.positive, colors.accent], startPoint: .leading, endPoint: .trailing))
     }
     .frame(height: 64)
     .padding()
