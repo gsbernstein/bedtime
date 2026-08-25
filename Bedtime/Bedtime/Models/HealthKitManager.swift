@@ -324,11 +324,20 @@ class HealthKitManager: ObservableObject {
     /// Deletes duplicate sleep samples surfaced by `duplicateSleepGroups` (see
     /// `DuplicateSleepDetector`), then refreshes so the UI reflects the change.
     ///
-    /// Requires write access to sleep analysis, which is only needed for this cleanup
-    /// feature — everywhere else the app is read-only — so authorization is requested here
-    /// rather than upfront.
+    /// Only ever actually deletes anything when every sample was written by this app — see
+    /// `ForeignSourceDeletionError`. In practice that means this will almost always throw for
+    /// real duplicate groups (which come from Oura, not Bedger); it exists mainly so a real
+    /// self-written duplicate (e.g. from the debug data generator) can still be cleaned up, and
+    /// so the failure mode for everything else is a clear, honest error instead of a delete call
+    /// that silently matches zero objects and looks like it worked.
     func deleteDuplicateSamples(_ samples: [DuplicateCandidateSample]) async throws {
         guard !samples.isEmpty else { return }
+
+        let ownBundleID = Bundle.main.bundleIdentifier
+        if let foreign = samples.first(where: { $0.sourceBundleID != ownBundleID }) {
+            throw ForeignSourceDeletionError(sourceName: foreign.sourceName)
+        }
+
         try await requireWriteAuthorization(for: HKCategoryType.sleepAnalysis)
         let predicate = HKQuery.predicateForObjects(with: Set(samples.map(\.id)))
         try await healthStore.deleteObjects(of: HKCategoryType.sleepAnalysis, predicate: predicate)

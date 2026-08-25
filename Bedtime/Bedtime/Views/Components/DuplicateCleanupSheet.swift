@@ -4,12 +4,15 @@
 //
 //  Lets the user resolve a detected duplicate sync: shows the overlapping entries on a
 //  timeline, a histogram of when they were added to HealthKit with a draggable divider
-//  suggesting where the old sync ends and the new one begins, and deletes the older batch
-//  on confirmation.
+//  suggesting where the old sync ends and the new one begins, and either deletes the older
+//  batch directly (only possible when Bedger itself wrote the samples) or, for real
+//  duplicates from another source, tells the user exactly what to remove and hands off to
+//  the Health app to finish it — see `canDeleteDirectly`.
 //
 
 import SwiftUI
 import HealthKit
+import UIKit
 
 struct DuplicateCleanupSheet: View {
     let group: DuplicateSleepGroup
@@ -27,6 +30,15 @@ struct DuplicateCleanupSheet: View {
         self.group = group
         self.onDelete = onDelete
         _cutoff = State(initialValue: group.suggestedCutoff ?? group.distinctCreationDates.last ?? Date())
+    }
+
+    /// HealthKit only lets an app delete objects it wrote itself (see
+    /// `ForeignSourceDeletionError`), so a real Delete button only makes sense when Bedger
+    /// itself is the source of these samples — which, for actual duplicate-sync bugs like
+    /// Oura's, it never is. This drives whether we show the delete button or manual
+    /// instructions for the Health app instead.
+    private var canDeleteDirectly: Bool {
+        group.sourceBundleID == Bundle.main.bundleIdentifier
     }
 
     private var resolution: DuplicateResolution {
@@ -64,6 +76,10 @@ struct DuplicateCleanupSheet: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
+                    if !canDeleteDirectly {
+                        manualDeletionNotice
+                    }
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Overlapping entries")
                             .font(.headline)
@@ -95,7 +111,11 @@ struct DuplicateCleanupSheet: View {
                             .foregroundStyle(.red)
                     }
 
-                    submitButton
+                    if canDeleteDirectly {
+                        submitButton
+                    } else {
+                        openHealthAppButton
+                    }
                 }
                 .padding()
             }
@@ -145,6 +165,34 @@ struct DuplicateCleanupSheet: View {
         }
     }
 
+    private var manualDeletionNotice: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle.fill")
+                    .foregroundStyle(.blue)
+                Text("Bedger can't delete this directly")
+                    .font(.subheadline.weight(.semibold))
+            }
+            Text("Apple only lets an app delete HealthKit entries it wrote itself, so Bedger can't remove \(group.sourceName)'s entries — only the Health app can. Use the divider below to see exactly which entries to remove, then delete them from Health → Browse → Sleep → this night → \"Show All Data.\"")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var openHealthAppButton: some View {
+        Button {
+            if let url = URL(string: "x-apple-health://"), UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
+        } label: {
+            Text("Open Health App")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+    }
+
     private var submitButton: some View {
         Button(role: .destructive) {
             delete()
@@ -189,12 +237,12 @@ struct DuplicateCleanupSheet: View {
         sourceBundleID: "com.ouraring.oura",
         sourceName: "Oura",
         samples: [
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-28800), endDate: now.addingTimeInterval(-25200), sleepType: .asleepCore, creationDate: olderBatch),
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-25200), endDate: now.addingTimeInterval(-21600), sleepType: .asleepDeep, creationDate: olderBatch.addingTimeInterval(30)),
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-21600), endDate: now.addingTimeInterval(-18000), sleepType: .asleepREM, creationDate: olderBatch.addingTimeInterval(60)),
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-28800), endDate: now.addingTimeInterval(-25200), sleepType: .asleepCore, creationDate: newerBatch),
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-25200), endDate: now.addingTimeInterval(-21600), sleepType: .asleepDeep, creationDate: newerBatch.addingTimeInterval(30)),
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-21600), endDate: now.addingTimeInterval(-18000), sleepType: .asleepREM, creationDate: newerBatch.addingTimeInterval(60)),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-28800), endDate: now.addingTimeInterval(-25200), sleepType: .asleepCore, creationDate: olderBatch, sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-25200), endDate: now.addingTimeInterval(-21600), sleepType: .asleepDeep, creationDate: olderBatch.addingTimeInterval(30), sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-21600), endDate: now.addingTimeInterval(-18000), sleepType: .asleepREM, creationDate: olderBatch.addingTimeInterval(60), sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-28800), endDate: now.addingTimeInterval(-25200), sleepType: .asleepCore, creationDate: newerBatch, sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-25200), endDate: now.addingTimeInterval(-21600), sleepType: .asleepDeep, creationDate: newerBatch.addingTimeInterval(30), sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-21600), endDate: now.addingTimeInterval(-18000), sleepType: .asleepREM, creationDate: newerBatch.addingTimeInterval(60), sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
         ]
     )
     DuplicateCleanupSheet(group: group, onDelete: { _ in })

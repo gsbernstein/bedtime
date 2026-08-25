@@ -66,10 +66,10 @@ struct DuplicateOverlapTimelineView: View {
         sourceBundleID: "com.ouraring.oura",
         sourceName: "Oura",
         samples: [
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-28800), endDate: now.addingTimeInterval(-25200), sleepType: .asleepCore, creationDate: olderBatch),
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-25200), endDate: now.addingTimeInterval(-21600), sleepType: .asleepDeep, creationDate: olderBatch),
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-28800), endDate: now.addingTimeInterval(-25200), sleepType: .asleepCore, creationDate: newerBatch),
-            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-25200), endDate: now.addingTimeInterval(-21600), sleepType: .asleepDeep, creationDate: newerBatch),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-28800), endDate: now.addingTimeInterval(-25200), sleepType: .asleepCore, creationDate: olderBatch, sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-25200), endDate: now.addingTimeInterval(-21600), sleepType: .asleepDeep, creationDate: olderBatch, sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-28800), endDate: now.addingTimeInterval(-25200), sleepType: .asleepCore, creationDate: newerBatch, sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
+            DuplicateCandidateSample(id: UUID(), startDate: now.addingTimeInterval(-25200), endDate: now.addingTimeInterval(-21600), sleepType: .asleepDeep, creationDate: newerBatch, sourceBundleID: "com.ouraring.oura", sourceName: "Oura"),
         ]
     )
     DuplicateOverlapTimelineView(group: group, cutoff: newerBatch.addingTimeInterval(-30))

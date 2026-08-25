@@ -112,7 +112,9 @@ struct CreationTimeHistogramView: View {
                     startDate: now,
                     endDate: now.addingTimeInterval(1800),
                     sleepType: .asleepCore,
-                    creationDate: index < 4 ? olderBatch.addingTimeInterval(Double(index) * 30) : newerBatch.addingTimeInterval(Double(index) * 30)
+                    creationDate: index < 4 ? olderBatch.addingTimeInterval(Double(index) * 30) : newerBatch.addingTimeInterval(Double(index) * 30),
+                    sourceBundleID: "com.ouraring.oura",
+                    sourceName: "Oura"
                 )
             }
             _cutoff = State(initialValue: olderBatch.addingTimeInterval(1800))

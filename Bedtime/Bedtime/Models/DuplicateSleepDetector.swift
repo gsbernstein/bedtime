@@ -23,6 +23,14 @@ struct DuplicateCandidateSample: Identifiable, Equatable {
     /// `HealthKitCreationDateReader`). Samples with an unknown creation date are never
     /// auto-selected for deletion.
     let creationDate: Date?
+    /// The app/device that wrote this sample. HealthKit only allows an app to delete objects
+    /// *it* saved (`HKHealthStore.deleteObjects` is explicitly scoped to "objects saved by this
+    /// application" — no amount of write authorization lets an app delete another source's
+    /// data; only the Health app itself, or the original writer, can). Carried per-sample
+    /// (denormalized from the group) so `HealthKitManager.deleteDuplicateSamples` can check
+    /// this before attempting a delete that would otherwise silently match nothing.
+    let sourceBundleID: String
+    let sourceName: String
 
     var duration: TimeInterval { endDate.timeIntervalSince(startDate) }
 }
@@ -36,6 +44,8 @@ extension DuplicateCandidateSample {
         self.endDate = sample.endDate
         self.sleepType = sleepType
         self.creationDate = HealthKitCreationDateReader.creationDate(for: sample)
+        self.sourceBundleID = sample.sourceRevision.source.bundleIdentifier
+        self.sourceName = sample.sourceRevision.source.name
     }
 }
 
@@ -121,6 +131,25 @@ struct DuplicateResolution {
     var keptDuration: TimeInterval { toKeep.reduce(0) { $0 + $1.duration } }
 }
 
+/// Thrown by `HealthKitManager.deleteDuplicateSamples` when asked to delete samples that
+/// weren't written by this app — HealthKit's delete APIs are unconditionally scoped to "objects
+/// saved by this application" (see `HKHealthStore.deleteObjects(of:predicate:)`), so no amount
+/// of write authorization lets Bedger remove another source's (e.g. Oura's) samples. Attempting
+/// it anyway wouldn't throw — it would just silently match nothing, look like it worked, and
+/// leave the duplicates in place. Only the Health app itself (or the original writer) can
+/// delete that data, so this case needs a distinct, actionable error rather than a generic one.
+struct ForeignSourceDeletionError: LocalizedError {
+    let sourceName: String
+
+    var errorDescription: String? {
+        "Bedger can't delete \(sourceName)'s entries directly — Apple only allows an app to remove data it wrote itself."
+    }
+
+    var recoverySuggestion: String? {
+        "Open the Health app, go to Browse → Sleep, select this night, tap \"Show All Data,\" and delete the older \(sourceName) entries there."
+    }
+}
+
 enum DuplicateSleepDetector {
     /// Scans every fetched sample and returns one group per (night, source) pair that shows
     /// signs of a duplicate re-sync and has enough "date added" data to clean up.
@@ -135,10 +164,9 @@ enum DuplicateSleepDetector {
 
         for sample in samples {
             guard let candidate = DuplicateCandidateSample(sample: sample) else { continue }
-            let bundleID = sample.sourceRevision.source.bundleIdentifier
-            sourceNamesByBundleID[bundleID] = sample.sourceRevision.source.name
+            sourceNamesByBundleID[candidate.sourceBundleID] = candidate.sourceName
             let night = SleepSession.dateForGrouping(startDate: candidate.startDate, duration: candidate.duration)
-            samplesByKey[Key(night: night, bundleID: bundleID), default: []].append(candidate)
+            samplesByKey[Key(night: night, bundleID: candidate.sourceBundleID), default: []].append(candidate)
         }
 
         return samplesByKey.compactMap { key, candidates in

@@ -35,7 +35,11 @@ A native iOS app that helps optimize your sleep by tracking your "sleep bank" an
 - The sheet shows the overlapping entries on a timeline and a histogram of when they were
   added to HealthKit, with a divider you can drag to preview exactly which entries would be
   kept vs. deleted
-- Confirming deletes only the older, superseded sync from HealthKit
+- Apple only lets an app delete HealthKit samples it wrote itself, so for real duplicates
+  (which always come from the other source, e.g. Oura) Bedger can't delete them directly —
+  the sheet instead points you at exactly what to remove and offers a shortcut into the
+  Health app to finish it there. Bedger only deletes directly in the rare case where it's
+  the source of the duplicate samples itself
 
 ### ⚙️ Customizable Settings
 - Set your personal sleep goal (6-12 hours, in 15 minute steps)
@@ -73,8 +77,10 @@ Sleep sessions are assigned to a calendar day using a "midpoint + 6 hours" rule 
 
 - All data stays on your device
 - No data is sent to external servers
-- HealthKit data is read-only, with one exception: the duplicate cleanup feature deletes
-  samples you explicitly choose to remove. Bedger never writes new sleep data
+- HealthKit data is effectively read-only: the duplicate cleanup feature can request write
+  access, but HealthKit only lets an app delete samples it wrote itself, so it can't
+  actually delete another source's data (e.g. Oura's) — only guide you to remove it via the
+  Health app. Bedger never writes new sleep data outside of debug builds
 
 ## Architecture
 
