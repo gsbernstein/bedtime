@@ -24,6 +24,31 @@ enum HealthKitCreationDateReader {
     private static let key = "creationTimestamp"
 
     static func creationDate(for sample: HKSample) -> Date? {
-        KVCSafeAccessor.safeValue(key, for: sample) as? Date
+        guard let raw = KVCSafeAccessor.safeValue(key, for: sample) else { return nil }
+
+        // On every OS version observed so far this KVC read returns a boxed `NSNumber`, not
+        // an `NSDate` — internally it's a raw `_creationTimestamp` double, sitting right
+        // alongside `_startTimestamp`/`_endTimestamp` on `HKObject`. Still, handle a future
+        // `NSDate`-boxed representation too, since nothing here is documented.
+        if let date = raw as? Date {
+            return date
+        }
+        guard let interval = (raw as? NSNumber)?.doubleValue else { return nil }
+
+        // That raw double sits in the same units as `_startTimestamp`/`_endTimestamp` — i.e.
+        // seconds since Foundation's reference date (2001-01-01), not the Unix epoch. Confirm
+        // via a plausibility check (should land near "now") rather than assuming, in case a
+        // future OS version switches conventions.
+        let now = Date()
+        let plausibleWindow = now.addingTimeInterval(-86400 * 400)...now.addingTimeInterval(86400)
+        let referenceDateCandidate = Date(timeIntervalSinceReferenceDate: interval)
+        if plausibleWindow.contains(referenceDateCandidate) {
+            return referenceDateCandidate
+        }
+        let unixEpochCandidate = Date(timeIntervalSince1970: interval)
+        if plausibleWindow.contains(unixEpochCandidate) {
+            return unixEpochCandidate
+        }
+        return nil
     }
 }
