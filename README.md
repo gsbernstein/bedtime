@@ -28,10 +28,10 @@ A native iOS app that helps optimize your sleep by tracking your "sleep bank" an
 - Visual representation of your sleep patterns
 - Automatically filters out duplicate data from sources that occasionally re-sync a night
   they already wrote (e.g. Oura, after falling back asleep and syncing again), so a
-  double-synced night doesn't inflate sleep totals. Since HealthKit only lets an app delete
-  data it wrote itself, this is done by excluding the older, superseded sync from Bedger's
-  own calculations rather than deleting anything from HealthKit — see
-  `SleepSampleDeduplicator`
+  double-synced night doesn't inflate sleep totals. Detects the older, superseded sync using
+  the same "Date Added" signal the Health app shows, and excludes it from Bedger's own
+  calculations. Since HealthKit only lets an app delete data it wrote itself, this can't
+  delete anything from HealthKit — see `SleepSampleDeduplicator`
 
 ### ⚙️ Customizable Settings
 - Set your personal sleep goal (6-12 hours, in 15 minute steps)
