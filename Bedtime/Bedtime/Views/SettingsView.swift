@@ -46,6 +46,7 @@ struct SettingsView: View {
                         }
                     }
                 }
+                .listRowBackground(colors.cardBackground)
 
                 Section("Sleep Goal") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -70,6 +71,7 @@ struct SettingsView: View {
                             .accentColor(colors.accent)
                     }
                 }
+                .listRowBackground(colors.cardBackground)
                 
                 Section("Wake Time") {
                     DatePicker(
@@ -78,6 +80,7 @@ struct SettingsView: View {
                         displayedComponents: .hourAndMinute
                     )
                 }
+                .listRowBackground(colors.cardBackground)
 
                 Section {
                     Toggle(isOn: $preferences.useDecimalDurations) {
@@ -97,6 +100,7 @@ struct SettingsView: View {
                 } footer: {
                     Text("Off uses hours and minutes (5h 6m). On uses decimal hours (5.1h); sleep goals can show quarter hours like 7.25h.\n\nHiding the sleep balance chart keeps the Sleep Balance card's summary but removes the waterfall graph.")
                 }
+                .listRowBackground(colors.cardBackground)
                 
                 Section("Sleep Bank Calculation") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -121,6 +125,7 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                .listRowBackground(colors.cardBackground)
                 
                 Section("Sleep Limits") {
                     DatePicker(
@@ -133,6 +138,7 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+                .listRowBackground(colors.cardBackground)
                 
                 Section("Data Sources") {
                     if let availableSources = healthKitManager.availableSources {
@@ -188,6 +194,7 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                .listRowBackground(colors.cardBackground)
                 
                 #if DEBUG
                 Section("Developer") {
@@ -233,9 +240,12 @@ struct SettingsView: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
+                .listRowBackground(colors.cardBackground)
                 #endif
                 
             }
+            .scrollContentBackground(.hidden)
+            .background(colors.background)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             // Force 12-hour clock labels in DatePickers to match app-wide time formatting.
