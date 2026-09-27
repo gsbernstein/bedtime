@@ -11,6 +11,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		371FB5C6302D689B005F6931 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		373AAEDF2E91B7E900D8ED84 /* Bedtime */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Bedtime;
@@ -33,6 +38,7 @@
 			isa = PBXGroup;
 			children = (
 				373AAEDF2E91B7E900D8ED84 /* Bedtime */,
+				371FB5C6302D689B005F6931 /* Shared */,
 				373AAEDE2E91B7E900D8ED84 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,6 +67,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				371FB5C6302D689B005F6931 /* Shared */,
 				373AAEDF2E91B7E900D8ED84 /* Bedtime */,
 			);
 			name = Bedtime;
