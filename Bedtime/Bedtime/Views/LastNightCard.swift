@@ -109,7 +109,7 @@ import HealthKit
 private func previewNight(hours: Double) -> SleepSession {
     let wakeTime = Calendar.current.date(bySettingHour: 6, minute: 35, second: 0, of: Date()) ?? Date()
     return SleepSession(
-        startDate: wakeTime.addingTimeInterval(-hours * 3600),
+        startDate: wakeTime.addingTimeInterval(.hours(-hours)),
         endDate: wakeTime,
         sleepType: .asleepUnspecified,
         source: .init(source: .default(), version: nil)

@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-class Constants {
+enum Constants {
     static let iconWidth: CGFloat = 30
     static let cardHeaderSpacing: CGFloat = 12
     static let sleepHistoryDays = 30
