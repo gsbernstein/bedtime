@@ -10,7 +10,7 @@ import Foundation
 /// Pure time-interval math for the sleep window between an earliest reasonable
 /// bedtime and a wake time. Split into a now-aware (DST-adjusted) measure for the
 /// recommendation and a nominal wall-clock measure for schedule display.
-nonisolated struct SleepWindow {
+struct SleepWindow {
     /// Real hours between the earliest reasonable bedtime and wake time for the
     /// night ending at the next wake from `referenceDate`. Anchoring on the wake
     /// (forward from now) then searching backward for the bedtime keeps the

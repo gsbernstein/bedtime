@@ -9,9 +9,11 @@ import SwiftUI
 
 struct BedtimeRecommendationCard: View {
     let recommendation: BedtimeRecommendation
+    @ObservedObject var liveActivityManager: LiveActivityManager
     /// When provided, the wake time is tappable and edits this value directly.
     var wakeTime: Binding<Date>? = nil
 
+    @Environment(\.durationDisplayStyle) private var durationStyle
     @State private var isEditingWakeTime = false
 
     var body: some View {
@@ -57,8 +59,70 @@ struct BedtimeRecommendationCard: View {
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.leading)
                     }
+
+                    if liveActivityManager.isSupported {
+                        Divider()
+
+                        liveActivityControls
+                    }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var liveActivityControls: some View {
+        if liveActivityManager.areActivitiesEnabled {
+            HStack(spacing: 12) {
+                Button {
+                    Task {
+                        await liveActivityManager.startOrUpdate(
+                            with: recommendation,
+                            durationStyle: durationStyle
+                        )
+                    }
+                } label: {
+                    Label(
+                        liveActivityManager.isActivityActive
+                            ? "Update Live Activity"
+                            : "Start Live Activity",
+                        systemImage: "wave.3.right.circle.fill"
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(liveActivityManager.isWorking)
+
+                if liveActivityManager.isActivityActive {
+                    Button("End", role: .destructive) {
+                        Task {
+                            await liveActivityManager.end()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(liveActivityManager.isWorking)
+                }
+
+                if liveActivityManager.isWorking {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            Label(
+                "Enable Live Activities for Bedger in system settings.",
+                systemImage: "exclamationmark.circle"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        if let errorMessage = liveActivityManager.lastErrorMessage {
+            Text(errorMessage)
+                .font(.caption)
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -138,6 +202,7 @@ private struct WakeTimeEditor: View {
                     targetSleepDuration: 8,
                     reason: "You're ahead of the game! Aim for at least 8h tonight."
                 ),
+                liveActivityManager: LiveActivityManager(),
                 wakeTime: $wakeTime
             )
             .padding()
