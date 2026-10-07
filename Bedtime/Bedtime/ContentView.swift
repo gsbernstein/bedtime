@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var error: Error?
+    @State private var showingDataRecoveryNotice = false
     
     init() {
         let sourcePrefs = SourcePreferences()
@@ -48,6 +49,11 @@ struct ContentView: View {
         } else {
             let new = UserPreferences()
             modelContext.insert(new)
+            // Notify user that preferences were reset (likely due to data recovery from power loss)
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 500_000_000) // Give UI time to render
+                showingDataRecoveryNotice = true
+            }
             return new
         }
     }
@@ -197,6 +203,15 @@ struct ContentView: View {
             .alert(isPresented: $showingError) {
                 Alert(title: Text("Error"), message: Text("Error refreshing sleep data: \(error?.localizedDescription ?? "Unknown error")"), dismissButton: .default(Text("OK")))
             }
+            .alert(isPresented: $showingDataRecoveryNotice) {
+                Alert(
+                    title: Text("Settings Reset"),
+                    message: Text("Your sleep settings were reset due to a data recovery after your phone lost power unexpectedly. Please reconfigure your sleep goal and wake time in Settings."),
+                    dismissButton: .default(Text("OK")) {
+                        showingSettings = true
+                    }
+                )
+            }
             .settingsPresentation(
                 isPresented: $showingSettings,
                 useInspector: horizontalSizeClass == .regular
@@ -209,17 +224,32 @@ struct ContentView: View {
             }
         }
         .task {
-            try? await healthKitManager.fetchSleepData()
+            do {
+                try await healthKitManager.fetchSleepData()
+            } catch {
+                // Log but don't crash — HealthKit errors are shown in UI
+                print("[Bedtime] Failed to fetch sleep data on launch: \(error)")
+            }
             await refreshBedtimePlan()
+            // Save preferences and BedtimePlan after initial setup
+            try? modelContext.save()
         }
         .onChange(of: scenePhase) { _, newPhase in
-            // Refresh on return from background: the observer query's background
-            // delivery is throttled, and `.task` doesn't re-run on resume, so this
-            // covers data added in the Health app while we were suspended.
-            guard newPhase == .active else { return }
-            Task {
-                try? await healthKitManager.fetchSleepData()
-                await refreshBedtimePlan()
+            switch newPhase {
+            case .active:
+                // Refresh on return from background: the observer query's background
+                // delivery is throttled, and `.task` doesn't re-run on resume, so this
+                // covers data added in the Health app while we were suspended.
+                Task {
+                    try? await healthKitManager.fetchSleepData()
+                    await refreshBedtimePlan()
+                    try? modelContext.save()
+                }
+            case .background:
+                // Save all data when entering background
+                try? modelContext.save()
+            default:
+                break
             }
         }
         .onChange(of: bedtimeRecommendation) { _, _ in
