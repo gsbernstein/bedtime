@@ -39,6 +39,8 @@ enum BedtimePlanStore {
         )
         guard let data = try? JSONEncoder().encode(plan) else { return }
         UserDefaults.standard.set(data, forKey: key)
+        // Explicitly synchronize to disk to protect against unexpected power loss
+        UserDefaults.standard.synchronize()
     }
 
     static func current(now: Date = Date()) -> BedtimePlan? {
