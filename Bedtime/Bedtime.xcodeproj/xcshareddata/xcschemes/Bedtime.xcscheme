@@ -17,6 +17,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "373AAEDC2E91B7E900D8ED84"
                BuildableName = "Bedger.app"
+               BlueprintName = "Bedtime"
                ReferencedContainer = "container:Bedtime.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -46,6 +47,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "373AAEDC2E91B7E900D8ED84"
             BuildableName = "Bedger.app"
+            BlueprintName = "Bedtime"
             ReferencedContainer = "container:Bedtime.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,6 +64,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "373AAEDC2E91B7E900D8ED84"
             BuildableName = "Bedger.app"
+            BlueprintName = "Bedtime"
             ReferencedContainer = "container:Bedtime.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
