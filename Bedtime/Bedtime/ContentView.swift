@@ -39,7 +39,7 @@ struct ContentView: View {
     }
 
     private var recentSourceAppLinks: [SleepSourceAppLink] {
-        guard !healthKitManager.sleepSessions.keys.contains(where: { $0.night == lastNightKey }) else { return [] }
+        guard healthKitManager.sleepSessions[lastNightKey] == nil else { return [] }
         return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.sleepSessions)
     }
     

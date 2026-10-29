@@ -45,8 +45,8 @@ class HealthKitManager: ObservableObject {
     private var currentLoad: Task<Void, Error>?
     
     @Published private(set) var permissionsRequestState: PermissionsRequestState = .loading
-    /// Sleep sessions grouped by composite (night, source) key.
-    @Published private(set) var sleepSessions: [SleepGroupKey: [SleepSession]] = [:]
+    /// Sleep sessions grouped by night date and source bundle identifier.
+    @Published private(set) var sleepSessions: [Date: [String: [SleepSession]]] = [:]
     @Published var errorMessage: String?
     @Published var availableSources: [HKSource]?
     
@@ -255,29 +255,32 @@ class HealthKitManager: ObservableObject {
             )
         }
 
-        var sessionsByGroup: [SleepGroupKey: [SleepSession]] = [:]
+        var result: [Date: [String: [SleepSession]]] = [:]
 
         for (groupKey, groupSamples) in rawGroups {
             let deduped = SleepSampleDeduplicator.deduplicateGroup(groupSamples)
             let sessions = deduped.compactMap { SleepSession(sample: $0) }
             guard !sessions.isEmpty else { continue }
 
-            sessionsByGroup[groupKey] = sessions
+            result[groupKey.night, default: [:]][groupKey.sourceID] = sessions
         }
 
-        self.sleepSessions = sessionsByGroup
+        self.sleepSessions = result
     }
 
     /// Returns sleep sessions grouped by night date (`[Date: [SleepSession]]`),
     /// filtering out any sources present in `excludedSourceIDs`.
     func sessionsByNight(excludedSourceIDs: Set<String> = []) -> [Date: [SleepSession]] {
         var result: [Date: [SleepSession]] = [:]
-        for (key, sessions) in sleepSessions {
-            guard !excludedSourceIDs.contains(key.sourceID) else { continue }
-            result[key.night, default: []].append(contentsOf: sessions)
-        }
-        for (night, nightSessions) in result {
-            result[night] = nightSessions.sorted { $0.startDate > $1.startDate }
+        for (night, sources) in sleepSessions {
+            let filtered = sources
+                .filter { !excludedSourceIDs.contains($0.key) }
+                .values
+                .flatMap { $0 }
+                .sorted { $0.startDate > $1.startDate }
+            if !filtered.isEmpty {
+                result[night] = filtered
+            }
         }
         return result
     }

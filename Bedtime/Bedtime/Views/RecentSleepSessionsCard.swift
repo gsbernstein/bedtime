@@ -10,7 +10,7 @@ import SwiftUI
 struct RecentSleepSessionsCard: View {
     
     init(
-        sessions: [SleepGroupKey: [SleepSession]],
+        sessions: [Date: [String: [SleepSession]]],
         excludedSourceIDs: Set<String>,
         sleepGoal: Double,
         sleepBankDays: Binding<Int>,
@@ -23,15 +23,10 @@ struct RecentSleepSessionsCard: View {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
 
-        var entriesByNight: [Date: [String: [SleepSession]]] = [:]
-        for (key, groupSessions) in sessions {
-            entriesByNight[key.night, default: [:]][key.sourceID] = groupSessions
-        }
-
         self.sortedSessions = (0..<dayCount).compactMap { offset -> (Date, [SleepSession], [String: [SleepSession]])? in
             guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
             let dayStart = calendar.startOfDay(for: day)
-            let nightSources = entriesByNight[dayStart] ?? [:]
+            let nightSources = sessions[dayStart] ?? [:]
 
             let filteredSessions = nightSources
                 .filter { !excludedSourceIDs.contains($0.key) }
@@ -135,24 +130,25 @@ private struct RecentSleepSessionsCardPreview: View {
 
     /// Each night ends at 7am on the day it is keyed under, matching how the card looks
     /// sessions up by the start of their day.
-    private var sessionsByGroup: [SleepGroupKey: [SleepSession]] {
+    private var sessionsByGroup: [Date: [String: [SleepSession]]] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        var result: [SleepGroupKey: [SleepSession]] = [:]
+        var result: [Date: [String: [SleepSession]]] = [:]
         let defaultSourceID = "com.apple.health"
         for (offset, hours) in hoursPerNight.enumerated() {
             guard let hours,
                   let night = calendar.date(byAdding: .day, value: -offset, to: today),
                   let wakeTime = calendar.date(byAdding: .hour, value: 7, to: night)
             else { continue }
-            let key = SleepGroupKey(night: night, sourceID: defaultSourceID)
-            result[key] = [
-                SleepSession(
-                    startDate: wakeTime.addingTimeInterval(.hours(-hours)),
-                    endDate: wakeTime,
-                    sleepType: .asleepUnspecified,
-                    source: .init(source: .default(), version: nil)
-                )
+            result[night] = [
+                defaultSourceID: [
+                    SleepSession(
+                        startDate: wakeTime.addingTimeInterval(.hours(-hours)),
+                        endDate: wakeTime,
+                        sleepType: .asleepUnspecified,
+                        source: .init(source: .default(), version: nil)
+                    )
+                ]
             ]
         }
         return result
