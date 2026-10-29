@@ -41,6 +41,12 @@ struct BedtimeApp: App {
         }
     }()
 
+    init() {
+        // Must happen synchronously before the app finishes launching, per
+        // BGTaskScheduler's requirements.
+        LiveActivityManager.registerBackgroundTask()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
