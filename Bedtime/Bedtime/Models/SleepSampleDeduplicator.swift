@@ -43,6 +43,13 @@ enum SleepSampleDeduplicator {
         return samples.filter { !toDropIDs.contains($0.uuid) }
     }
 
+    /// Deduplicates a single group of samples known to share the same night and source.
+    static func deduplicateGroup(_ samples: [HKCategorySample]) -> [HKCategorySample] {
+        let toDropIDs = Set(samplesToDrop(samples).map(\.uuid))
+        guard !toDropIDs.isEmpty else { return samples }
+        return samples.filter { !toDropIDs.contains($0.uuid) }
+    }
+
     /// Resolves one (night, source) group and returns just the samples that should be
     /// discarded. Only touches groups that show the structural signature of a duplicate
     /// re-sync -- same-source asleep samples overlapping in time, which never happens within a single

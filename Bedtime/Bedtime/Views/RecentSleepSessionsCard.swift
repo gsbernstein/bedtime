@@ -10,8 +10,7 @@ import SwiftUI
 struct RecentSleepSessionsCard: View {
     
     init(
-        sessions: [Date: [SleepSession]],
-        allSessions: [Date: [SleepSession]],
+        sessions: [Date: [String: [SleepSession]]],
         excludedSourceIDs: Set<String>,
         sleepGoal: Double,
         sleepBankDays: Binding<Int>,
@@ -23,14 +22,23 @@ struct RecentSleepSessionsCard: View {
         
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        self.sortedSessions = (0..<dayCount).compactMap { offset -> (Date, [SleepSession], [SleepSession])? in
+
+        self.sortedSessions = (0..<dayCount).compactMap { offset -> (Date, [SleepSession], [String: [SleepSession]])? in
             guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
             let dayStart = calendar.startOfDay(for: day)
-            return (dayStart, sessions[dayStart] ?? [], allSessions[dayStart] ?? [])
+            let nightSources = sessions[dayStart] ?? [:]
+
+            let filteredSessions = nightSources
+                .filter { !excludedSourceIDs.contains($0.key) }
+                .values
+                .flatMap { $0 }
+                .sorted { $0.startDate > $1.startDate }
+
+            return (dayStart, filteredSessions, nightSources)
         }
     }
     
-    let sortedSessions: [(Date, [SleepSession], [SleepSession])]
+    let sortedSessions: [(Date, [SleepSession], [String: [SleepSession]])]
     let sleepGoal: Double
     let excludedSourceIDs: Set<String>
     @Binding var sleepBankDays: Int
@@ -72,7 +80,7 @@ struct RecentSleepSessionsCard: View {
                         SleepDayGroup(
                             date: night,
                             sessions: entry.1,
-                            allSessions: entry.2,
+                            sessionsBySource: entry.2,
                             excludedSourceIDs: excludedSourceIDs,
                             isExpanded: expandedNights.contains(night),
                             sleepGoal: sleepGoal,
@@ -122,32 +130,34 @@ private struct RecentSleepSessionsCardPreview: View {
 
     /// Each night ends at 7am on the day it is keyed under, matching how the card looks
     /// sessions up by the start of their day.
-    private var sessionsByNight: [Date: [SleepSession]] {
+    private var sessionsByGroup: [Date: [String: [SleepSession]]] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        var sessions: [Date: [SleepSession]] = [:]
+        var result: [Date: [String: [SleepSession]]] = [:]
+        let defaultSourceID = "com.apple.health"
         for (offset, hours) in hoursPerNight.enumerated() {
             guard let hours,
                   let night = calendar.date(byAdding: .day, value: -offset, to: today),
                   let wakeTime = calendar.date(byAdding: .hour, value: 7, to: night)
             else { continue }
-            sessions[night] = [
-                SleepSession(
-                    startDate: wakeTime.addingTimeInterval(.hours(-hours)),
-                    endDate: wakeTime,
-                    sleepType: .asleepUnspecified,
-                    source: .init(source: .default(), version: nil)
-                )
+            result[night] = [
+                defaultSourceID: [
+                    SleepSession(
+                        startDate: wakeTime.addingTimeInterval(.hours(-hours)),
+                        endDate: wakeTime,
+                        sleepType: .asleepUnspecified,
+                        source: .init(source: .default(), version: nil)
+                    )
+                ]
             ]
         }
-        return sessions
+        return result
     }
 
     var body: some View {
         ScrollView {
             RecentSleepSessionsCard(
-                sessions: sessionsByNight,
-                allSessions: sessionsByNight,
+                sessions: sessionsByGroup,
                 excludedSourceIDs: [],
                 sleepGoal: 8,
                 sleepBankDays: $days,

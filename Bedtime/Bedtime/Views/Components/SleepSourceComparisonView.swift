@@ -8,7 +8,7 @@ import HealthKit
 
 /// Aligned per-source sleep stage timelines for quick cross-source comparison.
 struct SleepSourceComparisonView: View {
-    let sessions: [SleepSession]
+    let sessionsBySource: [String: [SleepSession]]
     let excludedSourceIDs: Set<String>
     @Environment(\.durationDisplayStyle) private var durationStyle
     
@@ -24,8 +24,7 @@ struct SleepSourceComparisonView: View {
     }
     
     private var sourceTracks: [SourceTrack] {
-        let grouped = Dictionary(grouping: sessions) { $0.source.source.bundleIdentifier }
-        return grouped
+        sessionsBySource
             .map { bundleID, sessions in
                 SourceTrack(
                     id: bundleID,
@@ -38,8 +37,9 @@ struct SleepSourceComparisonView: View {
     }
     
     private var timeRange: (start: Date, end: Date)? {
-        guard let start = sessions.map(\.startDate).min(),
-              let end = sessions.map(\.endDate).max(),
+        let allSessions = sessionsBySource.values.flatMap { $0 }
+        guard let start = allSessions.map(\.startDate).min(),
+              let end = allSessions.map(\.endDate).max(),
               end > start else { return nil }
         return (start, end)
     }
@@ -121,11 +121,15 @@ struct SleepStageTimelineBar: View {
     let bedTime = Calendar.current.date(bySettingHour: 23, minute: 0, second: 0, of: Date())!
     
     SleepSourceComparisonView(
-        sessions: [
-            SleepSession(startDate: bedTime, endDate: bedTime.addingTimeInterval(.hours(1)), sleepType: .asleepCore, source: sourceA),
-            SleepSession(startDate: bedTime.addingTimeInterval(.hours(1)), endDate: bedTime.addingTimeInterval(.hours(2)), sleepType: .asleepDeep, source: sourceA),
-            SleepSession(startDate: bedTime.addingTimeInterval(.minutes(5)), endDate: bedTime.addingTimeInterval(.minutes(90)), sleepType: .asleepCore, source: sourceB),
-            SleepSession(startDate: bedTime.addingTimeInterval(.minutes(90)), endDate: bedTime.addingTimeInterval(.minutes(130)), sleepType: .asleepREM, source: sourceB),
+        sessionsBySource: [
+            sourceA.source.bundleIdentifier: [
+                SleepSession(startDate: bedTime, endDate: bedTime.addingTimeInterval(.hours(1)), sleepType: .asleepCore, source: sourceA),
+                SleepSession(startDate: bedTime.addingTimeInterval(.hours(1)), endDate: bedTime.addingTimeInterval(.hours(2)), sleepType: .asleepDeep, source: sourceA),
+            ],
+            sourceB.source.bundleIdentifier: [
+                SleepSession(startDate: bedTime.addingTimeInterval(.minutes(5)), endDate: bedTime.addingTimeInterval(.minutes(90)), sleepType: .asleepCore, source: sourceB),
+                SleepSession(startDate: bedTime.addingTimeInterval(.minutes(90)), endDate: bedTime.addingTimeInterval(.minutes(130)), sleepType: .asleepREM, source: sourceB),
+            ]
         ],
         excludedSourceIDs: ["com.example.disabled"]
     )
