@@ -112,7 +112,6 @@ struct ContentView: View {
     }
 
     var body: some View {
-        let isBeforeEvening = Calendar.current.component(.hour, from: Date()) < 18
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
@@ -125,16 +124,10 @@ struct ContentView: View {
                     case .shouldRequest:
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     case .hasRequested:
-                        if isBeforeEvening {
-                            LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours,
-                                          sourceAppLinks: recentSourceAppLinks)
-                        } else {
-                            BedtimeRecommendationCard(
-                                recommendation: bedtimeRecommendation,
-                                wakeTime: wakeTimeBinding
-                            )
-                        }
+                        BedtimeRecommendationCard(
+                            recommendation: bedtimeRecommendation,
+                            wakeTime: wakeTimeBinding
+                        )
 
                         SleepBankCard(
                             sleepBank: sleepBank,
@@ -161,16 +154,9 @@ struct ContentView: View {
                             )
                         }
 
-                        if isBeforeEvening {
-                            BedtimeRecommendationCard(
-                                recommendation: bedtimeRecommendation,
-                                wakeTime: wakeTimeBinding
-                            )
-                        } else {
-                            LastNightCard(sleepSessions: lastNightData,
-                                          goal: userPreferences.sleepGoalHours,
-                                          sourceAppLinks: recentSourceAppLinks)
-                        }
+                        LastNightCard(sleepSessions: lastNightData,
+                                      goal: userPreferences.sleepGoalHours,
+                                      sourceAppLinks: recentSourceAppLinks)
 
                         // Recent Sleep Sessions
                         if !healthKitManager.sleepSessions.isEmpty || !healthKitManager.allSleepSessions.isEmpty {

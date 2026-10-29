@@ -36,7 +36,7 @@ struct SleepSession {
     /// filtering, before `SleepSession`s exist yet) can use the exact same rule.
     static func dateForGrouping(startDate: Date, duration: TimeInterval) -> Date {
         let midpoint = startDate.addingTimeInterval(duration / 2)
-        let shiftedMidpoint = midpoint.addingTimeInterval(TimeInterval(6 * 60 * 60))
+        let shiftedMidpoint = midpoint.addingTimeInterval(.hours(6))
         return Calendar.current.startOfDay(for: shiftedMidpoint)
     }
 }
@@ -168,7 +168,7 @@ struct SleepBank: Equatable {
     
 }
 
-struct BedtimeRecommendation {
+struct BedtimeRecommendation: Equatable {
     let recommendedBedtime: Date
     let wakeTime: Date
     let targetSleepDuration: Double // in hours
