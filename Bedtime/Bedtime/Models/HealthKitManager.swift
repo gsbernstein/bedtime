@@ -253,14 +253,37 @@ class HealthKitManager: ObservableObject {
         processSleepSamples(rawSleepSamples)
     }
     
+    private struct SleepGroupKey: Hashable {
+        let night: Date
+        let sourceID: String
+    }
+
     private func processSleepSamples(_ samples: [HKCategorySample]) {
-        let allSessions = samples.compactMap { SleepSession(sample: $0) }
-        self.allSleepSessions = Dictionary(grouping: allSessions) { $0.dateForGrouping }
-        
-        let includedSessions = allSessions.filter {
-            sourcePreferences.isSourceSelected($0.source.source.bundleIdentifier)
+        // Group raw samples by (night, source) in a single pass
+        let rawGroups = Dictionary(grouping: samples) { sample in
+            SleepGroupKey(
+                night: SleepSession.dateForGrouping(startDate: sample.startDate, duration: sample.endDate.timeIntervalSince(sample.startDate)),
+                sourceID: sample.sourceRevision.source.bundleIdentifier
+            )
         }
-        self.sleepSessions = Dictionary(grouping: includedSessions) { $0.dateForGrouping }
+
+        var allByDate: [Date: [SleepSession]] = [:]
+        var filteredByDate: [Date: [SleepSession]] = [:]
+
+        for (groupKey, groupSamples) in rawGroups {
+            let deduped = SleepSampleDeduplicator.deduplicateGroup(groupSamples)
+            let sessions = deduped.compactMap { SleepSession(sample: $0) }
+            guard !sessions.isEmpty else { continue }
+
+            allByDate[groupKey.night, default: []].append(contentsOf: sessions)
+
+            if sourcePreferences.isSourceSelected(groupKey.sourceID) {
+                filteredByDate[groupKey.night, default: []].append(contentsOf: sessions)
+            }
+        }
+
+        self.allSleepSessions = allByDate
+        self.sleepSessions = filteredByDate
     }
     
     #if DEBUG
