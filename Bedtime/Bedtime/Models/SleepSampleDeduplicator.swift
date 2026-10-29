@@ -2,26 +2,27 @@
 //  SleepSampleDeduplicator.swift
 //  Bedtime
 //
-//  Some sources (notably Oura) have a "double sync" bug: syncing a night, then falling back
-//  asleep and syncing again, re-writes the same stretch of stage samples a second time instead
-//  of only writing the newly-recorded tail. Left alone, that inflates every duration total this
-//  app computes (Sleep Bank balance, per-night totals, source comparisons) by roughly 2x for
-//  the affected night.
+//  Some sources (notably Oura) have a "double sync" bug: the app will sync multiple times for a
+//  single night, apparently due to waking up and falling back asleep, refreshing on its own mid-sleep,
+//  or revising values at a later time. When it does so, it re-writes the same stretch of stage samples
+//  a second time instead of only writing the newly-recorded tail or deleting the stale values. Left
+//  alone, that inflates every duration total the app computes (Sleep Bank balance, per-night totals,
+//  source comparisons) by up to 2x or 3x for an affected night.
 //
 //  HealthKit can only ever delete samples an app wrote itself, and these duplicates always come
-//  from the other source (Oura), never Bedger -- so there's no way to actually remove them from
-//  HealthKit. Instead, this filters the older, superseded sync out of Bedger's own calculations,
-//  using the same signal a person would use if they went looking in the Health app: "Date
-//  Added." See `HealthKitCreationDateReader`.
+//  from the other source (Oura), never Bedger -- so there's no way to actually remove them from or
+//  mutate HealthKit at all. Instead, this filters the older, superseded sync out of Bedger's own
+//  calculations, using the same signal a person would use if they went looking in the Health app:
+//  "Date Added." See `HealthKitCreationDateReader`.
 //
 
 import Foundation
 import HealthKit
 
 enum SleepSampleDeduplicator {
-    /// Removes the "old", superseded sync from any same-source, same-night duplicate re-sync in
-    /// `samples`, so summed durations aren't inflated by data a source wrote twice. Preserves
-    /// `samples`' original relative order — callers fetch (and downstream code like
+    /// Removes older, superseded syncs from any same-source, same-night duplicate re-sync in
+    /// `samples`, so summed durations aren't inflated by data a source wrote multiple times.
+    /// Preserves `samples`' original relative order — callers fetch (and downstream code like
     /// `SleepDayGroup`/`LastNightCard` reads `.first`/`.last` off) samples sorted newest-first,
     /// so this only ever removes elements, never reorders them.
     static func deduplicate(_ samples: [HKCategorySample]) -> [HKCategorySample] {
