@@ -253,8 +253,15 @@ class HealthKitManager: ObservableObject {
         processSleepSamples(rawSleepSamples)
     }
     
+    // TODO: overally we're making 3 different grouping passes of the data in this function, 4 overall:
+    // 1. Deduplicate the raw samples (internally groups by date and source)
+    // 2. Group all sessions by date
+    // 3. Group source-filtered sessions by date
+    // 4. In the source comparison view, grouping again by source
+    // May be cleaner to do one pass grouping by date and source, then dedupe and filter within as needed, but will require refactor.
     private func processSleepSamples(_ samples: [HKCategorySample]) {
-        let allSessions = samples.compactMap { SleepSession(sample: $0) }
+        let dedupedSamples = SleepSampleDeduplicator.deduplicate(samples)
+        let allSessions = dedupedSamples.compactMap { SleepSession(sample: $0) }
         self.allSleepSessions = Dictionary(grouping: allSessions) { $0.dateForGrouping }
         
         let includedSessions = allSessions.filter {
