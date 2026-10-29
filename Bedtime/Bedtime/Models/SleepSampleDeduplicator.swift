@@ -106,7 +106,7 @@ enum SleepSampleDeduplicator {
         for index in stride(from: distinctCreationDates.count - 1, through: 1, by: -1) {
             let gap = distinctCreationDates[index].timeIntervalSince(distinctCreationDates[index - 1])
             if gap > syncGapThreshold {
-                return distinctCreationDates[index - 1].addingTimeInterval(gap / 2)
+                return distinctCreationDates[index].addingTimeInterval(-gap / 2)
             }
         }
 
