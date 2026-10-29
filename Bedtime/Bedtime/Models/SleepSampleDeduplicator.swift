@@ -43,33 +43,51 @@ enum SleepSampleDeduplicator {
         return samples.filter { !toDropIDs.contains($0.uuid) }
     }
 
+    /// True if the sample represents an asleep stage that Bedger actually tracks.
+    /// Non-asleep values like `.inBed` legitimately overlap asleep stages within a single sync
+    /// and are excluded from duplicate detection so they don't trigger false positives.
+    ///
+    /// Note: Bedger currently ignores `.inBed` samples downstream (`SleepSession(sample:)` returns nil).
+    /// If in-bed data is ever used in the future (e.g. to compute sleep latency or adjust bedtime
+    /// recommendations), in-bed samples may need their own dedicated deduplication pass.
+    private static func isAsleep(_ sample: HKCategorySample) -> Bool {
+        guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return false }
+        return HKCategoryValueSleepAnalysis.allAsleepValues.contains(sleepType)
+    }
+
     /// Resolves one (night, source) group and returns just the samples that should be
     /// discarded. Only touches groups that show the structural signature of a duplicate
-    /// re-sync -- same-source samples overlapping in time, which never happens within a single
+    /// re-sync -- same-source asleep samples overlapping in time, which never happens within a single
     /// healthy sync since stage segments are sequential -- and only when "Date Added" data is
-    /// rich enough to place a meaningful split. Otherwise drops nothing: we never guess at
-    /// removing data without a real signal to justify it.
+    /// rich enough to place a meaningful split.
+    ///
+    /// To support multi-syncs (double-, triple-, or N-syncs), this finds the boundary before the
+    /// latest sync generation and drops all samples created prior to it.
+    ///
+    /// Note on scope: this uses a night-level cutoff. If a source were to write an independent
+    /// evening block and then re-sync only the overnight sleep under a later timestamp, a night-level
+    /// cutoff could drop the earlier block. In practice (e.g. Oura), wearables sync the full night
+    /// together and don't sync separate naps into the same night. If intra-night interval grouping
+    /// is ever needed, we may revisit this.
     private static func samplesToDrop(_ samples: [HKCategorySample]) -> [HKCategorySample] {
-        guard samples.count > 1, hasOverlap(samples) else { return [] }
+        let asleep = samples.filter { isAsleep($0) }
+        guard asleep.count > 1, hasOverlap(asleep) else { return [] }
 
-        let creationDatesByID = Dictionary(uniqueKeysWithValues: samples.map {
+        let creationDatesByID = Dictionary(uniqueKeysWithValues: asleep.map {
             ($0.uuid, HealthKitCreationDateReader.creationDate(for: $0))
         })
         let knownCreationDates = creationDatesByID.values.compactMap { $0 }
         let distinctCreationDates = Array(Set(knownCreationDates)).sorted()
 
         // Need at least two distinct sync times, known for at least half the group, to place a
-        // meaningful divider between "old sync" and "new sync."
-        guard distinctCreationDates.count >= 2, knownCreationDates.count * 2 >= samples.count else { return [] }
+        // meaningful divider between old and new syncs.
+        guard distinctCreationDates.count >= 2, knownCreationDates.count * 2 >= asleep.count else { return [] }
 
         guard let cutoff = suggestedCutoff(distinctCreationDates) else { return [] }
 
         // Samples with no readable creation date are always kept -- only ever drop what we can
-        // positively identify as belonging to the older sync.
-        return samples.filter { sample in
-            // Dictionary lookup returns `Date??`: the outer optional is always populated here
-            // (every sample was inserted above), the inner one is `nil` when the creation date
-            // itself couldn't be read.
+        // positively identify as belonging to an older sync.
+        return asleep.filter { sample in
             guard case .some(.some(let creationDate)) = creationDatesByID[sample.uuid] else { return false }
             return creationDate < cutoff
         }
@@ -88,12 +106,23 @@ enum SleepSampleDeduplicator {
         return false
     }
 
-    /// The midpoint of the largest gap between consecutive distinct creation timestamps -- i.e.
-    /// the boundary between two sync batches. `distinctCreationDates` must already be sorted
-    /// ascending and have at least two entries.
+    /// Places the cutoff between the newest sync generation and any older sync generations,
+    /// ensuring that multi-syncs (such as triple syncs) drop all earlier generations rather
+    /// than only splitting at the single largest gap.
+    /// `distinctCreationDates` must be sorted ascending with at least two entries.
     private static func suggestedCutoff(_ distinctCreationDates: [Date]) -> Date? {
         guard distinctCreationDates.count > 1 else { return nil }
 
+        let syncGapThreshold: TimeInterval = 30 // seconds
+        // Walk backwards from newest to oldest to find where the latest sync batch starts
+        for index in stride(from: distinctCreationDates.count - 1, through: 1, by: -1) {
+            let gap = distinctCreationDates[index].timeIntervalSince(distinctCreationDates[index - 1])
+            if gap > syncGapThreshold {
+                return distinctCreationDates[index - 1].addingTimeInterval(gap / 2)
+            }
+        }
+
+        // Fallback: if all timestamps are tightly clustered (< 30s apart), use the largest gap
         var bestGapIndex = 0
         var bestGap: TimeInterval = -1
         for index in 1..<distinctCreationDates.count {
@@ -103,6 +132,7 @@ enum SleepSampleDeduplicator {
                 bestGapIndex = index - 1
             }
         }
+        guard bestGap > 0 else { return nil }
         return distinctCreationDates[bestGapIndex].addingTimeInterval(bestGap / 2)
     }
 }
