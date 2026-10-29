@@ -1,0 +1,126 @@
+//
+//  SleepSampleDeduplicator.swift
+//  Bedtime
+//
+//  Some sources (notably Oura) have a "double sync" bug: the app will sync multiple times for a
+//  single night, apparently due to waking up and falling back asleep, refreshing on its own mid-sleep,
+//  or revising values at a later time. When it does so, it re-writes the same stretch of stage samples
+//  a second time instead of only writing the newly-recorded tail or deleting the stale values. Left
+//  alone, that inflates every duration total the app computes (Sleep Bank balance, per-night totals,
+//  source comparisons) by up to 2x or 3x for an affected night.
+//
+//  HealthKit can only ever delete samples an app wrote itself, and these duplicates always come
+//  from the other source (Oura), never Bedger -- so there's no way to actually remove them from or
+//  mutate HealthKit at all. Instead, this filters the older, superseded sync out of Bedger's own
+//  calculations, using the same signal a person would use if they went looking in the Health app:
+//  "Date Added." See `HealthKitCreationDateReader`.
+//
+
+import Foundation
+import HealthKit
+
+enum SleepSampleDeduplicator {
+    /// Removes older, superseded syncs from any same-source, same-night duplicate re-sync in
+    /// `samples`, so summed durations aren't inflated by data a source wrote multiple times.
+    /// Preserves `samples`' original relative order — callers fetch (and downstream code like
+    /// `SleepDayGroup`/`LastNightCard` reads `.first`/`.last` off) samples sorted newest-first,
+    /// so this only ever removes elements, never reorders them.
+    static func deduplicate(_ samples: [HKCategorySample]) -> [HKCategorySample] {
+        struct Key: Hashable {
+            let night: Date
+            let bundleID: String
+        }
+
+        let grouped = Dictionary(grouping: samples) { sample in
+            Key(
+                night: SleepSession.dateForGrouping(startDate: sample.startDate, duration: sample.endDate.timeIntervalSince(sample.startDate)),
+                bundleID: sample.sourceRevision.source.bundleIdentifier
+            )
+        }
+
+        let toDropIDs = Set(grouped.values.flatMap(samplesToDrop).map(\.uuid))
+        guard !toDropIDs.isEmpty else { return samples }
+        return samples.filter { !toDropIDs.contains($0.uuid) }
+    }
+
+    /// Resolves one (night, source) group and returns just the samples that should be
+    /// discarded. Only touches groups that show the structural signature of a duplicate
+    /// re-sync -- same-source asleep samples overlapping in time, which never happens within a single
+    /// healthy sync since stage segments are sequential -- and only when "Date Added" data is
+    /// rich enough to place a meaningful split.
+    ///
+    /// To support multi-syncs (double-, triple-, or N-syncs), this finds the boundary before the
+    /// latest sync generation and drops all samples created prior to it.
+    ///
+    /// Note on scope: this uses a night-level cutoff. If a source were to write an independent
+    /// evening block and then re-sync only the overnight sleep under a later timestamp, a night-level
+    /// cutoff could drop the earlier block. In practice (e.g. Oura), wearables sync the full night
+    /// together and don't sync separate naps into the same night. If intra-night interval grouping
+    /// is ever needed, we may revisit this.
+    private static func samplesToDrop(_ samples: [HKCategorySample]) -> [HKCategorySample] {
+        let asleep = samples.filter { $0.sleepType?.isAsleep ?? false }
+        guard asleep.count > 1, hasOverlap(asleep) else { return [] }
+
+        let creationDatesByID = Dictionary(uniqueKeysWithValues: asleep.map {
+            ($0.uuid, HealthKitCreationDateReader.creationDate(for: $0))
+        })
+        let knownCreationDates = creationDatesByID.values.compactMap { $0 }
+        let distinctCreationDates = Array(Set(knownCreationDates)).sorted()
+
+        // Need at least two distinct sync times, known for at least half the group, to place a
+        // meaningful divider between old and new syncs.
+        guard distinctCreationDates.count >= 2, knownCreationDates.count * 2 >= asleep.count else { return [] }
+
+        guard let cutoff = suggestedCutoff(distinctCreationDates) else { return [] }
+
+        // Samples with no readable creation date are always kept -- only ever drop what we can
+        // positively identify as belonging to an older sync.
+        return asleep.filter { sample in
+            guard case .some(.some(let creationDate)) = creationDatesByID[sample.uuid] else { return false }
+            return creationDate < cutoff
+        }
+    }
+
+    /// True when at least two samples from this source overlap in time -- back-to-back sleep
+    /// stages from a single sync never do, so this is specific to duplicate re-syncs.
+    private static func hasOverlap(_ samples: [HKCategorySample]) -> Bool {
+        let sorted = samples.sorted { $0.startDate < $1.startDate }
+        guard sorted.count > 1 else { return false }
+        var runningEnd = sorted[0].endDate
+        for sample in sorted.dropFirst() {
+            if sample.startDate < runningEnd { return true }
+            runningEnd = max(runningEnd, sample.endDate)
+        }
+        return false
+    }
+
+    /// Places the cutoff between the newest sync generation and any older sync generations,
+    /// ensuring that multi-syncs (such as triple syncs) drop all earlier generations rather
+    /// than only splitting at the single largest gap.
+    /// `distinctCreationDates` must be sorted ascending with at least two entries.
+    private static func suggestedCutoff(_ distinctCreationDates: [Date]) -> Date? {
+        guard distinctCreationDates.count > 1 else { return nil }
+
+        let syncGapThreshold: TimeInterval = 30 // seconds
+        // Walk backwards from newest to oldest to find where the latest sync batch starts
+        for index in stride(from: distinctCreationDates.count - 1, through: 1, by: -1) {
+            let gap = distinctCreationDates[index].timeIntervalSince(distinctCreationDates[index - 1])
+            if gap > syncGapThreshold {
+                return distinctCreationDates[index].addingTimeInterval(-gap / 2)
+            }
+        }
+
+        // Fallback: if all timestamps are tightly clustered (< 30s apart), use the largest gap
+        var bestGapIndex = 0
+        var bestGap: TimeInterval = -1
+        for index in 1..<distinctCreationDates.count {
+            let gap = distinctCreationDates[index].timeIntervalSince(distinctCreationDates[index - 1])
+            if gap > bestGap {
+                bestGap = gap
+                bestGapIndex = index - 1
+            }
+        }
+        guard bestGap > 0 else { return nil }
+        return distinctCreationDates[bestGapIndex].addingTimeInterval(bestGap / 2)
+    }
+}
