@@ -143,6 +143,7 @@
 				DEVELOPMENT_TEAM = 9J44X82D53;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Bedtime-Info.plist";
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.burnsides.bedtime.background-task";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Use your sleep data to calculate your sleep bank and provide personalized bedtime recommendations.";
@@ -181,6 +182,7 @@
 				DEVELOPMENT_TEAM = 9J44X82D53;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Bedtime-Info.plist";
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.burnsides.bedtime.background-task";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Use your sleep data to calculate your sleep bank and provide personalized bedtime recommendations.";
