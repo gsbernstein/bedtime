@@ -50,8 +50,10 @@ struct SleepSourceAppLink: Identifiable {
 
 extension SleepSession {
     init?(sample: HKCategorySample) {
-        guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return nil }
-        guard HKCategoryValueSleepAnalysis.allAsleepValues.contains(sleepType) else { return nil }
+        guard let sleepType = sample.sleepType,
+              sleepType.isAsleep else {
+            return nil
+        }
         self.init(startDate: sample.startDate,
                   endDate: sample.endDate,
                   sleepType: sleepType,
@@ -59,15 +61,27 @@ extension SleepSession {
     }
 }
 
+extension HKCategorySample {
+    var sleepType: HKCategoryValueSleepAnalysis? {
+        guard categoryType == .sleepAnalysis else { return nil }
+        return HKCategoryValueSleepAnalysis(rawValue: value)
+    }
+}
+
 extension HKCategoryValueSleepAnalysis {
-    
-    static let allAsleepValues: [HKCategoryValueSleepAnalysis] = [
+
+    /// excludes "in bed" and "awake"
+    static let allAsleepValues: Set<HKCategoryValueSleepAnalysis> = [
         .asleepUnspecified,
         .asleepCore,
         .asleepDeep,
         .asleepREM,
     ]
-    
+
+    var isAsleep: Bool {
+        HKCategoryValueSleepAnalysis.allAsleepValues.contains(self)
+    }
+
     var displayName: String {
         switch self {
         case .asleepUnspecified: return "Asleep"

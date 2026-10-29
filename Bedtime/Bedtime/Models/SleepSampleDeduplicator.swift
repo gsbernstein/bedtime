@@ -43,18 +43,6 @@ enum SleepSampleDeduplicator {
         return samples.filter { !toDropIDs.contains($0.uuid) }
     }
 
-    /// True if the sample represents an asleep stage that Bedger actually tracks.
-    /// Non-asleep values like `.inBed` legitimately overlap asleep stages within a single sync
-    /// and are excluded from duplicate detection so they don't trigger false positives.
-    ///
-    /// Note: Bedger currently ignores `.inBed` samples downstream (`SleepSession(sample:)` returns nil).
-    /// If in-bed data is ever used in the future (e.g. to compute sleep latency or adjust bedtime
-    /// recommendations), in-bed samples may need their own dedicated deduplication pass.
-    private static func isAsleep(_ sample: HKCategorySample) -> Bool {
-        guard let sleepType = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return false }
-        return HKCategoryValueSleepAnalysis.allAsleepValues.contains(sleepType)
-    }
-
     /// Resolves one (night, source) group and returns just the samples that should be
     /// discarded. Only touches groups that show the structural signature of a duplicate
     /// re-sync -- same-source asleep samples overlapping in time, which never happens within a single
@@ -70,7 +58,7 @@ enum SleepSampleDeduplicator {
     /// together and don't sync separate naps into the same night. If intra-night interval grouping
     /// is ever needed, we may revisit this.
     private static func samplesToDrop(_ samples: [HKCategorySample]) -> [HKCategorySample] {
-        let asleep = samples.filter { isAsleep($0) }
+        let asleep = samples.filter { $0.sleepType?.isAsleep ?? false }
         guard asleep.count > 1, hasOverlap(asleep) else { return [] }
 
         let creationDatesByID = Dictionary(uniqueKeysWithValues: asleep.map {
