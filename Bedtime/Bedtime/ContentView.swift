@@ -33,12 +33,14 @@ struct ContentView: View {
     }
 
     var lastNightData: [SleepSession]? {
-        healthKitManager.sleepSessions[lastNightKey]
+        healthKitManager.sessionsByNight(
+            excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers
+        )[lastNightKey]
     }
 
     private var recentSourceAppLinks: [SleepSourceAppLink] {
-        guard healthKitManager.allSleepSessions[lastNightKey] == nil else { return [] }
-        return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
+        guard !healthKitManager.sleepSessions.keys.contains(where: { $0.night == lastNightKey }) else { return [] }
+        return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.sleepSessions)
     }
     
     private var userPreferences: UserPreferences {
@@ -53,7 +55,9 @@ struct ContentView: View {
     
     private var sleepBank: SleepBank {
         ViewModel.calculateSleepBank(
-            sleepSessions: healthKitManager.sleepSessions,
+            sleepSessions: healthKitManager.sessionsByNight(
+                excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers
+            ),
             goalHours: userPreferences.sleepGoalHours,
             recentDays: userPreferences.sleepBankDays
         )
@@ -63,7 +67,9 @@ struct ContentView: View {
     /// balance chart can show every night the range start can be moved to.
     private var fullWindowSleepBank: SleepBank {
         ViewModel.calculateSleepBank(
-            sleepSessions: healthKitManager.sleepSessions,
+            sleepSessions: healthKitManager.sessionsByNight(
+                excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers
+            ),
             goalHours: userPreferences.sleepGoalHours,
             recentDays: Constants.sleepBankDaysRange.upperBound
         )
@@ -102,7 +108,9 @@ struct ContentView: View {
 
     private var sleepBankInsight: SleepBankInsight? {
         SleepInsightsEngine.generateInsight(
-            sleepSessions: healthKitManager.sleepSessions,
+            sleepSessions: healthKitManager.sessionsByNight(
+                excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers
+            ),
             goalHours: userPreferences.sleepGoalHours,
             maxSleepHours: SleepWindow.maxSleepHours(
                 earliestBedtime: userPreferences.earliestReasonableBedtime,
@@ -159,10 +167,9 @@ struct ContentView: View {
                                       sourceAppLinks: recentSourceAppLinks)
 
                         // Recent Sleep Sessions
-                        if !healthKitManager.sleepSessions.isEmpty || !healthKitManager.allSleepSessions.isEmpty {
+                        if !healthKitManager.sleepSessions.isEmpty {
                             RecentSleepSessionsCard(
                                 sessions: healthKitManager.sleepSessions,
-                                allSessions: healthKitManager.allSleepSessions,
                                 excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers,
                                 sleepGoal: userPreferences.sleepGoalHours,
                                 sleepBankDays: sleepBankDaysBinding

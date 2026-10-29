@@ -25,6 +25,12 @@ enum PermissionsRequestState: Equatable {
     case hasRequested
 }
 
+/// Composite key for grouping sleep sessions by night and HealthKit source.
+struct SleepGroupKey: Hashable, Sendable {
+    let night: Date
+    let sourceID: String
+}
+
 @MainActor
 class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
@@ -39,13 +45,12 @@ class HealthKitManager: ObservableObject {
     private var currentLoad: Task<Void, Error>?
     
     @Published private(set) var permissionsRequestState: PermissionsRequestState = .loading
-    @Published var sleepSessions: [Date: [SleepSession]] = [:]
-    /// All sessions regardless of source preferences — used for per-source comparison UI.
-    @Published private(set) var allSleepSessions: [Date: [SleepSession]] = [:]
+    /// Sleep sessions grouped by composite (night, source) key.
+    @Published private(set) var sleepSessions: [SleepGroupKey: [SleepSession]] = [:]
     @Published var errorMessage: String?
     @Published var availableSources: [HKSource]?
     
-    init(sourcePreferences: SourcePreferences) {
+    init(sourcePreferences: SourcePreferences = SourcePreferences()) {
         self.sourcePreferences = sourcePreferences
         
         do {
@@ -54,14 +59,6 @@ class HealthKitManager: ObservableObject {
             errorMessage = error.localizedDescription
             permissionsRequestState = .shouldRequest
         }
-        
-        // Listen for preference changes to re-filter data immediately
-        sourcePreferences.objectWillChange
-            .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.reprocessStoredSamples()
-            }
-            .store(in: &cancellables)
     }
     
     deinit {
@@ -249,15 +246,6 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    private func reprocessStoredSamples() {
-        processSleepSamples(rawSleepSamples)
-    }
-    
-    private struct SleepGroupKey: Hashable {
-        let night: Date
-        let sourceID: String
-    }
-
     private func processSleepSamples(_ samples: [HKCategorySample]) {
         // Group raw samples by (night, source) in a single pass
         let rawGroups = Dictionary(grouping: samples) { sample in
@@ -267,23 +255,31 @@ class HealthKitManager: ObservableObject {
             )
         }
 
-        var allByDate: [Date: [SleepSession]] = [:]
-        var filteredByDate: [Date: [SleepSession]] = [:]
+        var sessionsByGroup: [SleepGroupKey: [SleepSession]] = [:]
 
         for (groupKey, groupSamples) in rawGroups {
             let deduped = SleepSampleDeduplicator.deduplicateGroup(groupSamples)
             let sessions = deduped.compactMap { SleepSession(sample: $0) }
             guard !sessions.isEmpty else { continue }
 
-            allByDate[groupKey.night, default: []].append(contentsOf: sessions)
-
-            if sourcePreferences.isSourceSelected(groupKey.sourceID) {
-                filteredByDate[groupKey.night, default: []].append(contentsOf: sessions)
-            }
+            sessionsByGroup[groupKey] = sessions
         }
 
-        self.allSleepSessions = allByDate
-        self.sleepSessions = filteredByDate
+        self.sleepSessions = sessionsByGroup
+    }
+
+    /// Returns sleep sessions grouped by night date (`[Date: [SleepSession]]`),
+    /// filtering out any sources present in `excludedSourceIDs`.
+    func sessionsByNight(excludedSourceIDs: Set<String> = []) -> [Date: [SleepSession]] {
+        var result: [Date: [SleepSession]] = [:]
+        for (key, sessions) in sleepSessions {
+            guard !excludedSourceIDs.contains(key.sourceID) else { continue }
+            result[key.night, default: []].append(contentsOf: sessions)
+        }
+        for (night, nightSessions) in result {
+            result[night] = nightSessions.sorted { $0.startDate > $1.startDate }
+        }
+        return result
     }
     
     #if DEBUG

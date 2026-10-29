@@ -24,7 +24,7 @@ class ViewModel {
     ]
 
     static func recentSourceAppLinks(
-        sleepSessions: [Date: [SleepSession]],
+        sleepSessions: [SleepGroupKey: [SleepSession]],
         referenceDate: Date = Date(),
         calendar: Calendar = .current
     ) -> [SleepSourceAppLink] {
