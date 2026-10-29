@@ -253,21 +253,37 @@ class HealthKitManager: ObservableObject {
         processSleepSamples(rawSleepSamples)
     }
     
-    // TODO: overally we're making 3 different grouping passes of the data in this function, 4 overall:
-    // 1. Deduplicate the raw samples (internally groups by date and source)
-    // 2. Group all sessions by date
-    // 3. Group source-filtered sessions by date
-    // 4. In the source comparison view, grouping again by source
-    // May be cleaner to do one pass grouping by date and source, then dedupe and filter within as needed, but will require refactor.
+    private struct SleepGroupKey: Hashable {
+        let night: Date
+        let sourceID: String
+    }
+
     private func processSleepSamples(_ samples: [HKCategorySample]) {
-        let dedupedSamples = SleepSampleDeduplicator.deduplicate(samples)
-        let allSessions = dedupedSamples.compactMap { SleepSession(sample: $0) }
-        self.allSleepSessions = Dictionary(grouping: allSessions) { $0.dateForGrouping }
-        
-        let includedSessions = allSessions.filter {
-            sourcePreferences.isSourceSelected($0.source.source.bundleIdentifier)
+        // Group raw samples by (night, source) in a single pass
+        let rawGroups = Dictionary(grouping: samples) { sample in
+            SleepGroupKey(
+                night: SleepSession.dateForGrouping(startDate: sample.startDate, duration: sample.endDate.timeIntervalSince(sample.startDate)),
+                sourceID: sample.sourceRevision.source.bundleIdentifier
+            )
         }
-        self.sleepSessions = Dictionary(grouping: includedSessions) { $0.dateForGrouping }
+
+        var allByDate: [Date: [SleepSession]] = [:]
+        var filteredByDate: [Date: [SleepSession]] = [:]
+
+        for (groupKey, groupSamples) in rawGroups {
+            let deduped = SleepSampleDeduplicator.deduplicateGroup(groupSamples)
+            let sessions = deduped.compactMap { SleepSession(sample: $0) }
+            guard !sessions.isEmpty else { continue }
+
+            allByDate[groupKey.night, default: []].append(contentsOf: sessions)
+
+            if sourcePreferences.isSourceSelected(groupKey.sourceID) {
+                filteredByDate[groupKey.night, default: []].append(contentsOf: sessions)
+            }
+        }
+
+        self.allSleepSessions = allByDate
+        self.sleepSessions = filteredByDate
     }
     
     #if DEBUG
