@@ -10,7 +10,7 @@ import SwiftUI
 struct SleepDayGroup: View {
     let date: Date
     let sessions: [SleepSession]
-    let allSessions: [SleepSession]
+    let sessionsBySource: [String: [SleepSession]]
     let excludedSourceIDs: Set<String>
     let isExpanded: Bool
     let sleepGoal: Double
@@ -110,7 +110,7 @@ struct SleepDayGroup: View {
                 .disabled(!hasSessions)
 
                 SleepSourceComparisonView(
-                    sessions: allSessions,
+                    sessionsBySource: sessionsBySource,
                     excludedSourceIDs: excludedSourceIDs
                 )
                 .padding(.leading, 4)

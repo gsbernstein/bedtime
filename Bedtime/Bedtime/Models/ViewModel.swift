@@ -24,7 +24,7 @@ class ViewModel {
     ]
 
     static func recentSourceAppLinks(
-        sleepSessions: [Date: [SleepSession]],
+        sleepSessions: [Date: [String: [SleepSession]]],
         referenceDate: Date = Date(),
         calendar: Calendar = .current
     ) -> [SleepSourceAppLink] {
@@ -36,6 +36,7 @@ class ViewModel {
 
         var linksByBundleID: [String: SleepSourceAppLink] = [:]
         let recentSessions = sleepSessions.values
+            .flatMap { $0.values }
             .flatMap { $0 }
             .filter { $0.endDate >= cutoff && $0.endDate <= referenceDate }
             .sorted { $0.endDate > $1.endDate }
