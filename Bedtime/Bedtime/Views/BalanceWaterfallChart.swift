@@ -31,6 +31,9 @@ struct BalanceWaterfallChart: View {
     let domain: ClosedRange<Double>
     @Binding var selectedDays: Int
     var daysRange: ClosedRange<Int> = Constants.sleepBankDaysRange
+    @Environment(\.appTheme) private var theme
+
+    private var colors: any ThemeColorPalette { theme.colors }
 
     private var impactByDate: [Date: BalanceDayImpact] {
         Dictionary(uniqueKeysWithValues: impacts.map { ($0.date, $0) })
@@ -100,10 +103,10 @@ struct BalanceWaterfallChart: View {
         let dividerY = min(max(yPosition(for: baselineBalance, in: size.height), 0), size.height)
         return VStack(spacing: 0) {
             Rectangle()
-                .fill(Color.green.opacity(0.1))
+                .fill(colors.positive.opacity(0.1))
                 .frame(height: dividerY)
             Rectangle()
-                .fill(Color.red.opacity(0.1))
+                .fill(colors.negative.opacity(0.1))
         }
     }
 
@@ -125,7 +128,7 @@ struct BalanceWaterfallChart: View {
                 let newY = yPosition(for: step.newBalance, in: size.height)
                 let stepHeight = abs(newY - priorY)
                 stepShape(isGain: step.isGain, stepHeight: stepHeight, chartWidth: size.width)
-                    .fill(step.isGain ? Color.green : Color.red)
+                    .fill(step.isGain ? colors.positive : colors.negative)
                     .opacity(isIncluded ? 1 : 0.3)
                     .frame(height: max(stepHeight, 1))
                     .offset(y: min(priorY, newY))

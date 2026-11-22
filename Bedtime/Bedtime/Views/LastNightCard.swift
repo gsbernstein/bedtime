@@ -12,6 +12,9 @@ struct LastNightCard: View {
     let goal: TimeInterval
     let sourceAppLinks: [SleepSourceAppLink]
     @Environment(\.durationDisplayStyle) private var durationStyle
+    @Environment(\.appTheme) private var theme
+
+    private var colors: any ThemeColorPalette { theme.colors }
     
     var durationInHours: TimeInterval? {
         sleepSessions?.map(\.durationInHours).reduce(0, +)
@@ -19,11 +22,11 @@ struct LastNightCard: View {
 
     private var durationColor: Color {
         guard let durationInHours else { return .secondary }
-        return Constants.sleepDurationColor(
+        let keypath = Constants.sleepDurationColor(
             hours: durationInHours,
-            goal: goal,
-            graceColor: .primary
-        )
+            goal: goal
+        ) ?? \.primary
+        return colors[keyPath: keypath]
     }
     
     var body: some View {
@@ -31,7 +34,7 @@ struct LastNightCard: View {
             VStack(spacing: 16) {
                 CardHeader(
                     icon: "calendar",
-                    iconColor: .blue,
+                    iconColor: colors.lastNight,
                     title: "Last Night"
                 )
                 
@@ -119,19 +122,19 @@ private func previewNight(hours: Double) -> SleepSession {
 #Preview("Met goal") {
     LastNightCard(sleepSessions: [previewNight(hours: 8.2)], goal: 8, sourceAppLinks: [])
         .padding()
-        .background(Color.backgroundBehindCards)
+        .background(AppTheme.cozy.colors.background)
 }
 
 #Preview("Short night") {
     LastNightCard(sleepSessions: [previewNight(hours: 5.75)], goal: 8, sourceAppLinks: [])
         .padding()
-        .background(Color.backgroundBehindCards)
+        .background(AppTheme.cozy.colors.background)
 }
 
 #Preview("No data") {
     LastNightCard(sleepSessions: nil, goal: 8, sourceAppLinks: [])
         .padding()
-        .background(Color.backgroundBehindCards)
+        .background(AppTheme.cozy.colors.background)
 }
 
 #Preview("No data, with source apps") {
@@ -148,7 +151,7 @@ private func previewNight(hours: Double) -> SleepSession {
         ]
     )
     .padding()
-    .background(Color.backgroundBehindCards)
+    .background(AppTheme.cozy.colors.background)
 }
 
 #endif
