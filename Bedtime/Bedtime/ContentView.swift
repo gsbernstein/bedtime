@@ -6,21 +6,19 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
-    @Query private var preferences: [UserPreferences]
+    let userPreferences: UserPreferences
     @StateObject private var sourcePreferences: SourcePreferences
     @StateObject private var healthKitManager: HealthKitManager
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var error: Error?
-    @State private var showingDataRecoveryNotice = false
     
-    init() {
+    init(userPreferences: UserPreferences) {
+        self.userPreferences = userPreferences
         let sourcePrefs = SourcePreferences()
         _sourcePreferences = StateObject(wrappedValue: sourcePrefs)
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
@@ -40,21 +38,6 @@ struct ContentView: View {
     private var recentSourceAppLinks: [SleepSourceAppLink] {
         guard healthKitManager.allSleepSessions[lastNightKey] == nil else { return [] }
         return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
-    }
-    
-    private var userPreferences: UserPreferences {
-        if let existing = preferences.first {
-            return existing
-        } else {
-            let new = UserPreferences()
-            modelContext.insert(new)
-            // Notify user that preferences were reset (likely due to data recovery from power loss)
-            Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 500_000_000) // Give UI time to render
-                showingDataRecoveryNotice = true
-            }
-            return new
-        }
     }
     
     private var sleepBank: SleepBank {
@@ -201,15 +184,6 @@ struct ContentView: View {
             .alert(isPresented: $showingError) {
                 Alert(title: Text("Error"), message: Text("Error refreshing sleep data: \(error?.localizedDescription ?? "Unknown error")"), dismissButton: .default(Text("OK")))
             }
-            .alert(isPresented: $showingDataRecoveryNotice) {
-                Alert(
-                    title: Text("Settings Reset"),
-                    message: Text("Your sleep settings were reset due to a data recovery after your phone lost power unexpectedly. Please reconfigure your sleep goal and wake time in Settings."),
-                    dismissButton: .default(Text("OK")) {
-                        showingSettings = true
-                    }
-                )
-            }
             .settingsPresentation(
                 isPresented: $showingSettings,
                 useInspector: horizontalSizeClass == .regular
@@ -222,38 +196,21 @@ struct ContentView: View {
             }
         }
         .task {
-            do {
-                try await healthKitManager.fetchSleepData()
-            } catch {
-                // Log but don't crash — HealthKit errors are shown in UI
-                print("[Bedtime] Failed to fetch sleep data on launch: \(error)")
-            }
-            // Save preferences after initial setup
-            try? modelContext.save()
+            try? await healthKitManager.fetchSleepData()
         }
         .onChange(of: scenePhase) { _, newPhase in
-            switch newPhase {
-            case .active:
-                // Refresh on return from background: the observer query's background
-                // delivery is throttled, and `.task` doesn't re-run on resume, so this
-                // covers data added in the Health app while we were suspended.
-                Task {
-                    try? await healthKitManager.fetchSleepData()
-                    try? modelContext.save()
-                }
-            case .background:
-                // Save all data when entering background
-                try? modelContext.save()
-            default:
-                break
-            }
+            // Refresh on return from background: the observer query's background
+            // delivery is throttled, and `.task` doesn't re-run on resume, so this
+            // covers data added in the Health app while we were suspended.
+            guard newPhase == .active else { return }
+            userPreferences.reload()
+            Task { try? await healthKitManager.fetchSleepData() }
         }
     }
 }
 
 #Preview {
-    ContentView()
-        .modelContainer(for: UserPreferences.self, inMemory: true)
+    ContentView(userPreferences: .preview())
 }
 
 private extension View {

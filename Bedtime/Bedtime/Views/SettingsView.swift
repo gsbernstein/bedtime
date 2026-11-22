@@ -267,7 +267,7 @@ struct SettingsView: View {
 #Preview {
     let sourcePreferences = SourcePreferences()
     SettingsView(
-        preferences: UserPreferences(),
+        preferences: .preview(),
         sourcePreferences: sourcePreferences,
         healthKitManager: HealthKitManager(sourcePreferences: sourcePreferences)
     )
