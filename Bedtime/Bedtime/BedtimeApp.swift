@@ -5,53 +5,70 @@
 //  Created by Greg on 10/4/25.
 //
 
-import SwiftUI
+import OSLog
 import SwiftData
+import SwiftUI
 import UIKit
 
 @main
 struct BedtimeApp: App {
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var modelContainer: ModelContainer
-    @State private var isUsingInMemoryStore: Bool
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.burnsides.bedtime",
+        category: "SwiftData"
+    )
 
-    init() {
-        if UIApplication.shared.isProtectedDataAvailable,
-           let persistentContainer = Self.makePersistentContainer() {
-            _modelContainer = State(initialValue: persistentContainer)
-            _isUsingInMemoryStore = State(initialValue: false)
-        } else {
-            _modelContainer = State(initialValue: Self.makeInMemoryContainer())
-            _isUsingInMemoryStore = State(initialValue: true)
-        }
-    }
+    @State private var modelContainer: ModelContainer?
+    @State private var loadFailed = false
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .id(isUsingInMemoryStore)
-                .onReceive(
-                    NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)
-                ) { _ in
-                    switchToPersistentContainerIfAvailable()
-                }
-                .onChange(of: scenePhase) { _, newPhase in
-                    if newPhase == .active {
-                        switchToPersistentContainerIfAvailable()
+            Group {
+                if let modelContainer {
+                    ContentView()
+                        .modelContainer(modelContainer)
+                } else if loadFailed {
+                    ContentUnavailableView {
+                        Label("Unable to Load Settings", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text("Bedger couldn't open its settings store.")
+                    } actions: {
+                        Button("Retry") {
+                            loadModelContainerIfNeeded()
+                        }
                     }
+                } else {
+                    ProgressView()
                 }
+            }
+            .onAppear {
+                loadModelContainerIfNeeded()
+            }
+            .task {
+                // If launched before first unlock, wait until protected data becomes available.
+                guard modelContainer == nil else { return }
+                let iterator = NotificationCenter.default
+                    .notifications(named: UIApplication.protectedDataDidBecomeAvailableNotification)
+                    .makeAsyncIterator()
+                loadModelContainerIfNeeded()
+                while modelContainer == nil, await iterator.next() != nil {
+                    loadModelContainerIfNeeded()
+                }
+            }
         }
-        .modelContainer(modelContainer)
     }
 
-    private func switchToPersistentContainerIfAvailable() {
-        guard isUsingInMemoryStore,
-              UIApplication.shared.isProtectedDataAvailable,
-              let persistentContainer = Self.makePersistentContainer() else {
+    private func loadModelContainerIfNeeded() {
+        guard modelContainer == nil,
+              UIApplication.shared.isProtectedDataAvailable else {
             return
         }
-        modelContainer = persistentContainer
-        isUsingInMemoryStore = false
+
+        if let container = Self.makePersistentContainer() {
+            modelContainer = container
+            loadFailed = false
+        } else {
+            loadFailed = true
+        }
     }
 
     private static func makePersistentContainer() -> ModelContainer? {
@@ -65,22 +82,19 @@ struct BedtimeApp: App {
             seedPreferencesIfNeeded(in: container)
             return container
         } catch {
-            // While locked before first unlock (e.g. background launch after a reboot),
-            // opening the on-disk store fails with a file-protection/permission error.
-            // Never delete the store or fatalError in that case; fall back to an in-memory
-            // container until protected data becomes available.
+            let storeURL = modelConfiguration.url
+            // Never delete the store when protected data is unavailable or any store file
+            // can't be opened for reading (e.g. file protection / permission errors).
             guard UIApplication.shared.isProtectedDataAvailable,
-                  !isFileAccessError(error) else {
-                print("[Bedtime] Persistent SwiftData store unavailable while protected, deferring load: \(error)")
+                  canOpenStoreFilesForReading(at: storeURL) else {
+                logger.error("Persistent SwiftData store unavailable; preserving files on disk: \(error, privacy: .public)")
                 return nil
             }
 
-            // The store on disk can be incompatible with the current schema after a
-            // model change that SwiftData can't lightweight-migrate (e.g. the max-hours
-            // → earliestReasonableBedtime refactor). Only when unlocked and not a file-access
-            // error, discard the stale store and rebuild it.
-            print("[Bedtime] Resetting incompatible SwiftData store after error: \(error)")
-            let storeURL = modelConfiguration.url
+            // The store is readable on disk, so the failure is an incompatible schema
+            // (e.g. a model change SwiftData can't lightweight-migrate) or corruption.
+            // Discard the stale store and rebuild it rather than crashing on open.
+            logger.warning("Resetting incompatible SwiftData store after error: \(error, privacy: .public)")
             let fileManager = FileManager.default
             for suffix in ["", "-shm", "-wal"] {
                 let url = URL(fileURLWithPath: storeURL.path + suffix)
@@ -92,25 +106,30 @@ struct BedtimeApp: App {
                 seedPreferencesIfNeeded(in: container)
                 return container
             } catch {
-                print("[Bedtime] Could not recreate persistent SwiftData store, falling back to in-memory: \(error)")
+                logger.error("Could not recreate persistent SwiftData store: \(error, privacy: .public)")
                 return nil
             }
         }
     }
 
-    private static func makeInMemoryContainer() -> ModelContainer {
-        let schema = Schema([
-            UserPreferences.self,
-        ])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        do {
-            return try ModelContainer(for: schema, configurations: [configuration])
-        } catch {
-            fatalError("Could not create in-memory ModelContainer: \(error)")
+    /// Returns `true` only if `storeURL` exists and every existing SQLite file
+    /// (`default.store`, `-shm`, `-wal`) can be opened for reading.
+    private static func canOpenStoreFilesForReading(at storeURL: URL) -> Bool {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: storeURL.path) else {
+            return false
         }
+        for suffix in ["", "-shm", "-wal"] {
+            let url = URL(fileURLWithPath: storeURL.path + suffix)
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+            guard let handle = try? FileHandle(forReadingFrom: url) else {
+                return false
+            }
+            try? handle.close()
+        }
+        return true
     }
 
-    @MainActor
     private static func seedPreferencesIfNeeded(in container: ModelContainer) {
         let context = container.mainContext
         guard let count = try? context.fetchCount(FetchDescriptor<UserPreferences>()),
@@ -119,43 +138,5 @@ struct BedtimeApp: App {
         }
         context.insert(UserPreferences())
         try? context.save()
-    }
-
-    private static func isFileAccessError(_ error: Error) -> Bool {
-        var queue: [NSError] = [error as NSError]
-        var visited = Set<ObjectIdentifier>()
-
-        while let current = queue.popLast() {
-            let identifier = ObjectIdentifier(current)
-            guard visited.insert(identifier).inserted else { continue }
-
-            switch current.domain {
-            case NSCocoaErrorDomain:
-                if current.code == NSFileReadNoPermissionError
-                    || current.code == NSFileWriteNoPermissionError
-                    || current.code == NSFileLockingError {
-                    return true
-                }
-            case NSPOSIXErrorDomain:
-                if current.code == Int(POSIXError.EPERM.rawValue)
-                    || current.code == Int(POSIXError.EACCES.rawValue) {
-                    return true
-                }
-            case "NSSQLiteErrorDomain":
-                // SQLITE_PERM (3), SQLITE_CANTOPEN (14), SQLITE_AUTH (23)
-                if current.code == 3 || current.code == 14 || current.code == 23 {
-                    return true
-                }
-            default:
-                break
-            }
-
-            if let underlying = current.userInfo[NSUnderlyingErrorKey] as? NSError {
-                queue.append(underlying)
-            }
-            queue.append(contentsOf: current.underlyingErrors.map { $0 as NSError })
-        }
-
-        return false
     }
 }
