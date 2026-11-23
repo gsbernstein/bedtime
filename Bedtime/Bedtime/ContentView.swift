@@ -6,19 +6,20 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
-    @ObservedObject var userPreferences: UserPreferences
+    @Query private var preferences: [UserPreferences]
     @StateObject private var sourcePreferences: SourcePreferences
     @StateObject private var healthKitManager: HealthKitManager
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var error: Error?
     
-    init(userPreferences: UserPreferences) {
-        _userPreferences = ObservedObject(wrappedValue: userPreferences)
+    init() {
         let sourcePrefs = SourcePreferences()
         _sourcePreferences = StateObject(wrappedValue: sourcePrefs)
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))
@@ -38,6 +39,16 @@ struct ContentView: View {
     private var recentSourceAppLinks: [SleepSourceAppLink] {
         guard healthKitManager.allSleepSessions[lastNightKey] == nil else { return [] }
         return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
+    }
+    
+    private var userPreferences: UserPreferences {
+        if let existing = preferences.first {
+            return existing
+        } else {
+            let new = UserPreferences()
+            modelContext.insert(new)
+            return new
+        }
     }
     
     private var sleepBank: SleepBank {
@@ -203,14 +214,14 @@ struct ContentView: View {
             // delivery is throttled, and `.task` doesn't re-run on resume, so this
             // covers data added in the Health app while we were suspended.
             guard newPhase == .active else { return }
-            userPreferences.reload()
             Task { try? await healthKitManager.fetchSleepData() }
         }
     }
 }
 
 #Preview {
-    ContentView(userPreferences: .preview())
+    ContentView()
+        .modelContainer(for: UserPreferences.self, inMemory: true)
 }
 
 private extension View {
