@@ -5,6 +5,7 @@
 //  Created by Greg on 10/4/25.
 //
 
+import Observation
 import OSLog
 import SwiftData
 import SwiftUI
@@ -12,63 +13,85 @@ import UIKit
 
 @main
 struct BedtimeApp: App {
+    private let store = ModelContainerStore()
+
+    var body: some Scene {
+        WindowGroup {
+            RootView(store: store)
+        }
+    }
+}
+
+private struct RootView: View {
+    let store: ModelContainerStore
+
+    init(store: ModelContainerStore) {
+        self.store = store
+        // Load synchronously on scene attach so normal unlocked launches render
+        // ContentView on the first frame without flashing a ProgressView.
+        store.loadIfNeeded()
+    }
+
+    var body: some View {
+        Group {
+            if let modelContainer = store.modelContainer {
+                ContentView()
+                    .modelContainer(modelContainer)
+            } else if store.loadFailed {
+                ContentUnavailableView {
+                    Label("Unable to Load Settings", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text("Bedger couldn't open its settings store.")
+                } actions: {
+                    Button("Retry") {
+                        store.retry()
+                    }
+                }
+            } else {
+                ProgressView()
+            }
+        }
+        .task {
+            // If launched before first unlock, wait until protected data becomes available.
+            guard store.modelContainer == nil, !store.loadFailed else { return }
+            let iterator = NotificationCenter.default
+                .notifications(named: UIApplication.protectedDataDidBecomeAvailableNotification)
+                .makeAsyncIterator()
+            store.loadIfNeeded()
+            while store.modelContainer == nil, !store.loadFailed, await iterator.next() != nil {
+                store.loadIfNeeded()
+            }
+        }
+    }
+}
+
+@Observable
+private final class ModelContainerStore {
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.burnsides.bedtime",
         category: "SwiftData"
     )
 
-    @State private var modelContainer: ModelContainer?
-    @State private var loadFailed = false
+    private(set) var modelContainer: ModelContainer?
+    private(set) var loadFailed = false
 
-    var body: some Scene {
-        WindowGroup {
-            Group {
-                if let modelContainer {
-                    ContentView()
-                        .modelContainer(modelContainer)
-                } else if loadFailed {
-                    ContentUnavailableView {
-                        Label("Unable to Load Settings", systemImage: "exclamationmark.triangle")
-                    } description: {
-                        Text("Bedger couldn't open its settings store.")
-                    } actions: {
-                        Button("Retry") {
-                            loadModelContainerIfNeeded()
-                        }
-                    }
-                } else {
-                    ProgressView()
-                }
-            }
-            .onAppear {
-                loadModelContainerIfNeeded()
-            }
-            .task {
-                // If launched before first unlock, wait until protected data becomes available.
-                guard modelContainer == nil else { return }
-                let iterator = NotificationCenter.default
-                    .notifications(named: UIApplication.protectedDataDidBecomeAvailableNotification)
-                    .makeAsyncIterator()
-                loadModelContainerIfNeeded()
-                while modelContainer == nil, await iterator.next() != nil {
-                    loadModelContainerIfNeeded()
-                }
-            }
-        }
-    }
-
-    private func loadModelContainerIfNeeded() {
+    func loadIfNeeded() {
         guard modelContainer == nil,
+              !loadFailed,
               UIApplication.shared.isProtectedDataAvailable else {
             return
         }
 
         if let container = Self.makePersistentContainer() {
             modelContainer = container
-            loadFailed = false
         } else {
             loadFailed = true
         }
+    }
+
+    func retry() {
+        loadFailed = false
+        loadIfNeeded()
     }
 
     private static func makePersistentContainer() -> ModelContainer? {
