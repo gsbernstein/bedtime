@@ -10,7 +10,7 @@ import UIKit
 
 @main
 struct BedtimeApp: App {
-    @State private var userPreferences = UserPreferences()
+    @StateObject private var userPreferences = UserPreferences()
 
     var body: some Scene {
         WindowGroup {

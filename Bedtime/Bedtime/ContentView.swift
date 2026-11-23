@@ -10,7 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
-    let userPreferences: UserPreferences
+    @ObservedObject var userPreferences: UserPreferences
     @StateObject private var sourcePreferences: SourcePreferences
     @StateObject private var healthKitManager: HealthKitManager
     @State private var showingSettings = false
@@ -18,7 +18,7 @@ struct ContentView: View {
     @State private var error: Error?
     
     init(userPreferences: UserPreferences) {
-        self.userPreferences = userPreferences
+        _userPreferences = ObservedObject(wrappedValue: userPreferences)
         let sourcePrefs = SourcePreferences()
         _sourcePreferences = StateObject(wrappedValue: sourcePrefs)
         _healthKitManager = StateObject(wrappedValue: HealthKitManager(sourcePreferences: sourcePrefs))

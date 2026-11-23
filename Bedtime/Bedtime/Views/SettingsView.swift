@@ -10,7 +10,7 @@ import Combine
 import HealthKit
 
 struct SettingsView: View {
-    @Bindable var preferences: UserPreferences
+    @ObservedObject var preferences: UserPreferences
     @ObservedObject var sourcePreferences: SourcePreferences
     var healthKitManager: HealthKitManager
     @Environment(\.dismiss) private var dismiss
