@@ -41,17 +41,7 @@ struct ContentView: View {
         return ViewModel.recentSourceAppLinks(sleepSessions: healthKitManager.allSleepSessions)
     }
     
-    private var userPreferences: UserPreferences {
-        if let existing = preferences.first {
-            return existing
-        } else {
-            let new = UserPreferences()
-            modelContext.insert(new)
-            return new
-        }
-    }
-    
-    private var sleepBank: SleepBank {
+    private func sleepBank(for userPreferences: UserPreferences) -> SleepBank {
         ViewModel.calculateSleepBank(
             sleepSessions: healthKitManager.sleepSessions,
             goalHours: userPreferences.sleepGoalHours,
@@ -61,7 +51,7 @@ struct ContentView: View {
     
     /// Balance over the widest selectable lookback, independent of the current range, so the
     /// balance chart can show every night the range start can be moved to.
-    private var fullWindowSleepBank: SleepBank {
+    private func fullWindowSleepBank(for userPreferences: UserPreferences) -> SleepBank {
         ViewModel.calculateSleepBank(
             sleepSessions: healthKitManager.sleepSessions,
             goalHours: userPreferences.sleepGoalHours,
@@ -69,21 +59,10 @@ struct ContentView: View {
         )
     }
     
-    private var sleepBankDaysBinding: Binding<Int> {
-        Binding(
-            get: { userPreferences.sleepBankDays },
-            set: { userPreferences.sleepBankDays = $0 }
-        )
-    }
-    
-    private var sleepGoalHoursBinding: Binding<Double> {
-        Binding(
-            get: { userPreferences.sleepGoalHours },
-            set: { userPreferences.sleepGoalHours = $0 }
-        )
-    }
-    
-    private var bedtimeRecommendation: BedtimeRecommendation {
+    private static func bedtimeRecommendation(
+        for userPreferences: UserPreferences,
+        sleepBank: SleepBank
+    ) -> BedtimeRecommendation {
         ViewModel.generateBedtimeRecommendation(
             wakeTime: userPreferences.wakeTime,
             earliestBedtime: userPreferences.earliestReasonableBedtime,
@@ -93,14 +72,7 @@ struct ContentView: View {
         )
     }
 
-    private var wakeTimeBinding: Binding<Date> {
-        Binding(
-            get: { userPreferences.wakeTime },
-            set: { userPreferences.wakeTime = $0 }
-        )
-    }
-
-    private var sleepBankInsight: SleepBankInsight? {
+    private func sleepBankInsight(for userPreferences: UserPreferences) -> SleepBankInsight? {
         SleepInsightsEngine.generateInsight(
             sleepSessions: healthKitManager.sleepSessions,
             goalHours: userPreferences.sleepGoalHours,
@@ -111,7 +83,30 @@ struct ContentView: View {
         )
     }
 
+    /// `BedtimeApp` seeds the record when opening the persistent store, so the
+    /// placeholder below is only reachable if that seed failed — or in previews, which
+    /// start from an empty in-memory container.
     var body: some View {
+        if let userPreferences = preferences.first {
+            dashboard(for: userPreferences)
+        } else {
+            ProgressView()
+                .task { seedDefaultPreferencesIfNeeded() }
+        }
+    }
+
+    private func seedDefaultPreferencesIfNeeded() {
+        guard preferences.isEmpty else { return }
+        modelContext.insert(UserPreferences())
+    }
+
+    @ViewBuilder
+    private func dashboard(for userPreferences: UserPreferences) -> some View {
+        @Bindable var bindablePreferences = userPreferences
+        let currentSleepBank = sleepBank(for: userPreferences)
+        let recommendation = Self.bedtimeRecommendation(for: userPreferences, sleepBank: currentSleepBank)
+        let insight = sleepBankInsight(for: userPreferences)
+
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
@@ -125,21 +120,21 @@ struct ContentView: View {
                         HealthKitAuthorizationCard(healthKitManager: healthKitManager)
                     case .hasRequested:
                         BedtimeRecommendationCard(
-                            recommendation: bedtimeRecommendation,
-                            wakeTime: wakeTimeBinding
+                            recommendation: recommendation,
+                            wakeTime: $bindablePreferences.wakeTime
                         )
 
                         SleepBankCard(
-                            sleepBank: sleepBank,
-                            fullWindowBank: fullWindowSleepBank,
-                            sleepBankDays: sleepBankDaysBinding,
-                            sleepGoalHours: sleepGoalHoursBinding,
+                            sleepBank: currentSleepBank,
+                            fullWindowBank: fullWindowSleepBank(for: userPreferences),
+                            sleepBankDays: $bindablePreferences.sleepBankDays,
+                            sleepGoalHours: $bindablePreferences.sleepGoalHours,
                             hideChart: userPreferences.hideSleepBankChart
                         )
 
-                        if let sleepBankInsight {
+                        if let insight {
                             SleepInsightsCard(
-                                insight: sleepBankInsight,
+                                insight: insight,
                                 currentSleepBankDays: userPreferences.sleepBankDays,
                                 onApplyDays: { days in
                                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -165,7 +160,7 @@ struct ContentView: View {
                                 allSessions: healthKitManager.allSleepSessions,
                                 excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers,
                                 sleepGoal: userPreferences.sleepGoalHours,
-                                sleepBankDays: sleepBankDaysBinding
+                                sleepBankDays: $bindablePreferences.sleepBankDays
                             )
                         }
                     }
