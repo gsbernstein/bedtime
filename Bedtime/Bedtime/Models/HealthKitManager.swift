@@ -182,6 +182,12 @@ class HealthKitManager: ObservableObject {
                 } catch {
                     self.errorMessage = "Failed to refresh sleep data: \(error.localizedDescription)"
                 }
+                // New sleep data is the best signal that the person is awake —
+                // often better than the wake-refresh background task, since it
+                // fires when data actually lands rather than guessing a time.
+                // No-ops if there's no activity, it's not sleeping, or it's
+                // already marked awake.
+                await LiveActivityManager.shared.markAwakeIfNeeded()
             }
         }
 

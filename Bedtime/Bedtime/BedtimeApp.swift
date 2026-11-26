@@ -15,6 +15,12 @@ import UIKit
 struct BedtimeApp: App {
     @State private var store = ModelContainerStore()
 
+    init() {
+        // Must happen synchronously before the app finishes launching, per
+        // BGTaskScheduler's requirements.
+        LiveActivityManager.registerBackgroundTask()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView(store: store)
@@ -22,6 +28,7 @@ struct BedtimeApp: App {
     }
 }
 
+@MainActor
 private struct RootView: View {
     let store: ModelContainerStore
     @State private var showingResetConfirmation = false
@@ -87,8 +94,10 @@ private struct RootView: View {
     }
 }
 
+@MainActor
 @Observable
 private final class ModelContainerStore {
+    nonisolated init() {}
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.burnsides.bedtime",
         category: "SwiftData"

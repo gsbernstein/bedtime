@@ -8,13 +8,19 @@
 import SwiftUI
 import Combine
 import HealthKit
+import UIKit
 
 struct SettingsView: View {
     @Bindable var preferences: UserPreferences
     @ObservedObject var sourcePreferences: SourcePreferences
     var healthKitManager: HealthKitManager
+    @ObservedObject var liveActivityManager: LiveActivityManager = .shared
+    var recommendation: BedtimeRecommendation? = nil
+    var sourceAppLink: BedtimeSourceAppLink? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @State private var isLoadingSources = true
 
     private var sleepBankDaysBinding: Binding<Double> {
@@ -121,6 +127,10 @@ struct SettingsView: View {
                     Text("Won't recommend sleeping before this time — allowing up to \(TimeFormatter.formatHours(preferences.nominalMaxSleepHours, style: preferences.durationDisplayStyle, maxFractionDigits: 2)) per night based on your wake time (aside from DST adjustments).")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                }
+
+                if liveActivityManager.isSupported {
+                    liveActivitySection
                 }
                 
                 Section("Data Sources") {
@@ -240,8 +250,172 @@ struct SettingsView: View {
             }
         }
         .task {
+            liveActivityManager.refreshStatus()
             defer { isLoadingSources = false }
             await healthKitManager.loadAvailableSources()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                liveActivityManager.refreshStatus()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var liveActivitySection: some View {
+        Section {
+            switch liveActivityManager.status {
+            case .unavailable:
+                EmptyView()
+
+            case .disabled:
+                Label(
+                    "Live Activities are disabled for Bedger in system settings.",
+                    systemImage: "exclamationmark.circle"
+                )
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    Button("Open Settings") {
+                        openURL(settingsURL)
+                    }
+                }
+
+            case .active(let bedtime, let wakeTime, let isSleeping, let isAwake):
+                HStack(spacing: 12) {
+                    Image(systemName: isAwake ? "sun.max.fill" : (isSleeping ? "moon.zzz.fill" : "bed.double.fill"))
+                        .foregroundStyle(isAwake ? .orange : (isSleeping ? .indigo : .blue))
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(isAwake ? "Awake" : (isSleeping ? "Sleeping" : "Winding down"))
+                            .font(.body)
+                        Text("Bedtime \(TimeFormatter.formatTimeOfDay(bedtime)) · Wake \(TimeFormatter.formatTimeOfDay(wakeTime))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let recommendation {
+                    Button {
+                        Task {
+                            await liveActivityManager.startOrUpdate(
+                                with: recommendation,
+                                durationStyle: preferences.durationDisplayStyle,
+                                sourceAppLink: sourceAppLink
+                            )
+                        }
+                    } label: {
+                        Label("Update Live Activity", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(liveActivityManager.isWorking)
+                }
+
+                Button(role: .destructive) {
+                    Task {
+                        await liveActivityManager.end()
+                    }
+                } label: {
+                    Label("End Live Activity", systemImage: "xmark.circle")
+                }
+                .disabled(liveActivityManager.isWorking)
+
+            case .scheduled(let nextStart, let bedtime, let count):
+                HStack(spacing: 12) {
+                    Image(systemName: "clock.badge.checkmark")
+                        .foregroundStyle(.blue)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Scheduled for \(TimeFormatter.formatTimeOfDay(nextStart))")
+                            .font(.body)
+                        Text("Bedtime \(TimeFormatter.formatTimeOfDay(bedtime)) · \(count == 1 ? "1 night queued" : "\(count) nights queued")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let recommendation {
+                    Button {
+                        Task {
+                            await liveActivityManager.startOrUpdate(
+                                with: recommendation,
+                                durationStyle: preferences.durationDisplayStyle,
+                                sourceAppLink: sourceAppLink
+                            )
+                        }
+                    } label: {
+                        Label("Start Now", systemImage: "play.circle")
+                    }
+                    .disabled(liveActivityManager.isWorking)
+                }
+
+                Button(role: .destructive) {
+                    Task {
+                        await liveActivityManager.cancelScheduled()
+                    }
+                } label: {
+                    Label("Cancel Scheduled", systemImage: "calendar.badge.minus")
+                }
+                .disabled(liveActivityManager.isWorking)
+
+            case .inactive:
+                HStack(spacing: 12) {
+                    Image(systemName: "moon.stars")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+                    Text("Not Active")
+                        .foregroundStyle(.secondary)
+                }
+
+                if let recommendation {
+                    Button {
+                        Task {
+                            await liveActivityManager.startOrUpdate(
+                                with: recommendation,
+                                durationStyle: preferences.durationDisplayStyle,
+                                sourceAppLink: sourceAppLink
+                            )
+                        }
+                    } label: {
+                        Label("Start Now", systemImage: "play.circle")
+                    }
+                    .disabled(liveActivityManager.isWorking)
+
+                    if #available(iOS 26, *) {
+                        Button {
+                            Task {
+                                await liveActivityManager.syncWithSchedule(
+                                    recommendation: recommendation,
+                                    durationStyle: preferences.durationDisplayStyle,
+                                    sourceAppLink: sourceAppLink
+                                )
+                            }
+                        } label: {
+                            Label("Schedule Upcoming Nights", systemImage: "calendar.badge.plus")
+                        }
+                        .disabled(liveActivityManager.isWorking)
+                    }
+                }
+            }
+
+            if liveActivityManager.isWorking {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Updating Live Activity…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let errorMessage = liveActivityManager.lastErrorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        } header: {
+            Text("Live Activity")
+        } footer: {
+            Text("Bedger automatically shows your bedtime countdown 30 minutes before bedtime and updates whenever you open the app.")
         }
     }
     

@@ -21,6 +21,12 @@ enum Constants {
     /// Selectable nightly sleep goals (Settings slider and the goal editor on the main screen).
     static let sleepGoalHoursRange = 6.0...12.0
     static let sleepGoalStepHours: Double = 0.25
+    /// How far ahead of the recommended bedtime the Live Activity appears.
+    static let liveActivityLeadTime: TimeInterval = .minutes(30)
+    /// Matches `INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers`. A backup
+    /// for flipping the Live Activity to its post-wake state in case HealthKit
+    /// background delivery doesn't fire by then.
+    static let wakeRefreshTaskIdentifier = "com.burnsides.bedtime.background-task"
 
     /// Goal choices as step offsets from the lowest goal, so pickers can tag
     /// options with values that compare exactly.

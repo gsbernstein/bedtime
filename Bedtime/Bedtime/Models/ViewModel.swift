@@ -112,6 +112,8 @@ class ViewModel {
             calendar: calendar
         )
 
+        // Calculate how much sleep we need tonight
+        // If we're in debt, we need extra sleep to catch up
         var totalHoursNeeded = sleepGoal - sleepBank.currentBalance
 
         // Generate reason
