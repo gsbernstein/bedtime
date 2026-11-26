@@ -24,12 +24,17 @@ struct BedtimeApp: App {
 
 private struct RootView: View {
     let store: ModelContainerStore
+    @State private var showingResetConfirmation = false
 
     init(store: ModelContainerStore) {
         self.store = store
         // Load synchronously on scene attach so normal unlocked launches render
         // ContentView on the first frame without flashing a ProgressView.
         store.loadIfNeeded()
+    }
+
+    private var isWaitingForProtectedData: Bool {
+        store.modelContainer == nil && !store.loadFailed
     }
 
     var body: some View {
@@ -46,19 +51,36 @@ private struct RootView: View {
                     Button("Retry") {
                         store.retry()
                     }
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Reset Settings", role: .destructive) {
+                        showingResetConfirmation = true
+                    }
+                }
+                .confirmationDialog(
+                    "Reset Settings?",
+                    isPresented: $showingResetConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button("Reset Settings", role: .destructive) {
+                        store.resetStoreAndReload()
+                    }
+                } message: {
+                    Text("This clears your saved sleep goal, wake time, and display preferences and recreates the settings store.")
                 }
             } else {
                 ProgressView()
             }
         }
-        .task {
-            // If launched before first unlock, wait until protected data becomes available.
-            guard store.modelContainer == nil, !store.loadFailed else { return }
+        .task(id: isWaitingForProtectedData) {
+            // If launched before first unlock (or locked mid-load), wait until
+            // protected data becomes available before retrying automatically.
+            guard isWaitingForProtectedData else { return }
             let iterator = NotificationCenter.default
                 .notifications(named: UIApplication.protectedDataDidBecomeAvailableNotification)
                 .makeAsyncIterator()
             store.loadIfNeeded()
-            while store.modelContainer == nil, !store.loadFailed, await iterator.next() != nil {
+            while isWaitingForProtectedData, await iterator.next() != nil {
                 store.loadIfNeeded()
             }
         }
@@ -84,7 +106,7 @@ private final class ModelContainerStore {
 
         if let container = Self.makePersistentContainer() {
             modelContainer = container
-        } else {
+        } else if UIApplication.shared.isProtectedDataAvailable {
             loadFailed = true
         }
     }
@@ -94,35 +116,46 @@ private final class ModelContainerStore {
         loadIfNeeded()
     }
 
+    func resetStoreAndReload() {
+        guard UIApplication.shared.isProtectedDataAvailable else {
+            loadFailed = false
+            return
+        }
+        let configuration = Self.makeConfiguration()
+        Self.logger.warning("User requested SwiftData store reset at: \(configuration.url.path, privacy: .public)")
+        Self.removeStoreFiles(at: configuration.url)
+        loadFailed = false
+        loadIfNeeded()
+    }
+
+    private static let schema = Schema([
+        UserPreferences.self,
+    ])
+
+    private static func makeConfiguration() -> ModelConfiguration {
+        ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    }
+
     private static func makePersistentContainer() -> ModelContainer? {
-        let schema = Schema([
-            UserPreferences.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let modelConfiguration = makeConfiguration()
 
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
             seedPreferencesIfNeeded(in: container)
             return container
         } catch {
-            let storeURL = modelConfiguration.url
-            // Never delete the store when protected data is unavailable or any store file
-            // can't be opened for reading (e.g. file protection / permission errors).
+            // Only discard the store automatically for explicitly identified schema
+            // incompatibilities while unlocked. For all other errors (including opaque
+            // loadIssueModelContainer failures that may be transient locks or file
+            // protection), preserve the files on disk for retry or explicit user reset.
             guard UIApplication.shared.isProtectedDataAvailable,
-                  canOpenStoreFilesForReading(at: storeURL) else {
+                  isSchemaIncompatibilityError(error) else {
                 logger.error("Persistent SwiftData store unavailable; preserving files on disk: \(error, privacy: .public)")
                 return nil
             }
 
-            // The store is readable on disk, so the failure is an incompatible schema
-            // (e.g. a model change SwiftData can't lightweight-migrate) or corruption.
-            // Discard the stale store and rebuild it rather than crashing on open.
-            logger.warning("Resetting incompatible SwiftData store after error: \(error, privacy: .public)")
-            let fileManager = FileManager.default
-            for suffix in ["", "-shm", "-wal"] {
-                let url = URL(fileURLWithPath: storeURL.path + suffix)
-                try? fileManager.removeItem(at: url)
-            }
+            logger.warning("Resetting incompatible SwiftData store after schema error: \(error, privacy: .public)")
+            removeStoreFiles(at: modelConfiguration.url)
 
             do {
                 let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
@@ -135,22 +168,23 @@ private final class ModelContainerStore {
         }
     }
 
-    /// Returns `true` only if `storeURL` exists and every existing SQLite file
-    /// (`default.store`, `-shm`, `-wal`) can be opened for reading.
-    private static func canOpenStoreFilesForReading(at storeURL: URL) -> Bool {
-        let fileManager = FileManager.default
-        guard fileManager.fileExists(atPath: storeURL.path) else {
-            return false
+    private static func isSchemaIncompatibilityError(_ error: Error) -> Bool {
+        if #available(iOS 18.0, *),
+           SwiftDataError.backwardMigration ~= error || SwiftDataError.unknownSchema ~= error {
+            return true
         }
+        if #available(iOS 27.0, *), SwiftDataError.unknownDataStoreSchema ~= error {
+            return true
+        }
+        return false
+    }
+
+    private static func removeStoreFiles(at storeURL: URL) {
+        let fileManager = FileManager.default
         for suffix in ["", "-shm", "-wal"] {
             let url = URL(fileURLWithPath: storeURL.path + suffix)
-            guard fileManager.fileExists(atPath: url.path) else { continue }
-            guard let handle = try? FileHandle(forReadingFrom: url) else {
-                return false
-            }
-            try? handle.close()
+            try? fileManager.removeItem(at: url)
         }
-        return true
     }
 
     private static func seedPreferencesIfNeeded(in container: ModelContainer) {
