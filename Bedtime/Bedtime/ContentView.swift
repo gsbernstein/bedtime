@@ -59,21 +59,7 @@ struct ContentView: View {
         )
     }
     
-    private func sleepBankDaysBinding(for userPreferences: UserPreferences) -> Binding<Int> {
-        Binding(
-            get: { userPreferences.sleepBankDays },
-            set: { userPreferences.sleepBankDays = $0 }
-        )
-    }
-    
-    private func sleepGoalHoursBinding(for userPreferences: UserPreferences) -> Binding<Double> {
-        Binding(
-            get: { userPreferences.sleepGoalHours },
-            set: { userPreferences.sleepGoalHours = $0 }
-        )
-    }
-    
-    private func bedtimeRecommendation(
+    private static func bedtimeRecommendation(
         for userPreferences: UserPreferences,
         sleepBank: SleepBank
     ) -> BedtimeRecommendation {
@@ -83,13 +69,6 @@ struct ContentView: View {
             sleepGoal: userPreferences.sleepGoalHours,
             sleepBank: sleepBank,
             durationStyle: userPreferences.durationDisplayStyle
-        )
-    }
-
-    private func wakeTimeBinding(for userPreferences: UserPreferences) -> Binding<Date> {
-        Binding(
-            get: { userPreferences.wakeTime },
-            set: { userPreferences.wakeTime = $0 }
         )
     }
 
@@ -123,12 +102,10 @@ struct ContentView: View {
 
     @ViewBuilder
     private func dashboard(for userPreferences: UserPreferences) -> some View {
+        @Bindable var bindablePreferences = userPreferences
         let currentSleepBank = sleepBank(for: userPreferences)
-        let recommendation = bedtimeRecommendation(for: userPreferences, sleepBank: currentSleepBank)
+        let recommendation = Self.bedtimeRecommendation(for: userPreferences, sleepBank: currentSleepBank)
         let insight = sleepBankInsight(for: userPreferences)
-        let daysBinding = sleepBankDaysBinding(for: userPreferences)
-        let goalBinding = sleepGoalHoursBinding(for: userPreferences)
-        let wakeBinding = wakeTimeBinding(for: userPreferences)
 
         NavigationStack {
             ScrollView {
@@ -144,14 +121,14 @@ struct ContentView: View {
                     case .hasRequested:
                         BedtimeRecommendationCard(
                             recommendation: recommendation,
-                            wakeTime: wakeBinding
+                            wakeTime: $bindablePreferences.wakeTime
                         )
 
                         SleepBankCard(
                             sleepBank: currentSleepBank,
                             fullWindowBank: fullWindowSleepBank(for: userPreferences),
-                            sleepBankDays: daysBinding,
-                            sleepGoalHours: goalBinding,
+                            sleepBankDays: $bindablePreferences.sleepBankDays,
+                            sleepGoalHours: $bindablePreferences.sleepGoalHours,
                             hideChart: userPreferences.hideSleepBankChart
                         )
 
@@ -183,7 +160,7 @@ struct ContentView: View {
                                 allSessions: healthKitManager.allSleepSessions,
                                 excludedSourceIDs: sourcePreferences.excludedBundleIdentifiers,
                                 sleepGoal: userPreferences.sleepGoalHours,
-                                sleepBankDays: daysBinding
+                                sleepBankDays: $bindablePreferences.sleepBankDays
                             )
                         }
                     }
