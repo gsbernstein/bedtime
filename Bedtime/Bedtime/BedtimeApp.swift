@@ -13,7 +13,7 @@ import UIKit
 
 @main
 struct BedtimeApp: App {
-    private let store = ModelContainerStore()
+    @State private var store = ModelContainerStore()
 
     var body: some Scene {
         WindowGroup {
