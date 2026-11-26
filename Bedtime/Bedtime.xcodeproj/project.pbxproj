@@ -233,6 +233,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Bedtime/Bedtime.entitlements;
 				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Bedtime-Info.plist";
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.burnsides.bedtime.background-task";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Use your sleep data to calculate your sleep bank and provide personalized bedtime recommendations.";
@@ -262,6 +264,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Bedtime/Bedtime.entitlements;
 				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Bedtime-Info.plist";
 				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.burnsides.bedtime.background-task";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Use your sleep data to calculate your sleep bank and provide personalized bedtime recommendations.";
