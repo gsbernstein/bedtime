@@ -107,6 +107,9 @@ struct ContentView: View {
         let currentSleepBank = sleepBank(for: userPreferences)
         let recommendation = Self.bedtimeRecommendation(for: userPreferences, sleepBank: currentSleepBank)
         let insight = sleepBankInsight(for: userPreferences)
+        let sourceAppLink = recentSourceAppLinks.first.map {
+            BedtimeSourceAppLink(name: $0.name, url: $0.destination)
+        }
 
         NavigationStack {
             ScrollView {
@@ -122,7 +125,6 @@ struct ContentView: View {
                     case .hasRequested:
                         BedtimeRecommendationCard(
                             recommendation: recommendation,
-                            liveActivityManager: liveActivityManager,
                             wakeTime: $bindablePreferences.wakeTime
                         )
 
@@ -199,7 +201,10 @@ struct ContentView: View {
                 SettingsView(
                     preferences: userPreferences,
                     sourcePreferences: sourcePreferences,
-                    healthKitManager: healthKitManager
+                    healthKitManager: healthKitManager,
+                    liveActivityManager: liveActivityManager,
+                    recommendation: recommendation,
+                    sourceAppLink: sourceAppLink
                 )
             }
         }
@@ -222,6 +227,8 @@ struct ContentView: View {
             // sleep bank range, sleep goal, or wake time — none of which go
             // through `scenePhase` above since the app never left the
             // foreground for them.
+            BedtimePlanStore.save(newRecommendation, durationStyle: userPreferences.durationDisplayStyle)
+            guard scenePhase == .active else { return }
             Task {
                 await refreshBedtimePlan(for: userPreferences, recommendation: newRecommendation)
             }
