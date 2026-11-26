@@ -7,6 +7,20 @@
 
 import SwiftUI
 
+private struct ScrollViewportSizeKey: EnvironmentKey {
+    static let defaultValue: CGSize = .zero
+}
+
+extension EnvironmentValues {
+    /// Size of the main scroll view's viewport, published by `ContentView` via
+    /// `onGeometryChange`. Lets a card reason about how much room is above/below it on
+    /// screen without relying on `.global` frames, which don't track reliably during scroll.
+    var scrollViewportSize: CGSize {
+        get { self[ScrollViewportSizeKey.self] }
+        set { self[ScrollViewportSizeKey.self] = newValue }
+    }
+}
+
 struct SleepBankCard: View {
     /// Balance over the selected range, which the Average / Status / Goal columns report.
     let sleepBank: SleepBank
@@ -19,8 +33,18 @@ struct SleepBankCard: View {
     /// When true, the balance waterfall chart is omitted from the card.
     var hideChart: Bool = false
     @Environment(\.durationDisplayStyle) private var durationStyle
+    @Environment(\.scrollViewportSize) private var scrollViewportSize
 
     @State private var isEditingGoal = false
+    /// The goal button's frame relative to the main scroll view's viewport, kept up to date
+    /// by `onGeometryChange` (including while the user is actively scrolling).
+    @State private var goalButtonFrame: CGRect = .zero
+
+    /// Rough on-screen height of the goal popover's wheel picker plus its popover chrome,
+    /// used to decide whether there's enough room above the button to open upward. The wheel
+    /// picker itself is a fixed system height (~190pt even after the editor's negative
+    /// padding), so this pads that out a bit for the popover's own arrow/margins.
+    private static let goalPopoverEstimatedHeight: CGFloat = 210
 
     private var formattedGoal: String {
         TimeFormatter.formatHours(
@@ -127,7 +151,15 @@ struct SleepBankCard: View {
             .accessibilityLabel("Sleep goal")
             .accessibilityValue(formattedGoal)
             .accessibilityHint("Adjusts your nightly sleep goal")
-            .popover(isPresented: $isEditingGoal, arrowEdge: .bottom) {
+            .onGeometryChange(for: CGRect.self) { proxy in
+                proxy.frame(in: .named(Constants.mainScrollCoordinateSpaceName))
+            } action: { _, newValue in
+                goalButtonFrame = newValue
+            }
+            // Prefers opening above (arrowEdge .bottom) so it never covers the chart below,
+            // falling back to opening below only when there truly isn't room above—e.g. when
+            // this card is scrolled near the very top of the screen.
+            .popover(isPresented: $isEditingGoal, arrowEdge: goalPopoverArrowEdge) {
                 SleepGoalEditor(goalHours: sleepGoalHours)
                     .frame(maxWidth: 150)
                     .presentationCompactAdaptation(.popover)
@@ -135,6 +167,18 @@ struct SleepBankCard: View {
         } else {
             goalLabel(showsEditAffordance: false)
         }
+    }
+
+    private var goalPopoverArrowEdge: Edge {
+        guard scrollViewportSize != .zero, goalButtonFrame != .zero else { return .bottom }
+
+        let spaceAbove = goalButtonFrame.minY
+        let spaceBelow = scrollViewportSize.height - goalButtonFrame.maxY
+
+        if spaceAbove < Self.goalPopoverEstimatedHeight && spaceBelow > spaceAbove {
+            return .top
+        }
+        return .bottom
     }
 
     private func goalLabel(showsEditAffordance: Bool) -> some View {
@@ -171,6 +215,7 @@ private struct SleepBankCardPreview: View {
 
     @State private var days = 7
     @State private var goalHours = 8.0
+    @State private var scrollViewportSize: CGSize = .zero
 
     private var allNights: [NightSummary] {
         let calendar = Calendar.current
@@ -206,6 +251,13 @@ private struct SleepBankCardPreview: View {
             )
             .padding()
         }
+        .coordinateSpace(name: Constants.mainScrollCoordinateSpaceName)
+        .onGeometryChange(for: CGSize.self) { proxy in
+            proxy.size
+        } action: { _, newValue in
+            scrollViewportSize = newValue
+        }
+        .environment(\.scrollViewportSize, scrollViewportSize)
         .background(Color.backgroundBehindCards)
     }
 }
