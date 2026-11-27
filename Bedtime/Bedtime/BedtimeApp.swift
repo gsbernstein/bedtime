@@ -22,6 +22,7 @@ struct BedtimeApp: App {
     }
 }
 
+@MainActor
 private struct RootView: View {
     let store: ModelContainerStore
     @State private var showingResetConfirmation = false
@@ -87,8 +88,10 @@ private struct RootView: View {
     }
 }
 
+@MainActor
 @Observable
 private final class ModelContainerStore {
+    nonisolated init() {}
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.burnsides.bedtime",
         category: "SwiftData"
